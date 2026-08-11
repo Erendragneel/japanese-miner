@@ -338,6 +338,36 @@ let state=structuredClone(DEFAULT_STATE);
 let appStarted=false;
 let isDeveloperSession=false;
 const DEVELOPER_NAME="Erendragneel";
+function syncDeveloperControls(){
+  const button=document.getElementById("developerBtn");
+  if(button)button.hidden=!isDeveloperSession;
+}
+function mobilePortraitDevice(){
+  const coarse=window.matchMedia?.("(pointer: coarse)")?.matches===true;
+  const shortest=Math.min(Number(window.screen?.width)||innerWidth,Number(window.screen?.height)||innerHeight);
+  return coarse&&shortest<=1024;
+}
+let portraitLockInFlight=false;
+async function requestMobilePortraitLock(){
+  if(!activeProfileId||!mobilePortraitDevice()||portraitLockInFlight)return false;
+  const orientation=window.screen?.orientation;
+  if(!orientation?.lock)return false;
+  portraitLockInFlight=true;
+  try{
+    try{await orientation.lock("portrait-primary");}
+    catch{await orientation.lock("portrait");}
+    return true;
+  }catch{return false;}
+  finally{portraitLockInFlight=false;}
+}
+function syncPortraitGuard(){
+  const guard=document.getElementById("portraitGuard");
+  if(!guard)return;
+  const active=!!activeProfileId&&mobilePortraitDevice()&&window.matchMedia?.("(orientation: landscape)")?.matches===true;
+  guard.classList.toggle("active",active);
+  guard.setAttribute("aria-hidden",String(!active));
+  if(active)requestMobilePortraitLock();
+}
 function tutorAccessGranted(){return isDeveloperSession===true;}
 function tutorQuestion(question){return !!question&&(question.curriculum==="tutor"||String(question.kind||"").startsWith("tutor-"));}
 function questionAllowedForSession(question){return tutorAccessGranted()||!tutorQuestion(question);}
@@ -471,8 +501,7 @@ function loadProfile(profile,verifiedCloudAdmin=false){
   const dailyStateChanged=applyDailyDecay();
   const unlockedGemRewards=grantUnlockedGemRewards();
   document.getElementById("activePlayerName").textContent=profile.name;
-  const developerBtn=document.getElementById("developerBtn");
-  if(developerBtn) developerBtn.hidden=!isDeveloperSession;
+  syncDeveloperControls();
   const developerName=document.getElementById("developerProfileName");
   if(developerName) developerName.textContent=profile.name;
   if(tutorStateRepaired||dailyStateChanged||unlockedGemRewards.length) save();
@@ -480,6 +509,7 @@ function loadProfile(profile,verifiedCloudAdmin=false){
   else render();
   if(unlockedGemRewards.length)setMessage(`Mine access reward: ${unlockedGemRewards.length} unlocked gemstone${unlockedGemRewards.length===1?' was':'s were'} added to this save. Use the heart upgrades in Practice Health when ready.`,"correct");
   requestAnimationFrame(()=>{if(activeProfileId)setAuthOverlayVisible(false);});
+  setTimeout(()=>{syncPortraitGuard();requestMobilePortraitLock();},0);
   window.dispatchEvent(new CustomEvent("jm-profile-loaded",{detail:{id:profile.id,name:profile.name,cloudUserId:profile.cloudUserId||null,email:profile.email||null}}));
 }
 async function logout(){
@@ -490,6 +520,7 @@ async function logout(){
   closeDeveloperPanel();localStorage.removeItem(ACTIVE_PROFILE_KEY);
   window.dispatchEvent(new CustomEvent("jm-profile-logged-out"));
   document.getElementById("activePlayerName").textContent="Not signed in";
+  syncDeveloperControls();syncPortraitGuard();
   setAuthOverlayVisible(true);
   showAuthMode("login");renderProfileList();
 }
@@ -1461,6 +1492,8 @@ document.getElementById("logoutBtn").onclick=logout;
 
 function openDeveloperPanel(){
   if(!isDeveloperSession) return;
+  setStatsDrawer(false);
+  closeGameMenu();
   const overlay=document.getElementById("developerOverlay");
   overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");
   document.getElementById("adminInfiniteHearts").checked=!!state.developerInfiniteHearts;
@@ -1684,7 +1717,21 @@ async function runAdminAction(action){
   developerMessage(successMessage);
 }
 
-document.getElementById("developerBtn").onclick=openDeveloperPanel;
+const developerButton=document.getElementById("developerBtn");
+developerButton.onclick=openDeveloperPanel;
+developerButton.addEventListener("pointerup",event=>{
+  if(event.pointerType!=="touch"&&event.pointerType!=="pen")return;
+  event.preventDefault();
+  openDeveloperPanel();
+});
+document.getElementById("portraitLockBtn")?.addEventListener("click",async()=>{
+  const locked=await requestMobilePortraitLock();
+  const message=document.getElementById("portraitGuardMessage");
+  if(message&&!locked)message.textContent="This browser locks rotation only when Language Miner is installed. Turn your phone upright, or install the app for automatic portrait lock.";
+});
+window.addEventListener("resize",syncPortraitGuard,{passive:true});
+window.screen?.orientation?.addEventListener?.("change",syncPortraitGuard);
+document.addEventListener("pointerup",()=>{if(activeProfileId&&mobilePortraitDevice())requestMobilePortraitLock();},{passive:true});
 document.getElementById("closeDeveloperBtn").onclick=closeDeveloperPanel;
 document.getElementById("developerOverlay").addEventListener("click",e=>{if(e.target.id==="developerOverlay")closeDeveloperPanel();});
 document.querySelectorAll("[data-admin]").forEach(btn=>btn.addEventListener("click",()=>runAdminAction(btn.dataset.admin)));

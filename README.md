@@ -1,4 +1,11 @@
-# Language Miner v6.4.100
+# Language Miner v6.4.101
+
+## v6.4.101 mobile Admin and portrait play
+
+- The existing header **Admin** button now has a larger, non-scrolling phone touch target, a direct touch/pen activation fallback, and an Admin panel that always opens above mobile drawers.
+- The Admin button stays in its original account-header location and remains unavailable to regular players.
+- Installed mobile apps request `portrait-primary` through the web-app manifest and Screen Orientation API.
+- Mobile browsers that do not permit programmatic orientation locking pause sideways play with a portrait guard until the phone is upright.
 
 ## v6.4.100 separate voice and style controls
 

@@ -7,7 +7,7 @@
   "scope": "./",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "lang": "en",
   "categories": ["education", "games"],
   "prefer_related_applications": false,

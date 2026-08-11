@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.100-voice-and-style-controls';
+const CACHE_NAME='language-miner-v6.4.101-admin-header-portrait-lock';
 const APP_SHELL=[
   './',
   './index.html',

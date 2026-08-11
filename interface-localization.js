@@ -140,7 +140,22 @@
   Object.assign(T.fr,{placementResult:'Résultat du test de {language}',placementScore:'{score} sur {total} correctes · tentative terminée pour {language}.',recommendedStart:'Commencez par la leçon de base {lesson} de {language}',resultCopy:'Le résultat recommande une leçon de départ. Vous pouvez toujours revoir les leçons précédentes.',recommendedStartingPoint:'Point de départ recommandé : {value}'});
   Object.assign(T.de,{placementResult:'{language}-Einstufungsergebnis',placementScore:'{score} von {total} richtig · Versuch für {language} abgeschlossen.',recommendedStart:'Beginne mit {language}-Grundlagenlektion {lesson}',resultCopy:'Das Ergebnis empfiehlt eine Startlektion. Frühere Lektionen können jederzeit wiederholt werden.',recommendedStartingPoint:'Empfohlener Startpunkt: {value}'});
 
-  const HTML_LANG={en:'en',es:'es',ru:'ru',ja:'ja',ko:'ko',zh:'zh-CN',it:'it',fr:'fr',de:'de'};
+  const ADDITIONAL_PACKS=window.LANGUAGE_MINER_ADDITIONAL_LANGUAGE_PACKS||{};
+  Object.entries(ADDITIONAL_PACKS.interface||{}).forEach(([languageId,translations])=>{
+    T[languageId]=Object.assign({},EN,translations||{});
+  });
+  EN.selectLanguage='Select a language';EN.alreadyKnown='already known';
+  const LANGUAGE_DROPDOWN_LABELS={
+    es:['Selecciona un idioma','ya conocido'],ru:['Выберите язык','уже известен'],ja:['言語を選択','既知の言語'],ko:['언어 선택','이미 아는 언어'],zh:['选择语言','已掌握'],it:['Seleziona una lingua','già conosciuta'],fr:['Sélectionnez une langue','déjà connue'],de:['Sprache auswählen','bereits bekannt'],
+    pt:['Selecione um idioma','já conhecido'],vi:['Chọn một ngôn ngữ','đã biết'],th:['เลือกภาษา','รู้แล้ว'],tr:['Bir dil seçin','zaten biliniyor'],id:['Pilih bahasa','sudah dikuasai'],pl:['Wybierz język','już znany'],el:['Επιλέξτε γλώσσα','ήδη γνωστή'],uk:['Виберіть мову','вже відома']
+  };
+  Object.entries(LANGUAGE_DROPDOWN_LABELS).forEach(([languageId,labels])=>{
+    if(T[languageId]){T[languageId].selectLanguage=labels[0];T[languageId].alreadyKnown=labels[1];}
+  });
+  Object.entries(window.LANGUAGE_MINER_MINE_COSMETIC_TRANSLATIONS||{}).forEach(([languageId,translations])=>{
+    if(languageId==='en')Object.assign(EN,translations||{});else if(T[languageId])Object.assign(T[languageId],translations||{});
+  });
+  const HTML_LANG={en:'en',es:'es',ru:'ru',ja:'ja',ko:'ko',zh:'zh-CN',it:'it',fr:'fr',de:'de',...(ADDITIONAL_PACKS.htmlLang||{})};
   const EXACT_SOURCE=new Map(Object.entries(EN).filter(([,source])=>!source.includes('{')).map(([key,source])=>[source,key]));
   const ENDING_SOURCES=[...EXACT_SOURCE.entries()].sort((a,b)=>b[0].length-a[0].length);
   let locale='en';
@@ -221,7 +236,7 @@
   window.LanguageMinerI18n={t,setLocale,localize:queueLocalization,getLocale:()=>locale,getContext:()=>({...context}),keys:Object.keys(EN)};
   window.addEventListener('DOMContentLoaded',()=>{
     observer=new MutationObserver(records=>{if(running)return;const root=records.find(record=>record.target)?.target||document.body;queueLocalization(root.nodeType===1?root:document.body);});
-    if(document.body instanceof Node)observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-label','title','placeholder']});
+    try{if(document.body?.nodeType===Node.ELEMENT_NODE)observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-label','title','placeholder']});}catch{}
     queueLocalization();
   });
 })();

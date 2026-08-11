@@ -328,7 +328,7 @@ const DEFAULT_STATE = {
   gems:0, hearts:3, maxHearts:3, level:1, xp:0, streak:0, bestStreak:0, practiceStreak:0,
   hints:2, shields:1, active:null, answered:false, shieldArmed:false, lastPracticeDate:null,
   kanaStats:{}, gemInventory:{}, gemCheckpointClaims:{}, gemUnlockRewards:{}, kanaTab:"hiragana", lastKana:null, lastGem:null, hiraganaXp:0,
-  heartRecoveryEnd:null, ownedPickaxeSkins:["standard"], equippedPickaxeSkin:"standard", ownedWallpapers:["midnight"], equippedWallpaper:"midnight", placementUnlockedThrough:0, developerInfiniteHearts:false,
+  heartRecoveryEnd:null, ownedPickaxeSkins:["standard"], equippedPickaxeSkin:"standard", ownedWallpapers:["midnight"], equippedWallpaper:"midnight", ownedRockSkins:["slate"], equippedRockSkin:"slate", ownedMineWallpapers:["classic"], equippedMineWallpaper:"classic", placementUnlockedThrough:0, developerInfiniteHearts:false,
   selectedStage:0, jlptSectionSelection:{}, jlptVocabularyLevel:{}, jlptReviewCheckpoints:{}, soundEnabled:true, voiceEnabled:true, autoSpeak:true, voiceRate:.85, voiceGender:"female", voiceStyle:"natural", smartReview:true, sessionGoal:20, sessionAnswered:0, sessionCorrect:0, stageXp:[0,0,0,0,0,0,0], clearedStages:[], questionStats:{}
 };
 const PROFILE_INDEX_KEY="jm_profiles";
@@ -348,8 +348,9 @@ function mobilePortraitDevice(){
   return coarse&&shortest<=1024;
 }
 let portraitLockInFlight=false;
+function portraitLockEnabled(){return state?.v6?.portraitLockEnabled!==false;}
 async function requestMobilePortraitLock(){
-  if(!activeProfileId||!mobilePortraitDevice()||portraitLockInFlight)return false;
+  if(!portraitLockEnabled()||!activeProfileId||!mobilePortraitDevice()||portraitLockInFlight)return false;
   const orientation=window.screen?.orientation;
   if(!orientation?.lock)return false;
   portraitLockInFlight=true;
@@ -360,14 +361,25 @@ async function requestMobilePortraitLock(){
   }catch{return false;}
   finally{portraitLockInFlight=false;}
 }
+async function setMobilePortraitLock(enabled){
+  if(!state.v6||typeof state.v6!=="object")state.v6={};
+  state.v6.portraitLockEnabled=!!enabled;
+  const orientation=window.screen?.orientation;
+  if(!enabled){
+    try{orientation?.unlock?.();}catch{}
+    return {enabled:false,locked:false,supported:!!orientation?.lock,mobile:mobilePortraitDevice()};
+  }
+  const locked=await requestMobilePortraitLock();
+  return {enabled:true,locked,supported:!!orientation?.lock,mobile:mobilePortraitDevice()};
+}
 function syncPortraitGuard(){
   const guard=document.getElementById("portraitGuard");
-  if(!guard)return;
-  const active=!!activeProfileId&&mobilePortraitDevice()&&window.matchMedia?.("(orientation: landscape)")?.matches===true;
-  guard.classList.toggle("active",active);
-  guard.setAttribute("aria-hidden",String(!active));
-  if(active)requestMobilePortraitLock();
+  guard?.classList.remove("active");
+  guard?.setAttribute("aria-hidden","true");
+  if(activeProfileId&&mobilePortraitDevice()&&portraitLockEnabled())requestMobilePortraitLock();
 }
+window.setJapaneseMinerPortraitLock=setMobilePortraitLock;
+window.japaneseMinerPortraitLockEnabled=portraitLockEnabled;
 function tutorAccessGranted(){return isDeveloperSession===true;}
 function tutorQuestion(question){return !!question&&(question.curriculum==="tutor"||String(question.kind||"").startsWith("tutor-"));}
 function questionAllowedForSession(question){return tutorAccessGranted()||!tutorQuestion(question);}
@@ -443,6 +455,16 @@ function normalizeState(raw){
   const validWallpaperIds=["midnight","sakura","bamboo","sunrise","crystal","paper","galaxy","emoji","inferno","aurora","ocean","confetti"];
   next.equippedWallpaper=validWallpaperIds.includes(next.equippedWallpaper)?next.equippedWallpaper:"midnight";
   if(!next.ownedWallpapers.includes(next.equippedWallpaper))next.equippedWallpaper="midnight";
+  next.ownedRockSkins=Array.isArray(next.ownedRockSkins)?next.ownedRockSkins:["slate"];
+  if(!next.ownedRockSkins.includes("slate"))next.ownedRockSkins.unshift("slate");
+  const validRockSkinIds=["slate","gold-ore","amethyst-geode","sakura-quartz","frost-crystal","emerald-core","magma-rock","galaxy-meteor","gem-agate","gem-amethyst","gem-aquamarine","gem-citrine","gem-emerald","gem-garnet","gem-opal","gem-peridot","gem-ruby","gem-sapphire","gem-topaz","gem-alexandrite","gem-paraiba","gem-jadeite","gem-red-diamond"];
+  next.equippedRockSkin=validRockSkinIds.includes(next.equippedRockSkin)?next.equippedRockSkin:"slate";
+  if(!next.ownedRockSkins.includes(next.equippedRockSkin))next.equippedRockSkin="slate";
+  next.ownedMineWallpapers=Array.isArray(next.ownedMineWallpapers)?next.ownedMineWallpapers:["classic"];
+  if(!next.ownedMineWallpapers.includes("classic"))next.ownedMineWallpapers.unshift("classic");
+  const validMineWallpaperIds=["classic","sakura-grotto","crystal-cathedral","bamboo-tunnel","sunken-mine","magma-forge","aurora-cavern","galaxy-depths"];
+  next.equippedMineWallpaper=validMineWallpaperIds.includes(next.equippedMineWallpaper)?next.equippedMineWallpaper:"classic";
+  if(!next.ownedMineWallpapers.includes(next.equippedMineWallpaper))next.equippedMineWallpaper="classic";
   next.placementUnlockedThrough=Math.max(0,Math.min(stages.length-1,Number(next.placementUnlockedThrough)||0));
   next.placementTestCompleted=Boolean(next.placementTestCompleted||(next.placementRewardClaimed&&next.placementResult));
   if(next.stats && Object.keys(next.kanaStats).length===0){
@@ -702,6 +724,43 @@ const PICKAXE_SKINS = [
   {id:"red-diamond", name:"Red Diamond Pickaxe", icon:"⛏️", cost:1500000000, desc:"The rarest and most luxurious current skin."}
 ];
 
+const ROCK_SKINS=[
+  {id:"slate",name:"Classic Slate",cost:0,desc:"The dependable original mine rock."},
+  {id:"gold-ore",name:"Gold Ore",cost:250000,desc:"Dark stone threaded with bright golden ore."},
+  {id:"amethyst-geode",name:"Amethyst Geode",cost:750000,desc:"A violet geode glowing from its crystal center."},
+  {id:"sakura-quartz",name:"Sakura Quartz",cost:1500000,desc:"Rose quartz with soft cherry-blossom highlights."},
+  {id:"frost-crystal",name:"Frost Crystal",cost:4000000,desc:"An icy mineral coated in frozen blue light."},
+  {id:"emerald-core",name:"Emerald Core",cost:10000000,desc:"Deep green stone surrounding a luminous core."},
+  {id:"magma-rock",name:"Magma Rock",cost:25000000,desc:"Volcanic stone split by flowing orange magma."},
+  {id:"galaxy-meteor",name:"Galaxy Meteorite",cost:75000000,desc:"A star-speckled meteorite from the deepest mine."},
+  {id:"gem-agate",name:"Agate Strata",cost:350000,desc:"Scientific Gem Collection · Warm, naturally banded Agate layers."},
+  {id:"gem-amethyst",name:"Amethyst Cluster",cost:900000,desc:"Scientific Gem Collection · A faceted violet Amethyst crystal cluster."},
+  {id:"gem-aquamarine",name:"Aquamarine Crystal",cost:1750000,desc:"Scientific Gem Collection · Clear ocean-blue Aquamarine facets."},
+  {id:"gem-citrine",name:"Citrine Facet",cost:3000000,desc:"Scientific Gem Collection · A brilliant golden-yellow Citrine cut."},
+  {id:"gem-emerald",name:"Emerald Matrix",cost:6000000,desc:"Scientific Gem Collection · A deep green Emerald with geometric facets."},
+  {id:"gem-garnet",name:"Garnet Boulder",cost:10000000,desc:"Scientific Gem Collection · A rich crimson Garnet with fiery depth."},
+  {id:"gem-opal",name:"Opal Moonstone",cost:18000000,desc:"Scientific Gem Collection · Milky Opal filled with shifting rainbow fire."},
+  {id:"gem-peridot",name:"Peridot Shard",cost:30000000,desc:"Scientific Gem Collection · A bright olive-green Peridot crystal."},
+  {id:"gem-ruby",name:"Ruby Heartstone",cost:50000000,desc:"Scientific Gem Collection · A vivid red Ruby with a glowing inner heart."},
+  {id:"gem-sapphire",name:"Sapphire Shieldstone",cost:80000000,desc:"Scientific Gem Collection · A royal-blue Sapphire with shield-like facets."},
+  {id:"gem-topaz",name:"Topaz Prism",cost:125000000,desc:"Scientific Gem Collection · A fiery orange Topaz prism."},
+  {id:"gem-alexandrite",name:"Alexandrite Orb",cost:200000000,desc:"Scientific Gem Collection · Color-shifting Alexandrite in violet and teal."},
+  {id:"gem-paraiba",name:"Paraíba Tourmaline",cost:350000000,desc:"Scientific Gem Collection · Electric turquoise Paraíba Tourmaline crystals."},
+  {id:"gem-jadeite",name:"Jadeite Carving",cost:600000000,desc:"Scientific Gem Collection · Smooth imperial-green Jadeite with carved swirls."},
+  {id:"gem-red-diamond",name:"Red Diamond Core",cost:1000000000,desc:"Scientific Gem Collection · The rarest scarlet diamond in the mine."}
+];
+
+const MINE_WALLPAPERS=[
+  {id:"classic",name:"Original Slate Mine",cost:0,desc:"The familiar blue-slate mine with its original arch, tunnel, lantern, and crystals.",preview:"radial-gradient(ellipse at 50% 48%,#264f5f 0 10%,#172f42 42%,#080d19 76%)"},
+  {id:"sakura-grotto",name:"Amethyst Purple Mine",cost:500000,desc:"The same familiar mine recolored in deep Amethyst purple.",preview:"radial-gradient(ellipse at 50% 48%,#6d4a87 0 10%,#3d295d 42%,#110c20 76%)"},
+  {id:"crystal-cathedral",name:"Sapphire Blue Mine",cost:2000000,desc:"The same familiar mine recolored in royal Sapphire blue.",preview:"radial-gradient(ellipse at 50% 48%,#365d9b 0 10%,#1b3768 42%,#080f25 76%)"},
+  {id:"bamboo-tunnel",name:"Emerald Green Mine",cost:5000000,desc:"The same familiar mine recolored in rich Emerald green.",preview:"radial-gradient(ellipse at 50% 48%,#356f58 0 10%,#1d4938 42%,#081a13 76%)"},
+  {id:"sunken-mine",name:"Arctic Cyan Mine",cost:12000000,desc:"The same familiar mine recolored in bright Arctic cyan.",preview:"radial-gradient(ellipse at 50% 48%,#3b8493 0 10%,#20566b 42%,#071a28 76%)"},
+  {id:"magma-forge",name:"Ruby Red Mine",cost:30000000,desc:"The same familiar mine recolored in glowing Ruby red.",preview:"radial-gradient(ellipse at 50% 48%,#8d3f50 0 10%,#5b2432 42%,#210810 76%)"},
+  {id:"aurora-cavern",name:"Golden Amber Mine",cost:75000000,desc:"The same familiar mine recolored in warm golden Amber.",preview:"radial-gradient(ellipse at 50% 48%,#8a703b 0 10%,#59451f 42%,#1f1507 76%)"},
+  {id:"galaxy-depths",name:"Rose Quartz Mine",cost:200000000,desc:"The same familiar mine recolored in soft Rose Quartz pink.",preview:"radial-gradient(ellipse at 50% 48%,#9b617b 0 10%,#643a55 42%,#210b19 76%)"}
+];
+
 const SHOP_PRICE_BY_STAGE = [
   {hint:2500, shield:10000, heart:50000},
   {hint:12500, shield:50000, heart:250000},
@@ -812,6 +871,7 @@ function render(){
   try{ renderKanaChart(); }catch(err){ console.error("Kana chart refresh failed",err); }
   try{ renderGemCollection(); }catch(err){ console.error("Gem collection refresh failed",err); }
   try{ renderPickaxeShop(); }catch(err){ console.error("Pickaxe workshop refresh failed",err); }
+  try{ applyMineCosmetics(); }catch(err){ console.error("Mine cosmetics refresh failed",err); }
   try{ renderRecovery(); }catch(err){ console.error("Heart recovery refresh failed",err); }
   save();
 }
@@ -1084,6 +1144,27 @@ function requestPickaxePurchase(skin,source){
     return true;
   }
   return buyPickaxe(skin.id);
+}
+
+function activeRockSkin(){return ROCK_SKINS.find(item=>item.id===state.equippedRockSkin)||ROCK_SKINS[0];}
+function activeMineWallpaper(){return MINE_WALLPAPERS.find(item=>item.id===state.equippedMineWallpaper)||MINE_WALLPAPERS[0];}
+function applyMineCosmetics(){
+  const supporter=(window.japaneseMinerSupporterTier?.()||0)>=1,rock=document.getElementById('rock'),mine=document.querySelector('.mine'),rockSkin=supporter?activeRockSkin():ROCK_SKINS[0],wallpaper=supporter?activeMineWallpaper():MINE_WALLPAPERS[0],pickaxe=activePickaxeSkin();
+  if(rock){rock.dataset.rockSkin=rockSkin.id;rock.title=`Mine ${rockSkin.name} with ${pickaxe.name}`;}
+  if(mine)mine.dataset.mineWallpaper=wallpaper.id;
+}
+function buyOrEquipMineCosmetic(type,item){
+  if(!item)return false;
+  if((window.japaneseMinerSupporterTier?.()||0)<1){setMessage('Mine Cosmetics requires Patreon Tier 1.','wrong');return false;}
+  const rock=type==='rock',ownedKey=rock?'ownedRockSkins':'ownedMineWallpapers',equippedKey=rock?'equippedRockSkin':'equippedMineWallpaper',collection=Array.isArray(state[ownedKey])?state[ownedKey]:(state[ownedKey]=[]),owned=collection.includes(item.id);
+  if(!owned){
+    if(!spendStoneValue(item.cost)){setMessage(`You need ${item.cost.toLocaleString()} Nuggets for ${item.name}.`,'wrong');return false;}
+    collection.push(item.id);
+  }
+  state[equippedKey]=item.id;applyMineCosmetics();save();render();
+  if(document.getElementById('shopOverlay')?.classList.contains('open'))renderShop();
+  setMessage(owned?`${item.name} equipped.`:`${item.name} purchased and equipped!`,'correct');
+  return true;
 }
 
 let feedbackAudioContext=null;
@@ -1448,9 +1529,15 @@ function syncPageScrollLock(){
   return locked;
 }
 function initPageScrollGuard(){
-  if(pageScrollObserver||!(document.body instanceof Node))return;
+  if(pageScrollObserver)return;
   pageScrollObserver=new MutationObserver(syncPageScrollLock);
-  pageScrollObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','aria-hidden']});
+  try{
+    if(document.body?.nodeType===Node.ELEMENT_NODE){
+      pageScrollObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','aria-hidden']});
+    }
+  }catch{
+    pageScrollObserver=null;
+  }
   syncPageScrollLock();
 }
 window.syncJapaneseMinerPageScroll=syncPageScrollLock;
@@ -1557,7 +1644,7 @@ function completeAllJapaneseCourseProgress(){
     state.jlptSectionSelection[stage]="vocabulary";
   }
   state.maxHearts=14;state.hearts=14;state.heartRecoveryEnd=null;state.hints=999;state.shields=999;
-  state.ownedPickaxeSkins=PICKAXE_SKINS.map(item=>item.id);state.ownedWallpapers=WALLPAPERS.map(item=>item.id);
+  state.ownedPickaxeSkins=PICKAXE_SKINS.map(item=>item.id);state.ownedWallpapers=WALLPAPERS.map(item=>item.id);state.ownedRockSkins=ROCK_SKINS.map(item=>item.id);state.ownedMineWallpapers=MINE_WALLPAPERS.map(item=>item.id);
   gemTiers.forEach(gem=>state.gemInventory[gem.name]=Math.max(100,Number(state.gemInventory[gem.name]||0)));
   window.japaneseMinerV5Admin?.unlockAll?.();
   window.japaneseMinerV38Admin?.unlockAll?.();
@@ -1587,7 +1674,7 @@ function resetEconomyAndInventory(targetState=state){
   resetStateFields(["gems","gemInventory","gemCheckpointClaims","gemUnlockRewards","lastGem","stoneCurrencyMigrated","hearts","maxHearts","heartRecoveryEnd","hints","shields","shieldArmed"],targetState);
 }
 function resetCosmeticsAndCompanions(targetState=state){
-  resetStateFields(["ownedPickaxeSkins","equippedPickaxeSkin","ownedWallpapers","equippedWallpaper","colorTheme","character","ownedCosmetics","selectedTitle"],targetState);
+  resetStateFields(["ownedPickaxeSkins","equippedPickaxeSkin","ownedWallpapers","equippedWallpaper","ownedRockSkins","equippedRockSkin","ownedMineWallpapers","equippedMineWallpaper","colorTheme","character","ownedCosmetics","selectedTitle"],targetState);
   if(targetState===state){window.japaneseMinerV5Admin?.resetCosmetics?.();window.japaneseMinerV38Admin?.resetCosmetics?.();}
   else{const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:(targetState.v5={});v.ownedCompanions=["none"];v.companion="none";v.ownedFashion=["jacket:none","gloves:none","shoes:boots"];v.fashion={jacket:"none",gloves:"none",shoes:"boots"};v.buildings={forge:0,library:0,garden:0,museum:0,home:0};}
 }
@@ -1597,7 +1684,7 @@ function resetQuestsAndHistory(targetState=state){
   else{const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:(targetState.v5={});Object.assign(v,{srs:{},wordBook:{},checkpoints:{},reviewed:0,totalCorrect:0,chests:0,lastChestAt:0,companionDailyReview:"",deferredTreasures:[],studySessions:[],currentStudySession:null,dailyRefresher:null,missions:{},achievements:{},seasonClaim:""});}
 }
 const ADMIN_RESET_LABELS={
-  "course:current":"the current language course","course:ja":"Japanese course progress","course:en":"English course progress","course:es":"Spanish course progress","course:ru":"Russian course progress","course:ko":"Korean course progress","course:zh":"Mandarin Chinese course progress","course:it":"Italian course progress","course:fr":"French course progress","course:de":"German course progress","courses:all":"course progress for every language","placement:current":"the current language placement test","placements:all":"placement tests for every language",bosses:"all boss and review results",economy:"economy, gems, supplies, and hearts",cosmetics:"cosmetics, companions, fashion, and settlement",history:"quests, streaks, reviews, and study history",profile:"the entire administrator profile"
+  "course:current":"the current language course","course:ja":"Japanese course progress","course:en":"English course progress","course:es":"Spanish course progress","course:ru":"Russian course progress","course:ko":"Korean course progress","course:zh":"Mandarin Chinese course progress","course:it":"Italian course progress","course:fr":"French course progress","course:de":"German course progress","course:pt":"Brazilian Portuguese course progress","course:vi":"Vietnamese course progress","course:th":"Thai course progress","course:tr":"Turkish course progress","course:id":"Indonesian course progress","course:pl":"Polish course progress","course:el":"Greek course progress","course:uk":"Ukrainian course progress","courses:all":"course progress for every language","placement:current":"the current language placement test","placements:all":"placement tests for every language",bosses:"all boss and review results",economy:"economy, gems, supplies, and hearts",cosmetics:"cosmetics, companions, fashion, and settlement",history:"quests, streaks, reviews, and study history",profile:"the entire administrator profile"
 };
 function applySelectedAdminReset(){
   const target=document.getElementById("adminResetTarget")?.value||"course:current",label=ADMIN_RESET_LABELS[target]||"the selected data";
@@ -1725,13 +1812,13 @@ developerButton.addEventListener("pointerup",event=>{
   openDeveloperPanel();
 });
 document.getElementById("portraitLockBtn")?.addEventListener("click",async()=>{
-  const locked=await requestMobilePortraitLock();
+  const result=await setMobilePortraitLock(true);
   const message=document.getElementById("portraitGuardMessage");
-  if(message&&!locked)message.textContent="This browser locks rotation only when Language Miner is installed. Turn your phone upright, or install the app for automatic portrait lock.";
+  if(message)message.textContent=result.locked?"Portrait is locked.":"Portrait preference is on. You can change it in Accessibility & Settings.";
 });
 window.addEventListener("resize",syncPortraitGuard,{passive:true});
 window.screen?.orientation?.addEventListener?.("change",syncPortraitGuard);
-document.addEventListener("pointerup",()=>{if(activeProfileId&&mobilePortraitDevice())requestMobilePortraitLock();},{passive:true});
+document.addEventListener("pointerup",()=>{if(activeProfileId&&mobilePortraitDevice()&&portraitLockEnabled())requestMobilePortraitLock();},{passive:true});
 document.getElementById("closeDeveloperBtn").onclick=closeDeveloperPanel;
 document.getElementById("developerOverlay").addEventListener("click",e=>{if(e.target.id==="developerOverlay")closeDeveloperPanel();});
 document.querySelectorAll("[data-admin]").forEach(btn=>btn.addEventListener("click",()=>runAdminAction(btn.dataset.admin)));
@@ -2405,13 +2492,14 @@ const WALLPAPERS=[
  {id:'crystal',name:'Crystal Depths',cost:400000000,desc:'Blue and violet crystal light from the deepest tunnels.',preview:'radial-gradient(circle at 75% 10%,#735cff,transparent 35%),radial-gradient(circle at 15% 60%,#42caff,transparent 34%),#10142c'},
  {id:'paper',name:'Study Notebook',cost:800000000,desc:'A clean grid-paper look inspired by Japanese study notebooks.',preview:'linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px),#26314a'}
 ];
-let activeShopTab='pickaxes';
+let activeShopTab='mine-cosmetics';
 const SHOP_COLOR_THEMES=[['midnight','Midnight'],['sunrise','Sunrise'],['sakura','Sakura'],['aqua','Aqua'],['candy','Candy']];
+function shopText(key,values={}){return window.LanguageMinerI18n?.t?.(key,values)||String(key);}
 function applyWallpaper(){const supporter=(window.japaneseMinerSupporterTier?.()||0)>=1;document.body.dataset.wallpaper=supporter?(state.equippedWallpaper||'midnight'):'midnight';document.body.dataset.theme=supporter?(state.colorTheme||'midnight'):'midnight';}
 function openGameMenu(){setStatsDrawer(false);document.getElementById('gameMenuOverlay')?.classList.add('open');document.getElementById('gameMenuOverlay')?.setAttribute('aria-hidden','false');document.getElementById('gameMenuBtn')?.setAttribute('aria-expanded','true');syncPageScrollLock();}
 function closeGameMenu(){document.getElementById('gameMenuOverlay')?.classList.remove('open');document.getElementById('gameMenuOverlay')?.setAttribute('aria-hidden','true');document.getElementById('gameMenuBtn')?.setAttribute('aria-expanded','false');syncPageScrollLock();}
 function returnToGameMenu(closeCurrent){if(typeof closeCurrent==='function')closeCurrent();openGameMenu();}
-function openShop(tab='pickaxes'){activeShopTab=tab;closeGameMenu();document.getElementById('shopOverlay')?.classList.add('open');document.getElementById('shopOverlay')?.setAttribute('aria-hidden','false');syncPageScrollLock();renderShop();}
+function openShop(tab='mine-cosmetics'){activeShopTab=['pickaxes','wallpapers'].includes(tab)?'mine-cosmetics':tab;closeGameMenu();document.getElementById('shopOverlay')?.classList.add('open');document.getElementById('shopOverlay')?.setAttribute('aria-hidden','false');syncPageScrollLock();renderShop();}
 function closeShop(){document.getElementById('shopOverlay')?.classList.remove('open');document.getElementById('shopOverlay')?.setAttribute('aria-hidden','true');syncPageScrollLock();}
 function renderShop(){
  const balance=document.getElementById('shopNuggetBalance');if(balance)balance.textContent=totalStoneValue().toLocaleString();
@@ -2424,6 +2512,12 @@ function renderShop(){
   box.innerHTML='<div class="shop-section-heading"><span>Permanent gear</span><h3>Pickaxe skins</h3><p>Preview any pickaxe, check its exact Nugget price and your current balance, then confirm Buy &amp; Equip. Every purchased skin stays owned permanently.</p></div><div class="cosmetic-grid" id="menuPickaxeShop"></div>';
   const grid=document.getElementById('menuPickaxeShop');
   PICKAXE_SKINS.forEach(skin=>{const owned=state.ownedPickaxeSkins.includes(skin.id),equipped=state.equippedPickaxeSkin===skin.id;const card=document.createElement('article');card.className='cosmetic-card'+(equipped?' equipped':'');card.innerHTML=`<div class="cosmetic-preview"><span style="${skin.id==='standard'?'':pickaxePreviewStyle(skin.id)}">${skin.icon}</span></div><h3>${skin.name}</h3><p>${skin.desc}</p><button type="button" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':`Preview — ${skin.cost.toLocaleString()} Nuggets`}</button>`;const button=card.querySelector('button');button.addEventListener('click',()=>{requestPickaxePurchase(skin,button);if(owned)renderShop();});grid.appendChild(card);});
+ }else if(activeShopTab==='mine-cosmetics'){
+  box.innerHTML='<div class="shop-section-heading"><span>Mine customization</span><h3>Rock skins</h3><p>Change the rock you tap without changing your equipped pickaxe. Purchased skins stay owned permanently.</p></div><div class="cosmetic-grid" id="rockSkinShop"></div><div class="shop-section-heading"><span>Mine scenery</span><h3>Mine wallpapers</h3><p>Change the cave scenery behind the rock. This is separate from the full-page wallpaper setting.</p></div><div class="cosmetic-grid" id="mineWallpaperShop"></div>';
+  const rockGrid=document.getElementById('rockSkinShop');
+  ROCK_SKINS.forEach(item=>{const owned=state.ownedRockSkins.includes(item.id),equipped=state.equippedRockSkin===item.id,card=document.createElement('article');card.className='cosmetic-card'+(equipped?' equipped':'');card.innerHTML=`<div class="mine-cosmetic-preview"><span class="shop-rock-sample" data-rock-skin="${item.id}"><i>⛏️</i></span></div><h3>${item.name}</h3><p>${item.desc}</p><button type="button" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':shopText('buyEquipNuggets',{value:item.cost.toLocaleString()})}</button>`;card.querySelector('button').addEventListener('click',()=>buyOrEquipMineCosmetic('rock',item));rockGrid.appendChild(card);});
+  const wallpaperGrid=document.getElementById('mineWallpaperShop');
+  MINE_WALLPAPERS.forEach(item=>{const owned=state.ownedMineWallpapers.includes(item.id),equipped=state.equippedMineWallpaper===item.id,card=document.createElement('article');card.className='cosmetic-card'+(equipped?' equipped':'');card.innerHTML=`<div class="mine-wallpaper-shop-preview" data-preview-mine-wallpaper="${item.id}" style="background:${item.preview}"><span class="shop-rock-sample" data-rock-skin="slate"><i>⛏️</i></span></div><h3>${item.name}</h3><p>${item.desc}</p><button type="button" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':shopText('buyEquipNuggets',{value:item.cost.toLocaleString()})}</button>`;card.querySelector('button').addEventListener('click',()=>buyOrEquipMineCosmetic('wallpaper',item));wallpaperGrid.appendChild(card);});
  }else if(activeShopTab==='wallpapers'){
   box.innerHTML='<div class="shop-section-heading"><span>Free appearance</span><h3>Bright game colors</h3><p>Choose one free color treatment or one wallpaper. Selecting either automatically turns the other off.</p></div><div class="theme-choice-grid wallpaper-theme-grid" id="wallpaperThemeShop"></div><div class="shop-section-heading"><span>Permanent collection</span><h3>Wallpapers</h3><p>Unlock a wallpaper with Nuggets, then equip it here.</p></div><div class="cosmetic-grid" id="wallpaperShop"></div>';
   const themeGrid=document.getElementById('wallpaperThemeShop');
@@ -2431,9 +2525,48 @@ function renderShop(){
   const grid=document.getElementById('wallpaperShop');
   WALLPAPERS.forEach(w=>{const owned=state.ownedWallpapers.includes(w.id),equipped=state.colorTheme==='midnight'&&state.equippedWallpaper===w.id;const card=document.createElement('article');card.className='cosmetic-card'+(equipped?' equipped':'');card.innerHTML=`<div class="wallpaper-preview" style="background:${w.preview};background-size:${w.id==='paper'?'18px 18px':'cover'}"></div><h3>${w.name}</h3><p>${w.desc}</p><button type="button" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Use wallpaper':`Buy — ${w.cost.toLocaleString()} Nuggets`}</button>`;card.querySelector('button').addEventListener('click',()=>{if(owned){state.colorTheme='midnight';state.equippedWallpaper=w.id;applyWallpaper();save();render();renderShop();setMessage(`${w.name} wallpaper equipped. Bright game colors cleared.`,'correct');}else if(spendStoneValue(w.cost)){state.ownedWallpapers.push(w.id);state.colorTheme='midnight';state.equippedWallpaper=w.id;applyWallpaper();save();render();renderShop();setMessage(`${w.name} purchased and equipped!`,'correct');}else setMessage(`You need ${w.cost.toLocaleString()} Nuggets for ${w.name}.`,'wrong');});grid.appendChild(card);});
  }else{
-  const prices=currentShopPrices();box.innerHTML=`<div class="shop-supply-list"><article class="shop-supply"><div><strong>💡 Hint Crystal</strong><p>Removes one incorrect choice.</p></div><button type="button" data-supply="hint">Buy — ${prices.hint.toLocaleString()}</button></article><article class="shop-supply"><div><strong>🛡️ Life Shield</strong><p>Protects one heart after a wrong answer.</p></div><button type="button" data-supply="shield">Buy — ${prices.shield.toLocaleString()}</button></article><article class="shop-supply"><div><strong>❤️ Heart Restore</strong><p>Restores all current hearts.</p></div><button type="button" data-supply="heart">Buy — ${prices.heart.toLocaleString()}</button></article></div>`;box.querySelectorAll('[data-supply]').forEach(b=>b.addEventListener('click',()=>{buy(b.dataset.supply);renderShop();}));
+ const prices=currentShopPrices();box.innerHTML=`<div class="shop-supply-list"><article class="shop-supply"><div><strong>💡 Hint Crystal</strong><p>Removes one incorrect choice.</p></div><button type="button" data-supply="hint">Buy — ${prices.hint.toLocaleString()}</button></article><article class="shop-supply"><div><strong>🛡️ Life Shield</strong><p>Protects one heart after a wrong answer.</p></div><button type="button" data-supply="shield">Buy — ${prices.shield.toLocaleString()}</button></article><article class="shop-supply"><div><strong>❤️ Heart Restore</strong><p>Restores all current hearts.</p></div><button type="button" data-supply="heart">Buy — ${prices.heart.toLocaleString()}</button></article></div>`;box.querySelectorAll('[data-supply]').forEach(b=>b.addEventListener('click',()=>{buy(b.dataset.supply);renderShop();}));
  }
 }
+
+// v6.4.106 — One Tier 1 Mine Cosmetics hub with four pull-down collections.
+const mineCosmeticOpenSections=new Set(['rock-skins']);
+const renderShopBeforeMineCosmeticHub=renderShop;
+renderShop=function(){
+  if(['pickaxes','wallpapers'].includes(activeShopTab))activeShopTab='mine-cosmetics';
+  if(activeShopTab!=='mine-cosmetics'){renderShopBeforeMineCosmeticHub();return;}
+  const balance=document.getElementById('shopNuggetBalance');if(balance)balance.textContent=totalStoneValue().toLocaleString();
+  document.querySelectorAll('[data-shop-tab]').forEach(button=>button.classList.toggle('primary',button.dataset.shopTab==='mine-cosmetics'));
+  const box=document.getElementById('shopContent');if(!box)return;
+  if((window.japaneseMinerSupporterTier?.()||0)<1){
+    box.innerHTML=window.japaneseMinerSupporterGate?.(1,'Mine Cosmetics: rock skins, mine wallpapers, pickaxe skins, and wallpapers')||'';
+    return;
+  }
+  const openAttribute=id=>mineCosmeticOpenSections.has(id)?' open':'';
+  box.innerHTML=`
+    <section class="mine-cosmetic-hub-intro"><span>PATREON TIER 1 COLLECTION</span><h3>🪨 Mine Cosmetics</h3><p>Open a pull-down collection to preview, purchase, and equip permanent mine appearances.</p></section>
+    <div class="mine-cosmetic-accordions">
+      <details class="mine-cosmetic-accordion" data-mine-cosmetic-section="rock-skins"${openAttribute('rock-skins')}><summary><span>🪨</span><strong>Rock skins</strong><small>${ROCK_SKINS.length} permanent skins</small></summary><div class="mine-cosmetic-accordion-body"><p>Change the rock you tap without changing your equipped pickaxe.</p><div class="cosmetic-grid" id="rockSkinShop"></div></div></details>
+      <details class="mine-cosmetic-accordion" data-mine-cosmetic-section="mine-wallpapers"${openAttribute('mine-wallpapers')}><summary><span>🖼️</span><strong>Mine wallpapers</strong><small>${MINE_WALLPAPERS.length} cave backgrounds</small></summary><div class="mine-cosmetic-accordion-body"><p>Change only the cave scenery behind the tappable rock.</p><div class="cosmetic-grid" id="mineWallpaperShop"></div></div></details>
+      <details class="mine-cosmetic-accordion" data-mine-cosmetic-section="pickaxe-skins"${openAttribute('pickaxe-skins')}><summary><span>⛏️</span><strong>Pickaxe skins</strong><small>${PICKAXE_SKINS.length} permanent skins</small></summary><div class="mine-cosmetic-accordion-body"><p>Preview a pickaxe, check its Nugget price, and permanently equip owned skins.</p><div class="cosmetic-grid" id="menuPickaxeShop"></div></div></details>
+      <details class="mine-cosmetic-accordion" data-mine-cosmetic-section="wallpapers"${openAttribute('wallpapers')}><summary><span>🌌</span><strong>Wallpapers</strong><small>${WALLPAPERS.length} full-page wallpapers</small></summary><div class="mine-cosmetic-accordion-body"><p>Choose a free color treatment or a permanent full-page wallpaper. Selecting one clears the other.</p><div class="theme-choice-grid wallpaper-theme-grid" id="wallpaperThemeShop"></div><div class="cosmetic-grid" id="wallpaperShop"></div></div></details>
+    </div>`;
+  box.querySelectorAll('[data-mine-cosmetic-section]').forEach(section=>section.addEventListener('toggle',()=>{if(section.open)mineCosmeticOpenSections.add(section.dataset.mineCosmeticSection);else mineCosmeticOpenSections.delete(section.dataset.mineCosmeticSection);}));
+
+  const rockGrid=document.getElementById('rockSkinShop');
+  ROCK_SKINS.forEach(item=>{const owned=state.ownedRockSkins.includes(item.id),equipped=state.equippedRockSkin===item.id,card=document.createElement('article');card.className='cosmetic-card'+(equipped?' equipped':'');card.innerHTML=`<div class="mine-cosmetic-preview"><span class="shop-rock-sample" data-rock-skin="${item.id}"><i>⛏️</i></span></div><h3>${item.name}</h3><p>${item.desc}</p><button type="button" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':shopText('buyEquipNuggets',{value:item.cost.toLocaleString()})}</button>`;card.querySelector('button').addEventListener('click',()=>buyOrEquipMineCosmetic('rock',item));rockGrid.appendChild(card);});
+
+  const mineWallpaperGrid=document.getElementById('mineWallpaperShop');
+  MINE_WALLPAPERS.forEach(item=>{const owned=state.ownedMineWallpapers.includes(item.id),equipped=state.equippedMineWallpaper===item.id,card=document.createElement('article');card.className='cosmetic-card'+(equipped?' equipped':'');card.innerHTML=`<div class="mine-wallpaper-shop-preview" data-preview-mine-wallpaper="${item.id}" style="background:${item.preview}"><span class="shop-rock-sample" data-rock-skin="slate"><i>⛏️</i></span></div><h3>${item.name}</h3><p>${item.desc}</p><button type="button" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':shopText('buyEquipNuggets',{value:item.cost.toLocaleString()})}</button>`;card.querySelector('button').addEventListener('click',()=>buyOrEquipMineCosmetic('wallpaper',item));mineWallpaperGrid.appendChild(card);});
+
+  const pickaxeGrid=document.getElementById('menuPickaxeShop');
+  PICKAXE_SKINS.forEach(skin=>{const owned=state.ownedPickaxeSkins.includes(skin.id),equipped=state.equippedPickaxeSkin===skin.id,card=document.createElement('article');card.className='cosmetic-card'+(equipped?' equipped':'');card.innerHTML=`<div class="cosmetic-preview"><span style="${skin.id==='standard'?'':pickaxePreviewStyle(skin.id)}">${skin.icon}</span></div><h3>${skin.name}</h3><p>${skin.desc}</p><button type="button" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':`Preview — ${skin.cost.toLocaleString()} Nuggets`}</button>`;const button=card.querySelector('button');button.addEventListener('click',()=>{requestPickaxePurchase(skin,button);if(owned)renderShop();});pickaxeGrid.appendChild(card);});
+
+  const themeGrid=document.getElementById('wallpaperThemeShop');
+  SHOP_COLOR_THEMES.forEach(([value,name])=>{const selected=state.colorTheme===value,button=document.createElement('button');button.type='button';button.className=selected?'selected':'';button.innerHTML=`<span class="theme-swatch theme-${value}"></span><span>${name}<small>Free</small></span>`;button.addEventListener('click',()=>{state.colorTheme=value;state.equippedWallpaper='midnight';applyWallpaper();save();render();renderShop();setMessage(`${name} game colors selected. Wallpaper cleared.`,'correct');});themeGrid.appendChild(button);});
+  const pageWallpaperGrid=document.getElementById('wallpaperShop');
+  WALLPAPERS.forEach(wallpaper=>{const owned=state.ownedWallpapers.includes(wallpaper.id),equipped=state.colorTheme==='midnight'&&state.equippedWallpaper===wallpaper.id,card=document.createElement('article');card.className='cosmetic-card'+(equipped?' equipped':'');card.innerHTML=`<div class="wallpaper-preview" style="background:${wallpaper.preview};background-size:${wallpaper.id==='paper'?'18px 18px':'cover'}"></div><h3>${wallpaper.name}</h3><p>${wallpaper.desc}</p><button type="button" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Use wallpaper':`Buy — ${wallpaper.cost.toLocaleString()} Nuggets`}</button>`;card.querySelector('button').addEventListener('click',()=>{if(owned){state.colorTheme='midnight';state.equippedWallpaper=wallpaper.id;applyWallpaper();save();render();renderShop();setMessage(`${wallpaper.name} wallpaper equipped. Bright game colors cleared.`,'correct');}else if(spendStoneValue(wallpaper.cost)){state.ownedWallpapers.push(wallpaper.id);state.colorTheme='midnight';state.equippedWallpaper=wallpaper.id;applyWallpaper();save();render();renderShop();setMessage(`${wallpaper.name} purchased and equipped!`,'correct');}else setMessage(`You need ${wallpaper.cost.toLocaleString()} Nuggets for ${wallpaper.name}.`,'wrong');});pageWallpaperGrid.appendChild(card);});
+};
 function scrollToSection(id){closeGameMenu();const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
 document.getElementById('voiceToggle')?.addEventListener('change',e=>{state.voiceEnabled=e.target.checked;save();});
 document.getElementById('autoSpeakToggle')?.addEventListener('change',e=>{state.autoSpeak=e.target.checked;save();});

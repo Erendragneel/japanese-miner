@@ -16,10 +16,10 @@
 <link rel="apple-touch-icon" sizes="180x180" href="language-miner-icon-180.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="preload" href="language-miner-logo.png" as="image" type="image/png" />
-<link rel="stylesheet" href="styles.css?v=6.4.101-admin-header-portrait-lock" />
+<link rel="stylesheet" href="styles.css?v=6.4.108-mine-colorways" />
 <link rel="stylesheet" href="v5.css?v=6.4.91-language-miner" />
-<link rel="stylesheet" href="v6-6460.css?v=6.4.101-admin-header-portrait-lock" />
-<link rel="stylesheet" href="multilingual-preview.css?v=6.4.101-admin-header-portrait-lock" />
+<link rel="stylesheet" href="v6-6460.css?v=6.4.105-portrait-setting" />
+<link rel="stylesheet" href="multilingual-preview.css?v=6.4.103-language-dropdowns" />
 
 </head>
 <body>
@@ -60,16 +60,16 @@
     <div class="lm-title-row"><h1 class="lm-visually-hidden">Language Miner</h1><span id="lmCourseIndicator" class="lm-course-indicator">🇺🇸 English <b>→</b> 🇯🇵 Japanese</span><button id="lmChangeLanguageBtn" class="lm-change-language" type="button">🌐 Change Language</button></div>
     <div class="subtitle">Learn Japanese. Mine gems. Rise from Hiragana to JLPT N1.</div>
   </div>
-    <div class="account-chip"><span class="build-badge">v6.4.101 · Language Miner</span><span>👤 <b id="activePlayerName">Not signed in</b></span><button id="headerStatsBtn" type="button" title="Open quick stats">📊 Stats</button><button id="studyCalendarBtn" type="button" title="Open the study calendar">📅 Calendar</button><button id="developerBtn" class="developer-only" type="button" hidden>👑 Admin</button><button id="logoutBtn" type="button">Log out</button></div>
+    <div class="account-chip"><span class="build-badge">v6.4.108 · Language Miner</span><span>👤 <b id="activePlayerName">Not signed in</b></span><button id="headerStatsBtn" type="button" title="Open quick stats">📊 Stats</button><button id="studyCalendarBtn" type="button" title="Open the study calendar">📅 Calendar</button><button id="developerBtn" class="developer-only" type="button" hidden>👑 Admin</button><button id="logoutBtn" type="button">Log out</button></div>
 </header>
 
 <button id="quickMineBtn" class="quick-mine-btn" type="button" aria-label="Start or return to the current question">â›ï¸ <span id="quickMineLabel">New Question</span></button>
 <button id="gameMenuBtn" class="game-menu-btn" type="button" aria-label="Open game menu" aria-expanded="false">â˜°</button>
-<div id="portraitGuard" class="portrait-guard" aria-hidden="true">
+<div id="portraitGuard" class="portrait-guard" aria-hidden="true" hidden>
   <section role="dialog" aria-modal="true" aria-labelledby="portraitGuardTitle">
     <span class="portrait-phone" aria-hidden="true">📱</span>
     <h2 id="portraitGuardTitle">Portrait mode</h2>
-    <p id="portraitGuardMessage">Turn your phone upright to keep playing.</p>
+    <p id="portraitGuardMessage">Portrait lock is managed in Accessibility &amp; Settings.</p>
     <button id="portraitLockBtn" type="button">Lock portrait</button>
   </section>
 </div>
@@ -290,6 +290,7 @@
     <div class="shop-head"><button id="backShopToMenu" class="menu-back-button" type="button">â† Menu</button><div class="menu-header-copy"><div class="placement-kicker">Nugget Marketplace</div><h2 id="shopTitle">Miner Shop</h2><p>Spend Nuggets on permanent cosmetics or useful practice supplies.</p></div><button id="closeShopBtn" type="button" aria-label="Close shop">Ã—</button></div>
     <div class="shop-balance">ðŸª™ <strong id="shopNuggetBalance">0</strong> Nuggets available</div>
     <div class="shop-tabs" role="tablist">
+      <button type="button" data-shop-tab="mine-cosmetics">🪨 Mine Cosmetics</button>
       <button type="button" data-shop-tab="pickaxes" class="primary">â›ï¸ Pickaxe Skins</button>
       <button type="button" data-shop-tab="character">ðŸ§ Character</button>
       <button type="button" data-shop-tab="fashion">ðŸ‘˜ Fashion</button>
@@ -348,7 +349,7 @@
           <select id="adminResetTarget">
             <optgroup label="Language courses">
               <option value="course:current">Current learning language</option>
-              <option value="course:ja">Japanese</option><option value="course:en">English</option><option value="course:es">Spanish</option><option value="course:ru">Russian</option><option value="course:ko">Korean</option><option value="course:zh">Mandarin Chinese</option><option value="course:it">Italian</option><option value="course:fr">French</option><option value="course:de">German</option>
+              <option value="course:ja">Japanese</option><option value="course:en">English</option><option value="course:es">Spanish</option><option value="course:ru">Russian</option><option value="course:ko">Korean</option><option value="course:zh">Mandarin Chinese</option><option value="course:it">Italian</option><option value="course:fr">French</option><option value="course:de">German</option><option value="course:pt">Brazilian Portuguese</option><option value="course:vi">Vietnamese</option><option value="course:th">Thai</option><option value="course:tr">Turkish</option><option value="course:id">Indonesian</option><option value="course:pl">Polish</option><option value="course:el">Greek</option><option value="course:uk">Ukrainian</option>
               <option value="courses:all">Every language course</option>
             </optgroup>
             <optgroup label="Profile areas">
@@ -369,7 +370,7 @@
           <select id="adminPlayerResetTarget">
             <optgroup label="Language courses">
               <option value="course:current">Player's current learning language</option>
-              <option value="course:ja">Japanese</option><option value="course:en">English</option><option value="course:es">Spanish</option><option value="course:ru">Russian</option><option value="course:ko">Korean</option><option value="course:zh">Mandarin Chinese</option><option value="course:it">Italian</option><option value="course:fr">French</option><option value="course:de">German</option>
+              <option value="course:ja">Japanese</option><option value="course:en">English</option><option value="course:es">Spanish</option><option value="course:ru">Russian</option><option value="course:ko">Korean</option><option value="course:zh">Mandarin Chinese</option><option value="course:it">Italian</option><option value="course:fr">French</option><option value="course:de">German</option><option value="course:pt">Brazilian Portuguese</option><option value="course:vi">Vietnamese</option><option value="course:th">Thai</option><option value="course:tr">Turkish</option><option value="course:id">Indonesian</option><option value="course:pl">Polish</option><option value="course:el">Greek</option><option value="course:uk">Ukrainian</option>
               <option value="courses:all">Every language course</option>
             </optgroup>
             <optgroup label="Profile areas">
@@ -391,21 +392,23 @@
   </section>
 </div>
 
-<div class="footer">Language Miner v6.4.101 — Reliable mobile Admin controls and portrait-mode phone play. <a href="THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a></div>
+<div class="footer">Language Miner v6.4.108 — eight consistent mine colorways. <a href="THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a></div>
 </div>
 
 <script src="patreon-config.js?v=6.4.91-language-miner" defer></script>
 <script src="cloud-auth.js?v=6.4.101-admin-header-portrait-lock" defer></script>
 <script src="auth-utilities.js?v=6.4.93-account-tools" defer></script>
 <script src="n5-vocabulary-1000.js?v=6.4.91-language-miner" defer></script>
-<script src="multilingual-course-data.js?v=6.4.92-expedition-curriculum" defer></script>
-<script src="game-6460.js?v=6.4.101-admin-header-portrait-lock" defer></script>
-<script src="v5-6400.js?v=6.4.101-admin-header-portrait-lock" defer></script>
-<script src="v6.js?v=6.4.101-admin-header-portrait-lock" defer></script>
+<script src="multilingual-course-data.js?v=6.4.102-eight-new-languages" defer></script>
+<script src="game-6460.js?v=6.4.108-mine-colorways" defer></script>
+<script src="v5-6400.js?v=6.4.104-mine-cosmetics" defer></script>
+<script src="v6.js?v=6.4.106-cosmetic-accordions-r3" defer></script>
 <script src="recovery-6460.js?v=6.4.101-admin-header-portrait-lock" defer></script>
 <script src="patreon-linking.js?v=6.4.91-language-miner" defer></script>
-<script src="interface-localization.js?v=6.4.101-admin-header-portrait-lock" defer></script>
-<script src="multilingual-preview.js?v=6.4.101-admin-header-portrait-lock" defer></script>
+<script src="additional-language-packs.js?v=6.4.102-eight-new-languages" defer></script>
+<script src="mine-cosmetic-localization.js?v=6.4.104-mine-cosmetics" defer></script>
+<script src="interface-localization.js?v=6.4.106-cosmetic-accordions" defer></script>
+<script src="multilingual-preview.js?v=6.4.103-language-dropdowns" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));}</script>
 
 <script>
@@ -415,7 +418,9 @@
     const repairNode=node=>{if(node.nodeType===3)node.nodeValue=repair(node.nodeValue);else node.childNodes.forEach(repairNode);};
     repairNode(document.body);
     const repairObserver=new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(repairNode)));
-    if(document.body instanceof Node)repairObserver.observe(document.body,{childList:true,subtree:true});
+    try{
+      if(document.body?.nodeType===Node.ELEMENT_NODE)repairObserver.observe(document.body,{childList:true,subtree:true});
+    }catch{}
   })();
 </script>
 </body>

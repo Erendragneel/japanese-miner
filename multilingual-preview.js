@@ -228,6 +228,24 @@
     fr:'Utilisez Ignorer la révision de la leçon pour commencer sans parcourir toutes les cartes d’aperçu.',
     de:'Mit Lektionswiederholung überspringen startest du, ohne alle Vorschaukarten anzusehen.'
   };
+  const ADDITIONAL_PACKS=window.LANGUAGE_MINER_ADDITIONAL_LANGUAGE_PACKS||{};
+  Object.assign(LANGUAGES,ADDITIONAL_PACKS.languages||{});
+  Object.assign(EXPEDITION_COURSES,ADDITIONAL_PACKS.expeditions||{});
+  Object.assign(COURSE_LEVEL_LABELS,ADDITIONAL_PACKS.levelLabels||{});
+  Object.assign(ALPHABET_SYSTEMS,ADDITIONAL_PACKS.alphabetSystems||{});
+  FOUNDATION_CONCEPTS.forEach(concept=>{
+    const forms=ADDITIONAL_PACKS.foundationForms?.[concept.id];
+    if(forms)Object.assign(concept.forms,forms);
+  });
+  Object.entries(ADDITIONAL_PACKS.questionPromptTemplates||{}).forEach(([languageId,template])=>{
+    QUESTION_PROMPTS[languageId]=(meaning,target)=>String(template).replace(/\{meaning\}/g,meaning).replace(/\{target\}/g,target);
+  });
+  Object.entries(ADDITIONAL_PACKS.alphabetPromptTemplates||{}).forEach(([languageId,template])=>{
+    ALPHABET_PROMPTS[languageId]=(name,target)=>String(template).replace(/\{name\}/g,name).replace(/\{target\}/g,target);
+  });
+  Object.assign(POST_GUIDE_TRANSLATIONS,ADDITIONAL_PACKS.guides||{});
+  Object.assign(GUIDE_REVIEW_SKIP_TIPS,ADDITIONAL_PACKS.guideTips||{});
+
   const STORAGE_PREFIX='lm_multilingual_functional_preview_v1:';
   const MULTILINGUAL_BOSS_QUESTION_TARGET=25;
   const MULTILINGUAL_BOSS_TIME_LIMIT_MS=5*60*1000;
@@ -278,18 +296,21 @@
     const authHidden=!auth||auth.hidden||auth.classList.contains('hidden')||auth.classList.contains('auth-dismissed')||getComputedStyle(auth).display==='none';
     return authHidden&&player&&player!=='Not signed in';
   }
-  function languageOption(group,id,selected,disabledId=''){
-    const language=LANGUAGES[id],disabled=id===disabledId;
-    return `<label class="lm-language-option"><input type="radio" name="lm-${group}" value="${id}" ${selected===id?'checked':''} ${disabled?'disabled':''}><span><em>${language.flag}</em><span><b>${language.native}</b><small>${language.name}${disabled?' · already known':''}</small></span></span></label>`;
+  function languageSelectOptions(selected,disabledId=''){
+    const placeholder=selected?'':`<option value="" selected disabled>${escapeHtml(ui('selectLanguage'))}</option>`;
+    return `${placeholder}${Object.entries(LANGUAGES).map(([id,language])=>{
+      const disabled=id===disabledId;
+      return `<option value="${id}" ${selected===id?'selected':''} ${disabled?'disabled':''}>${language.flag} ${escapeHtml(language.native)} — ${escapeHtml(language.name)}${disabled?` · ${escapeHtml(ui('alreadyKnown'))}`:''}</option>`;
+    }).join('')}`;
   }
   function progress(index){document.querySelectorAll('.lm-flow-progress i').forEach((bar,i)=>bar.classList.toggle('active',i<=index));}
   function setHead(nextIcon,nextTitle,nextCopy){icon.textContent=nextIcon;title.textContent=nextTitle;copy.textContent=nextCopy;}
   function renderLanguages(){
     window.LanguageMinerI18n?.setLocale?.(known,{known,learning});
     step='languages';progress(0);setHead('🌐','Language Miner','');
-    content.innerHTML=`<section class="lm-flow-screen"><div class="lm-choice-block"><h3>1. ${escapeHtml(ui('knownQuestion'))}</h3><p>${escapeHtml(ui('knownHelp'))}</p><div id="lmKnownChoices" class="lm-language-grid" role="radiogroup" aria-label="${escapeHtml(ui('knownQuestion'))}">${Object.keys(LANGUAGES).map(id=>languageOption('known',id,known)).join('')}</div></div><div class="lm-choice-block"><h3>2. ${escapeHtml(ui('learningQuestion'))}</h3><p>${escapeHtml(ui('learningHelp'))}</p><div id="lmLearningChoices" class="lm-language-grid" role="radiogroup" aria-label="${escapeHtml(ui('learningQuestion'))}">${Object.keys(LANGUAGES).map(id=>languageOption('learning',id,learning,known)).join('')}</div></div><div class="lm-flow-note">${escapeHtml(ui('oneEach'))}</div><div class="lm-flow-actions"><button id="lmContinuePlacement" class="lm-flow-primary" type="button" ${known&&learning&&known!==learning?'':'disabled'}>${escapeHtml(ui('continuePlacement'))}</button></div></section>`;
-    content.querySelectorAll('input[name="lm-known"]').forEach(input=>input.addEventListener('change',()=>{known=input.value;window.LanguageMinerI18n?.setLocale?.(known,{known,learning});if(learning===known)learning='';renderLanguages();}));
-    content.querySelectorAll('input[name="lm-learning"]').forEach(input=>input.addEventListener('change',()=>{learning=input.value;renderLanguages();}));
+    content.innerHTML=`<section class="lm-flow-screen lm-language-dropdown-screen"><div class="lm-choice-block lm-language-dropdown-block"><div class="lm-language-step"><span>1</span><div><h3>${escapeHtml(ui('knownQuestion'))}</h3><p>${escapeHtml(ui('knownHelp'))}</p></div></div><div class="lm-language-select-wrap"><select id="lmKnownLanguageSelect" name="lm-known" aria-label="${escapeHtml(ui('knownQuestion'))}">${languageSelectOptions(known)}</select><span aria-hidden="true">▼</span></div></div><div class="lm-choice-block lm-language-dropdown-block"><div class="lm-language-step"><span>2</span><div><h3>${escapeHtml(ui('learningQuestion'))}</h3><p>${escapeHtml(ui('learningHelp'))}</p></div></div><div class="lm-language-select-wrap"><select id="lmLearningLanguageSelect" name="lm-learning" aria-label="${escapeHtml(ui('learningQuestion'))}">${languageSelectOptions(learning,known)}</select><span aria-hidden="true">▼</span></div></div><div class="lm-flow-note">${escapeHtml(ui('oneEach'))}</div><div class="lm-flow-actions"><button id="lmContinuePlacement" class="lm-flow-primary" type="button" ${known&&learning&&known!==learning?'':'disabled'}>${escapeHtml(ui('continuePlacement'))}</button></div></section>`;
+    document.getElementById('lmKnownLanguageSelect')?.addEventListener('change',event=>{known=event.target.value;window.LanguageMinerI18n?.setLocale?.(known,{known,learning});if(learning===known)learning='';renderLanguages();});
+    document.getElementById('lmLearningLanguageSelect')?.addEventListener('change',event=>{learning=event.target.value;renderLanguages();});
     document.getElementById('lmContinuePlacement')?.addEventListener('click',renderPlacement);
   }
   function originalJapanesePlacementComplete(){return learning==='ja'&&window.placementTestAlreadyCompleted?.()===true;}

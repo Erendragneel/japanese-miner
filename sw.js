@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.101-admin-header-portrait-lock';
+const CACHE_NAME='language-miner-v6.4.108-mine-colorways-r9';
 const APP_SHELL=[
   './',
   './index.html',
@@ -8,6 +8,8 @@ const APP_SHELL=[
   './multilingual-preview.css',
   './n5-vocabulary-1000.js',
   './multilingual-course-data.js',
+  './additional-language-packs.js',
+  './mine-cosmetic-localization.js',
   './game-6460.js',
   './v5-6400.js',
   './v6.js',

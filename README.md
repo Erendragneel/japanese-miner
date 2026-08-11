@@ -1,4 +1,52 @@
-# Language Miner v6.4.101
+# Language Miner v6.4.108
+
+## v6.4.108 consistent mine colorways
+
+- All eight mine-scene wallpapers now preserve the original cavern layout: rock arch, central tunnel, hanging lantern, and crystal formations.
+- The former themed environments are replaced by Original Slate, Amethyst Purple, Sapphire Blue, Emerald Green, Arctic Cyan, Ruby Red, Golden Amber, and Rose Quartz colorways.
+- Existing wallpaper IDs, purchases, ownership, equipped selections, Admin unlocks, cloud saves, and backups remain compatible, so players do not lose cosmetics.
+- Shop preview cards now match the recolored mine scenes instead of showing unrelated environments.
+
+## v6.4.107 Scientific Gem Collection rock skins
+
+- All eight existing rock skins remain available exactly as before.
+- Fifteen new rock skins now match the game's Scientific Gem Collection: Agate, Amethyst, Aquamarine, Citrine, Emerald, Garnet, Opal, Peridot, Ruby, Sapphire, Topaz, Alexandrite, Paraíba Tourmaline, Jadeite, and Red Diamond.
+- Every scientific skin has its own gem-inspired color, facets, glow, Shop preview, permanent Nugget price, saved ownership, and equipped state.
+- The expanded 23-skin Rock Skins collection remains inside the Tier 1 Mine Cosmetics pull-down and is included by Admin Unlock Everything.
+
+## v6.4.106 consolidated Tier 1 Mine Cosmetics
+
+- Rock skins, mine wallpapers, pickaxe skins, and full-page wallpapers now share one **Mine Cosmetics** Shop tab.
+- Each of the four collections uses its own accessible pull-down section so the Shop stays compact on desktop and phone.
+- The separate Pickaxe Skins and Wallpapers tabs are hidden because those collections now live inside Mine Cosmetics.
+- The entire Mine Cosmetics hub requires Patreon Tier 1; non-supporters see the Tier 1 gate and standard appearances while saved ownership remains intact.
+
+## v6.4.105 portrait-lock setting
+
+- The blocking landscape warning is permanently disabled, so it cannot stop an installed player from using the game.
+- Accessibility & Settings now has one saved button that switches between **Lock portrait** and **Unlock rotation**.
+- Portrait locking is attempted directly through the device orientation API without incorrectly telling installed players to reinstall the app.
+- When a browser or phone does not allow app-controlled locking, the status explains that the phone's own rotation control can be used.
+
+## v6.4.104 mine cosmetics
+
+- A new **Mine Cosmetics** Shop tab adds eight permanent rock skins and eight permanent mine-scene wallpapers.
+- Rock skins change the tappable rock without changing the equipped pickaxe.
+- Mine wallpapers change only the cave scenery behind the rock and remain independent from full-page wallpapers.
+- Purchases, ownership, and equipped selections are stored per player, included in cloud saves and backups, available to Admin Unlock Everything, and restored by the cosmetics reset.
+
+## v6.4.103 compact language dropdowns
+
+- The 17-card known-language grid is replaced by one clean, localized dropdown.
+- The 17-card learning-language grid is replaced by a matching dropdown that prevents selecting the same language twice.
+- Both controls show each language's flag, native name, and English name while remaining compact on desktop and mobile.
+
+## v6.4.102 eight complete new language courses
+
+- Brazilian Portuguese, Vietnamese, Thai, Turkish, Indonesian, Polish, Greek, and Ukrainian are now complete selectable known and learning languages.
+- Each new learning language has its writing-system foundation, six progressive content mines, 1,000 vocabulary entries, 80 grammar patterns, 120 practical sentences, required two-lesson reviews, placement testing, and 25/25 guardian gates.
+- Each new language has a localized interface and game guide, native letter or script names, independent saved progress, cloud-save compatibility, and dedicated Admin reset targets.
+- Speech uses exact native regional locales: Brazilian Portuguese (`pt-BR`), Vietnamese (`vi-VN`), Thai (`th-TH`), Turkish (`tr-TR`), Indonesian (`id-ID`), Polish (`pl-PL`), Greek (`el-GR`), and Ukrainian (`uk-UA`).
 
 ## v6.4.101 mobile Admin and portrait play
 
@@ -18,8 +66,8 @@
 
 - This release introduced the original combined voice-style selector, superseded by the separate controls in v6.4.100.
 - The selected style is stored in that player's save and follows their cloud save between devices.
-- Voice style applies to Japanese and every multilingual course. Exact regional tags provide American English, Spain Spanish, Russian, Japanese, Korean, Mainland Mandarin, Italian, France French, and German pronunciation. Language Miner prefers an exact-locale installed voice and uses pitch/rate tuning so all eight choices remain distinct.
-- Voice-style controls and help text are localized into all nine supported interface languages.
+- Voice style applies to Japanese and every multilingual course. Exact regional tags provide native regional pronunciation for all seventeen supported languages. Language Miner prefers an exact-locale installed voice and uses pitch/rate tuning so all choices remain distinct.
+- Voice-style controls and help text are localized into all seventeen supported interface languages.
 
 ## v6.4.98 secure global player management
 
@@ -47,7 +95,7 @@ Language Miner is the renamed, save-compatible release of the Japanese-learning 
 ## Included
 
 - Complete Hiragana through JLPT N1 learning game
-- Nine selectable known and learning languages
+- Seventeen selectable known and learning languages
 - Interface navigation and instructions automatically use the selected known language
 - Seven-stage non-Japanese Expedition Hubs matching the Japanese course progression pattern
 - A guardian boss in every course stage; only a 25/25 Perfect Gate result unlocks the next mine

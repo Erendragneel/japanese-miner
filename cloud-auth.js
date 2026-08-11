@@ -1,4 +1,4 @@
-// Language Miner v6.4.91 - one Supabase account for game access, existing saves, and Patreon linking.
+// Language Miner v6.4.98 - Supabase accounts, conflict-safe cloud saves, and secure global admin resets.
 (()=>{
 "use strict";
 const CONFIG=window.JAPANESE_MINER_PATREON_CONFIG||{};
@@ -74,6 +74,18 @@ async function signUp(displayName,email,password){
   if(!next)throw new Error("Account created. Email confirmation is still enabled; confirm the email, then return and sign in.");
   return saveSession(next);
 }
+async function resetPassword(email){
+  const normalized=String(email||"").trim();
+  if(!/^\S+@\S+\.\S+$/.test(normalized))throw new Error("Enter the email address used for your Language Miner account.");
+  const redirectTo=`${location.origin}${location.pathname}`;
+  await request(`recover?redirect_to=${encodeURIComponent(redirectTo)}`,{body:{email:normalized}});
+  return true;
+}
+async function updatePassword(accessToken,password){
+  if(String(password||'').length<8)throw new Error('Your new password must contain at least 8 characters.');
+  await request('user',{method:'PUT',token:String(accessToken||''),body:{password}});
+  return true;
+}
 async function signOut(){
   const token=session?.accessToken;
   if(token)try{await request("logout",{token});}catch{}
@@ -90,5 +102,39 @@ async function adminStatus(candidate=session){
   return Array.isArray(rows)&&rows.some(row=>row?.user_id===userId);
 }
 
-window.languageMinerCloudAuth=Object.freeze({enabled,getSession,saveSession,bootstrap,validSession,signIn,signUp,signOut,adminStatus});
+async function rpc(name,body={},candidate=session,retried=false){
+  const current=candidate?.accessToken?candidate:await validSession();
+  if(!current?.accessToken)throw new Error("Sign in to use cloud player data.");
+  const response=await fetch(restUrl(`rpc/${encodeURIComponent(name)}`),{
+    method:"POST",
+    headers:{apikey:String(CONFIG.supabaseAnonKey||""),Authorization:`Bearer ${current.accessToken}`,Accept:"application/json","Content-Type":"application/json"},
+    body:JSON.stringify(body||{})
+  });
+  if(response.status===401&&!retried&&session?.refreshToken){const refreshed=await refresh();return rpc(name,body,refreshed,true);}
+  let payload=null;try{payload=await response.json();}catch{}
+  if(!response.ok)throw new Error(payload?.message||payload?.hint||payload?.details||`Cloud player request failed (${response.status})`);
+  return payload;
+}
+function firstRow(payload){return Array.isArray(payload)?payload[0]||null:payload&&typeof payload==="object"?payload:null;}
+async function loadPlayerSave(candidate=session){return firstRow(await rpc("load_player_save",{},candidate));}
+async function savePlayerState(payload,candidate=session){
+  return firstRow(await rpc("save_player_state",{
+    p_game_state:payload?.gameState||{},p_course_settings:payload?.courseSettings||{},
+    p_display_name:String(payload?.displayName||""),p_email:String(payload?.email||""),
+    p_base_revision:Math.max(0,Number(payload?.baseRevision)||0)
+  },candidate));
+}
+async function adminSearchPlayers(search="",limit=50){
+  const payload=await rpc("admin_search_players",{p_search:String(search||"").trim(),p_limit:Math.max(1,Math.min(100,Number(limit)||50))});
+  return Array.isArray(payload)?payload:[];
+}
+async function adminGetPlayerSave(userId){return firstRow(await rpc("admin_get_player_save",{p_user_id:String(userId||"")}));}
+async function adminUpdatePlayerSave(userId,payload){
+  return firstRow(await rpc("admin_update_player_save",{
+    p_user_id:String(userId||""),p_game_state:payload?.gameState||{},p_course_settings:payload?.courseSettings||{},
+    p_target:String(payload?.target||"selected"),p_base_revision:Math.max(0,Number(payload?.baseRevision)||0)
+  }));
+}
+
+window.languageMinerCloudAuth=Object.freeze({enabled,getSession,saveSession,bootstrap,validSession,signIn,signUp,resetPassword,updatePassword,signOut,adminStatus,loadPlayerSave,savePlayerState,adminSearchPlayers,adminGetPlayerSave,adminUpdatePlayerSave});
 })();

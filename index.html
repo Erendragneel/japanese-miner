@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Language Miner</title>
-<meta name="description" content="A relaxing Japanese-learning mining game with kana mastery, gemstones, nuggets, and collectible pickaxes." />
+<meta name="description" content="A multilingual learning adventure with mining, pronunciation, mastery, expeditions, guardian bosses, and collectible rewards." />
 <meta name="theme-color" content="#101522" />
 <meta name="color-scheme" content="dark" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -16,10 +16,10 @@
 <link rel="apple-touch-icon" sizes="180x180" href="language-miner-icon-180.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="preload" href="language-miner-logo.png" as="image" type="image/png" />
-<link rel="stylesheet" href="styles.css?v=6.4.91-language-miner" />
+<link rel="stylesheet" href="styles.css?v=6.4.100-voice-and-style-controls" />
 <link rel="stylesheet" href="v5.css?v=6.4.91-language-miner" />
-<link rel="stylesheet" href="v6-6460.css?v=6.4.91-language-miner" />
-<link rel="stylesheet" href="multilingual-preview.css?v=6.4.91-multilingual-functional-preview" />
+<link rel="stylesheet" href="v6-6460.css?v=6.4.100-voice-and-style-controls" />
+<link rel="stylesheet" href="multilingual-preview.css?v=6.4.100-voice-and-style-controls" />
 
 </head>
 <body>
@@ -27,6 +27,7 @@
 <div id="authOverlay" class="auth-overlay">
   <section class="auth-card" aria-labelledby="authTitle">
     <h2 id="authTitle">Language Miner Account</h2>
+    <section id="authRecoveryPanel" class="auth-recovery-panel" hidden aria-labelledby="authRecoveryTitle"><h3 id="authRecoveryTitle">Choose a new password</h3><p>Enter a new password for your Language Miner account.</p><div class="auth-field"><label for="authRecoveryPassword">New password</label><input id="authRecoveryPassword" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="At least 8 characters"></div><div class="auth-field"><label for="authRecoveryConfirm">Confirm new password</label><input id="authRecoveryConfirm" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Type the new password again"></div><button id="authRecoverySubmit" class="primary" type="button">Save New Password</button></section>
     <p>One account signs you into the game and connects your Patreon membership. Progress is still saved on this device, so export a backup before clearing browser data or moving devices.</p>
     <div class="auth-tabs">
       <button id="loginTabBtn" class="primary" type="button">Sign in</button>
@@ -37,6 +38,7 @@
     <div class="auth-field"><label for="authPassword">Password</label><div class="auth-password-control"><input id="authPassword" type="password" minlength="8" maxlength="72" autocomplete="current-password" placeholder="At least 8 characters"><button id="authPasswordToggle" class="auth-password-toggle" type="button" aria-label="Show password" aria-controls="authPassword" aria-pressed="false">👁️</button></div></div>
     <label id="migrateWrap" class="form-check" style="display:none;margin-top:10px"><input id="migrateOldSave" class="form-check-input" type="checkbox" checked><span class="form-check-label">Import the existing prototype save into this new profile</span></label>
     <div class="auth-actions"><button id="authSubmitBtn" class="primary" type="button">Sign in</button></div>
+    <div class="auth-support-actions"><button id="forgotPasswordBtn" type="button">Forgot password?</button><button id="installAppBtn" type="button">📲 Install App</button></div>
     <div id="authMessage" class="auth-message" aria-live="polite"></div>
     <div class="small">This same account is used in Menu &rarr; Patreon. Patreon passwords are entered only on Patreon.</div>
   </section>
@@ -58,7 +60,7 @@
     <div class="lm-title-row"><h1 class="lm-visually-hidden">Language Miner</h1><span id="lmCourseIndicator" class="lm-course-indicator">🇺🇸 English <b>→</b> 🇯🇵 Japanese</span><button id="lmChangeLanguageBtn" class="lm-change-language" type="button">🌐 Change Language</button></div>
     <div class="subtitle">Learn Japanese. Mine gems. Rise from Hiragana to JLPT N1.</div>
   </div>
-  <div class="account-chip"><span class="build-badge">v6.4.91 · Language Miner</span><span>👤 <b id="activePlayerName">Not signed in</b></span><button id="headerStatsBtn" type="button" title="Open quick stats">📊 Stats</button><button id="studyCalendarBtn" type="button" title="Open the study calendar">📅 Calendar</button><button id="developerBtn" class="developer-only" type="button" hidden>👑 Admin</button><button id="logoutBtn" type="button">Log out</button></div>
+    <div class="account-chip"><span class="build-badge">v6.4.100 · Language Miner</span><span>👤 <b id="activePlayerName">Not signed in</b></span><button id="headerStatsBtn" type="button" title="Open quick stats">📊 Stats</button><button id="studyCalendarBtn" type="button" title="Open the study calendar">📅 Calendar</button><button id="developerBtn" class="developer-only" type="button" hidden>👑 Admin</button><button id="logoutBtn" type="button">Log out</button></div>
 </header>
 
 <button id="quickMineBtn" class="quick-mine-btn" type="button" aria-label="Start or return to the current question">â›ï¸ <span id="quickMineLabel">New Question</span></button>
@@ -74,7 +76,7 @@
     <div class="quick-stat"><span>Nugget balance</span><strong>ðŸª™ <b id="stoneWealth">0</b> Nuggets</strong></div>
     <div class="quick-stat"><span>Practice health</span><strong>â¤ï¸ <b id="hearts">3</b>/<b id="maxHeartsTop">3</b></strong></div>
     <div class="quick-stat"><span>Daily streak</span><strong>ðŸ“… <b id="practiceStreak">0</b> days</strong></div>
-    <div class="quick-stat"><span>Japanese level</span><strong>â­ Lv. <b id="level">1</b></strong></div>
+    <div class="quick-stat"><span>Level</span><strong>â­ Lv. <b id="level">1</b></strong></div>
     <div class="quick-stat"><span>Answer streak</span><strong>ðŸ”¥ <b id="streak">0</b></strong></div>
     <div class="quick-stat"><span>Current mine</span><strong id="quickStage">Hiragana</strong></div>
   </div>
@@ -93,6 +95,25 @@
     <label class="form-check form-switch sound-toggle"><input id="voiceToggle" class="form-check-input" type="checkbox" checked><span class="form-check-label">Japanese voice</span></label>
     <label class="form-check form-switch sound-toggle"><input id="autoSpeakToggle" class="form-check-input" type="checkbox" checked><span class="form-check-label">Speak new questions automatically</span></label>
     <label class="form-check form-switch sound-toggle"><input id="smartReviewToggle" class="form-check-input" type="checkbox" checked><span class="form-check-label">Smart Review weak questions</span></label>
+    <div class="voice-style-settings">
+      <span class="voice-style-label">Voice</span>
+      <div id="voiceGenderOptions" class="voice-gender-options" role="group" aria-label="Male or female voice">
+        <button type="button" data-voice-gender="male" aria-pressed="false"><span>👨</span> Male</button>
+        <button type="button" data-voice-gender="female" class="selected" aria-pressed="true"><span>👩</span> Female</button>
+      </div>
+      <span class="voice-style-label">Style</span>
+      <div id="voiceStyleOptions" class="voice-style-options" role="group" aria-label="Voice style">
+        <button type="button" data-voice-style="natural" class="selected" aria-pressed="true"><span>🗣️</span> Natural</button>
+        <button type="button" data-voice-style="deep" aria-pressed="false"><span>🎙️</span> Deep</button>
+        <button type="button" data-voice-style="high" aria-pressed="false"><span>🎵</span> High</button>
+        <button type="button" data-voice-style="soft" aria-pressed="false"><span>🌙</span> Soft</button>
+        <button type="button" data-voice-style="energetic" aria-pressed="false"><span>⚡</span> Energetic</button>
+        <button type="button" data-voice-style="calm" aria-pressed="false"><span>🍃</span> Calm</button>
+      </div>
+      <small>Male and Female select the closest installed native voice. Styles then apply stronger pitch, tempo, and volume tuning.</small>
+      <small id="voiceTuningLabel" class="voice-tuning-label">Female · Natural · Pitch 1.15 · Tempo 0.90× · Volume 100%</small>
+      <small id="voiceAccentLabel" class="voice-accent-label">Native accent · 日本語 · Japan · ja-JP</small>
+    </div>
     <label for="voiceRate">Voice speed <span id="voiceRateLabel">0.85Ã—</span><input id="voiceRate" type="range" min="0.55" max="1.15" step="0.05" value="0.85"></label>
     <button id="testVoiceBtn" type="button">ðŸ”Š Test Japanese Voice</button>
   </div>
@@ -243,7 +264,7 @@
   <section class="game-menu-panel" role="dialog" aria-modal="true" aria-labelledby="gameMenuTitle">
     <div class="game-menu-head"><button id="backGameMenuToGame" class="menu-back-button" type="button">â† Game</button><div class="menu-header-copy"><div class="placement-kicker">Language Miner</div><h2 id="gameMenuTitle">Game Menu</h2></div><button id="closeGameMenuBtn" type="button" aria-label="Close game menu">Ã—</button></div>
     <div class="menu-wheel">
-      <button type="button" data-menu-action="course"><span>ðŸ“š</span><strong>Course</strong><small>Study your current JLPT level</small></button>
+      <button type="button" data-menu-action="course"><span>ðŸ“š</span><strong>Course</strong><small>Study your current course level</small></button>
       <button type="button" data-menu-action="shop"><span>ðŸ›ï¸</span><strong>Shop</strong><small>Skins, wallpapers, and supplies</small></button>
       <button type="button" data-menu-action="inventory"><span>ðŸŽ’</span><strong>Inventory</strong><small>Hints, shields, and gemstones</small></button>
       <button type="button" data-menu-action="notebook" data-menu-category-name="gear"><span>ðŸ““</span><strong>Notebook</strong><small>Difficult items and personal sticky notes</small></button>
@@ -312,9 +333,48 @@
         <h3>â›ï¸ Cosmetics & Inventory</h3>
         <div class="developer-actions"><button data-admin="unlock-pickaxes" type="button">Unlock All Pickaxes</button><button data-admin="add-items" type="button">+99 Hints & Shields</button></div>
       </div>
+      <div class="developer-group developer-wide admin-reset-group">
+        <h3>Targeted Resets</h3>
+        <p>Reset one language or one part of the save without wiping everything else. A confirmation appears before any reset.</p>
+        <label>Choose exactly what to reset
+          <select id="adminResetTarget">
+            <optgroup label="Language courses">
+              <option value="course:current">Current learning language</option>
+              <option value="course:ja">Japanese</option><option value="course:en">English</option><option value="course:es">Spanish</option><option value="course:ru">Russian</option><option value="course:ko">Korean</option><option value="course:zh">Mandarin Chinese</option><option value="course:it">Italian</option><option value="course:fr">French</option><option value="course:de">German</option>
+              <option value="courses:all">Every language course</option>
+            </optgroup>
+            <optgroup label="Profile areas">
+              <option value="placement:current">Current language placement test only</option><option value="placements:all">Every language placement test</option><option value="bosses">Bosses and review quizzes</option><option value="economy">Economy, gems, supplies, and hearts</option><option value="cosmetics">Cosmetics, companions, fashion, and settlement</option><option value="history">Quests, streaks, reviews, and study history</option><option value="profile">Entire administrator profile</option>
+            </optgroup>
+          </select>
+        </label>
+        <div class="developer-actions"><button data-admin="reset-selected" class="danger" type="button">Reset Selected Data</button></div>
+      </div>
+      <div class="developer-group developer-wide admin-player-manager">
+        <div class="admin-player-manager-head"><div><h3>Global Player Account Reset</h3><p>Securely search Supabase player accounts, select one player, then reset only the chosen cloud data. Local demo players remain available in this preview.</p></div><span>ADMIN ONLY</span></div>
+        <label for="adminPlayerSearch">Search player accounts
+          <input id="adminPlayerSearch" type="search" autocomplete="off" placeholder="Player name, email, profile ID, or cloud user ID">
+        </label>
+        <div id="adminPlayerResults" class="admin-player-results" role="listbox" aria-label="Player account search results"></div>
+        <div id="adminSelectedPlayer" class="admin-selected-player"><span>No player selected</span><small>Search by player name, email, profile ID, or cloud user ID.</small></div>
+        <label for="adminPlayerResetTarget">Data to reset for the selected player
+          <select id="adminPlayerResetTarget">
+            <optgroup label="Language courses">
+              <option value="course:current">Player's current learning language</option>
+              <option value="course:ja">Japanese</option><option value="course:en">English</option><option value="course:es">Spanish</option><option value="course:ru">Russian</option><option value="course:ko">Korean</option><option value="course:zh">Mandarin Chinese</option><option value="course:it">Italian</option><option value="course:fr">French</option><option value="course:de">German</option>
+              <option value="courses:all">Every language course</option>
+            </optgroup>
+            <optgroup label="Profile areas">
+              <option value="placement:current">Player's current language placement test only</option><option value="placements:all">Player's placement tests for every language</option><option value="bosses">Bosses and review quizzes</option><option value="economy">Economy, gems, supplies, and hearts</option><option value="cosmetics">Cosmetics, companions, fashion, and settlement</option><option value="history">Quests, streaks, reviews, and study history</option><option value="profile">Entire player profile</option>
+            </optgroup>
+          </select>
+        </label>
+        <div class="admin-player-warning">Every cloud reset is verified again by Supabase. It resets saved gameplay data only and never deletes the player's login account.</div>
+        <div class="developer-actions"><button data-admin="reset-selected-player" class="danger" type="button" disabled>Reset Selected Player Data</button></div>
+      </div>
       <div class="developer-group developer-wide">
         <h3>ðŸ’¾ Save Testing</h3>
-        <div class="developer-actions"><button data-admin="export-save" type="button">Export Save File</button><button data-admin="copy-save" type="button">Show Save JSON</button><button data-admin="reset-profile" class="danger" type="button">Reset Profile</button></div>
+        <div class="developer-actions"><button data-admin="export-save" type="button">Export Save File</button><button data-admin="copy-save" type="button">Show Save JSON</button><button data-admin="reset-profile" class="danger" type="button">Reset Entire Profile</button></div>
         <textarea id="adminSaveJson" rows="6" placeholder="Exported save JSON appears here. You can also paste a save here and use Import."></textarea>
         <button data-admin="import-save" type="button">Import Pasted Save</button>
       </div>
@@ -323,18 +383,21 @@
   </section>
 </div>
 
-<div class="footer">Language Miner v6.4.91 â€” Existing saves can attach the same game and Patreon account. <a href="THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a></div>
+<div class="footer">Language Miner v6.4.100 — Separate Male/Female voices plus six clearly tuned styles and native regional accents. <a href="THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a></div>
 </div>
 
 <script src="patreon-config.js?v=6.4.91-language-miner" defer></script>
-<script src="cloud-auth.js?v=6.4.91-language-miner" defer></script>
+<script src="cloud-auth.js?v=6.4.100-voice-and-style-controls" defer></script>
+<script src="auth-utilities.js?v=6.4.93-account-tools" defer></script>
 <script src="n5-vocabulary-1000.js?v=6.4.91-language-miner" defer></script>
-<script src="game-6460.js?v=6.4.91-language-miner" defer></script>
-<script src="v5-6400.js?v=6.4.91-language-miner" defer></script>
-<script src="v6.js?v=6.4.91-language-miner" defer></script>
-<script src="recovery-6460.js?v=6.4.91-language-miner" defer></script>
+<script src="multilingual-course-data.js?v=6.4.92-expedition-curriculum" defer></script>
+<script src="game-6460.js?v=6.4.100-voice-and-style-controls" defer></script>
+<script src="v5-6400.js?v=6.4.100-voice-and-style-controls" defer></script>
+<script src="v6.js?v=6.4.100-voice-and-style-controls" defer></script>
+<script src="recovery-6460.js?v=6.4.100-voice-and-style-controls" defer></script>
 <script src="patreon-linking.js?v=6.4.91-language-miner" defer></script>
-<script src="multilingual-preview.js?v=6.4.91-multilingual-functional-preview" defer></script>
+<script src="interface-localization.js?v=6.4.100-voice-and-style-controls" defer></script>
+<script src="multilingual-preview.js?v=6.4.100-voice-and-style-controls" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));}</script>
 
 <script>
@@ -343,7 +406,8 @@
     const repair=value=>{if(!/[ÃâðÂ]/.test(value))return value;try{return new TextDecoder().decode(Uint8Array.from([...value],c=>cp1252[c.codePointAt(0)]??c.codePointAt(0)));}catch{return value;}};
     const repairNode=node=>{if(node.nodeType===3)node.nodeValue=repair(node.nodeValue);else node.childNodes.forEach(repairNode);};
     repairNode(document.body);
-    new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(repairNode))).observe(document.body,{childList:true,subtree:true});
+    const repairObserver=new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(repairNode)));
+    if(document.body instanceof Node)repairObserver.observe(document.body,{childList:true,subtree:true});
   })();
 </script>
 </body>

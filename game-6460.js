@@ -329,7 +329,7 @@ const DEFAULT_STATE = {
   hints:2, shields:1, active:null, answered:false, shieldArmed:false, lastPracticeDate:null,
   kanaStats:{}, gemInventory:{}, gemCheckpointClaims:{}, gemUnlockRewards:{}, kanaTab:"hiragana", lastKana:null, lastGem:null, hiraganaXp:0,
   heartRecoveryEnd:null, ownedPickaxeSkins:["standard"], equippedPickaxeSkin:"standard", ownedWallpapers:["midnight"], equippedWallpaper:"midnight", placementUnlockedThrough:0, developerInfiniteHearts:false,
-  selectedStage:0, jlptSectionSelection:{}, jlptVocabularyLevel:{}, jlptReviewCheckpoints:{}, soundEnabled:true, voiceEnabled:true, autoSpeak:true, voiceRate:.85, smartReview:true, sessionGoal:20, sessionAnswered:0, sessionCorrect:0, stageXp:[0,0,0,0,0,0,0], clearedStages:[], questionStats:{}
+  selectedStage:0, jlptSectionSelection:{}, jlptVocabularyLevel:{}, jlptReviewCheckpoints:{}, soundEnabled:true, voiceEnabled:true, autoSpeak:true, voiceRate:.85, voiceGender:"female", voiceStyle:"natural", smartReview:true, sessionGoal:20, sessionAnswered:0, sessionCorrect:0, stageXp:[0,0,0,0,0,0,0], clearedStages:[], questionStats:{}
 };
 const PROFILE_INDEX_KEY="jm_profiles";
 const ACTIVE_PROFILE_KEY="jm_active_profile";
@@ -441,6 +441,8 @@ function normalizeState(raw){
   next.voiceEnabled=next.voiceEnabled!==false;
   next.autoSpeak=next.autoSpeak!==false;
   next.voiceRate=Math.max(.55,Math.min(1.15,Number(next.voiceRate)||.85));
+  const legacyVoiceStyle=String(next.voiceStyle||"");next.voiceGender=["female","male"].includes(next.voiceGender)?next.voiceGender:legacyVoiceStyle==="male"?"male":"female";
+  next.voiceStyle=["natural","deep","high","soft","energetic","calm"].includes(legacyVoiceStyle)?legacyVoiceStyle:"natural";
   next.smartReview=next.smartReview!==false;
   next.sessionGoal=Math.max(5,Math.min(100,Number(next.sessionGoal)||20));
   next.sessionAnswered=Math.max(0,Number(next.sessionAnswered)||0);
@@ -482,7 +484,7 @@ function loadProfile(profile,verifiedCloudAdmin=false){
 }
 async function logout(){
   const activeProfile=readProfiles().find(profile=>profile.id===activeProfileId);
-  save();activeProfileId=null;isDeveloperSession=false;
+  save();if(activeProfile?.cloudUserId)await pushCloudSave();activeProfileId=null;isDeveloperSession=false;
   if(activeProfile?.cloudUserId)await window.languageMinerCloudAuth?.signOut?.();
   syncOwnerTutorControls();
   closeDeveloperPanel();localStorage.removeItem(ACTIVE_PROFILE_KEY);
@@ -492,11 +494,41 @@ async function logout(){
   showAuthMode("login");renderProfileList();
 }
 window.japaneseMinerActiveProfile=()=>{if(!activeProfileId)return null;const profile=readProfiles().find(item=>item.id===activeProfileId);return profile?{id:profile.id,name:profile.name,cloudUserId:profile.cloudUserId||null,email:profile.email||null}:{id:activeProfileId,name:"Player",cloudUserId:null,email:null};};
+window.japaneseMinerIsDeveloperSession=()=>isDeveloperSession===true;
 window.languageMinerLogout=logout;
+const CLOUD_COURSE_STORAGE_PREFIX="lm_multilingual_functional_preview_v1:";
+let cloudSaveRevision=0,cloudSaveTimer=null,cloudSaveApplying=false;
+function cloudCourseAccountKey(userId){return `cloud:${userId}`;}
+function readCloudCourseSettings(userId){try{return JSON.parse(localStorage.getItem(CLOUD_COURSE_STORAGE_PREFIX+cloudCourseAccountKey(userId))||"null")||{};}catch{return {};}}
+function writeCloudCourseSettings(userId,value){try{localStorage.setItem(CLOUD_COURSE_STORAGE_PREFIX+cloudCourseAccountKey(userId),JSON.stringify(value&&typeof value==="object"?value:{}));}catch{}}
+function applyCloudSaveRecord(record,profile,renderNow=false){
+  if(!record||!profile?.cloudUserId)return false;cloudSaveApplying=true;
+  try{
+    const remoteState=record.game_state&&typeof record.game_state==="object"?record.game_state:{},remoteCourses=record.course_settings&&typeof record.course_settings==="object"?record.course_settings:{};
+    localStorage.setItem(profileStorageKey(profile.id),JSON.stringify(normalizeState(remoteState)));writeCloudCourseSettings(profile.cloudUserId,remoteCourses);cloudSaveRevision=Math.max(0,Number(record.revision)||0);
+    if(activeProfileId===profile.id){state=normalizeState(remoteState);if(window.LanguageMinerCourseCloud?.importCurrent)window.LanguageMinerCourseCloud.importCurrent(remoteCourses);else window.dispatchEvent(new CustomEvent("lm-cloud-save-applied"));if(renderNow)render();}
+    return true;
+  }finally{cloudSaveApplying=false;}
+}
+function scheduleCloudSave(delay=900){
+  if(cloudSaveApplying||!activeProfileId)return;const profile=readProfiles().find(item=>item.id===activeProfileId),session=window.languageMinerCloudAuth?.getSession?.();if(!profile?.cloudUserId||session?.user?.id!==profile.cloudUserId)return;
+  clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(()=>{cloudSaveTimer=null;pushCloudSave();},Math.max(0,Number(delay)||0));
+}
+async function pushCloudSave(){
+  clearTimeout(cloudSaveTimer);cloudSaveTimer=null;if(cloudSaveApplying||!activeProfileId)return null;
+  const profile=readProfiles().find(item=>item.id===activeProfileId),session=window.languageMinerCloudAuth?.getSession?.(),cloud=window.languageMinerCloudAuth;if(!profile?.cloudUserId||session?.user?.id!==profile.cloudUserId||!cloud?.savePlayerState)return null;
+  try{
+    const result=await cloud.savePlayerState({gameState:state,courseSettings:window.LanguageMinerCourseCloud?.exportCurrent?.()||readCloudCourseSettings(profile.cloudUserId),displayName:profile.name||"Player",email:profile.email||session.user?.email||"",baseRevision:cloudSaveRevision},session);
+    if(!result)return null;if(result.accepted===false){applyCloudSaveRecord(result,profile,true);setMessage("A newer cloud save or administrator reset was applied to this device.","correct");}else cloudSaveRevision=Math.max(0,Number(result.revision)||cloudSaveRevision);
+    return result;
+  }catch(error){console.warn("Language Miner cloud save is temporarily unavailable.",error);return null;}
+}
+window.addEventListener("lm-course-settings-saved",()=>scheduleCloudSave());
 function save(){
   if(!activeProfileId) return;
   try{ localStorage.setItem(profileStorageKey(activeProfileId),JSON.stringify(state)); }
   catch(err){ console.error("Language Miner save failed",err); }
+  scheduleCloudSave();
 }
 const KATAKANA_XP_REQUIREMENT=STAGE_XP_REQUIREMENTS[0];
 function kanaSetMastery(set){
@@ -741,6 +773,8 @@ function render(){
     const vt=document.getElementById('voiceToggle'),at=document.getElementById('autoSpeakToggle'),sr=document.getElementById('smartReviewToggle'),vr=document.getElementById('voiceRate');
     if(vt)vt.checked=state.voiceEnabled;if(at)at.checked=state.autoSpeak;if(sr)sr.checked=state.smartReview;if(vr)vr.value=state.voiceRate;
     const vrl=document.getElementById('voiceRateLabel');if(vrl)vrl.textContent=`${Number(state.voiceRate).toFixed(2)}×`;
+    document.querySelectorAll('[data-voice-gender]').forEach(button=>{const selected=button.dataset.voiceGender===state.voiceGender;button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));});
+    document.querySelectorAll('[data-voice-style]').forEach(button=>{const selected=button.dataset.voiceStyle===state.voiceStyle;button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));});syncVoiceTuningLabel();
     syncPlacementTestButton();
   }catch(err){ console.error("Core display refresh failed",err); }
   try{ renderPath(); }catch(err){ console.error("Path refresh failed",err); }
@@ -1047,14 +1081,41 @@ function playFeedbackSound(correct){
   }catch(err){console.warn("Answer sound unavailable",err);}
 }
 
-let japaneseVoices=[];
-function refreshJapaneseVoices(){
-  if(!('speechSynthesis' in window)) return;
-  japaneseVoices=speechSynthesis.getVoices().filter(v=>/^ja(?:-|_)/i.test(v.lang));
-}
-if('speechSynthesis' in window){refreshJapaneseVoices();speechSynthesis.addEventListener?.('voiceschanged',refreshJapaneseVoices);}
 function stripMarkup(text){const d=document.createElement('div');d.innerHTML=String(text||'');return d.textContent||d.innerText||'';}
 function readingSpeechText(text){return stripMarkup(text).replace(/[／/・]+/g,'、').replace(/\s+/g,' ').trim();}
+const VOICE_STYLE_PRESETS={
+  natural:{pitch:1,rate:1,volume:1},
+  deep:{pitch:.5,rate:.76,volume:1},
+  high:{pitch:1.75,rate:1.22,volume:1},
+  soft:{pitch:1.15,rate:.82,volume:.6},
+  energetic:{pitch:1.25,rate:1.3,volume:1},
+  calm:{pitch:.9,rate:.65,volume:.82}
+};
+const VOICE_GENDER_PRESETS={female:{pitch:1.15,rate:1.06},male:{pitch:.82,rate:.92}};
+const FEMALE_VOICE_HINT=/female|woman|girl|kyoko|nanami|haruka|ayumi|sayaka|samantha|victoria|karen|moira|amelie|audrey|paulina|sabina|helena|heami|yuna|mei-jia|ting-ting|zira|alice|elsa|katja/i;
+const MALE_VOICE_HINT=/\bmale\b|\bman\b|\bboy\b|ichiro|otoya|hattori|keita|takumi|david|mark|james|daniel|jorge|diego|pablo|paul|thomas|henri|stefan|yuri|pavel|alex/i;
+let languageMinerVoices=[];
+function refreshLanguageMinerVoices(){if('speechSynthesis'in window)languageMinerVoices=speechSynthesis.getVoices();}
+if('speechSynthesis'in window){refreshLanguageMinerVoices();speechSynthesis.addEventListener?.('voiceschanged',refreshLanguageMinerVoices);}
+function voiceCandidates(languageTag){
+  refreshLanguageMinerVoices();const normalized=String(languageTag||'ja-JP').replace('_','-').toLowerCase();return languageMinerVoices.filter(voice=>String(voice.lang||'').replace('_','-').toLowerCase()===normalized);
+}
+function styledVoice(candidates,gender){
+  const hint=gender==='male'?MALE_VOICE_HINT:FEMALE_VOICE_HINT,opposite=gender==='male'?FEMALE_VOICE_HINT:MALE_VOICE_HINT;return candidates.find(voice=>hint.test(voice.name))||candidates.find(voice=>!opposite.test(voice.name))||candidates[0]||null;
+}
+function voiceTuning(rate=state.voiceRate){
+  const style=state.voiceStyle||'natural',gender=state.voiceGender||'female',stylePreset=VOICE_STYLE_PRESETS[style]||VOICE_STYLE_PRESETS.natural,genderPreset=VOICE_GENDER_PRESETS[gender]||VOICE_GENDER_PRESETS.female;return {style,gender,pitch:Math.max(.35,Math.min(1.9,stylePreset.pitch*genderPreset.pitch)),rate:Math.max(.5,Math.min(1.4,(Number(rate)||.85)*stylePreset.rate*genderPreset.rate)),volume:stylePreset.volume};
+}
+function syncVoiceTuningLabel(){
+  const label=document.getElementById('voiceTuningLabel');if(!label)return;const tuning=voiceTuning();label.textContent=`${tuning.gender==='male'?'Male':'Female'} · ${tuning.style[0].toUpperCase()+tuning.style.slice(1)} · Pitch ${tuning.pitch.toFixed(2)} · Tempo ${tuning.rate.toFixed(2)}× · Volume ${Math.round(tuning.volume*100)}%`;
+}
+function configureLanguageMinerUtterance(utterance,languageTag,rate=state.voiceRate){
+  const tuning=voiceTuning(rate);utterance.lang=languageTag||'ja-JP';utterance.rate=tuning.rate;utterance.pitch=tuning.pitch;utterance.volume=tuning.volume;const voice=styledVoice(voiceCandidates(utterance.lang),tuning.gender);if(voice)utterance.voice=voice;return utterance;
+}
+function speakLanguageMinerText(text,languageTag='ja-JP',rate=state.voiceRate){
+  if(silentTestingActive()||!state.voiceEnabled)return false;if(!('speechSynthesis'in window)){setMessage('Speech is not supported in this browser.','wrong');return false;}const clean=stripMarkup(text).trim();if(!clean)return false;speechSynthesis.cancel();const utterance=configureLanguageMinerUtterance(new SpeechSynthesisUtterance(clean),languageTag,rate);speechSynthesis.speak(utterance);return true;
+}
+window.LanguageMinerSpeech=Object.freeze({speak:speakLanguageMinerText,gender:()=>state.voiceGender,style:()=>state.voiceStyle,styles:()=>Object.keys(VOICE_STYLE_PRESETS),settings:()=>({...voiceTuning()})});
 function japaneseSpeechText(q=state.active){
   if(!q)return '日本語を勉強しましょう。';
   if(q.speechText)return readingSpeechText(q.speechText);
@@ -1071,14 +1132,7 @@ function japaneseAnswerSpeechText(q=state.active){
   const answer=stripMarkup(q.a||'').trim();return /[ぁ-んァ-ヶ一-龯]/.test(answer)?answer:'';
 }
 function speakJapanese(text,rate=state.voiceRate){
-  if(silentTestingActive())return;
-  if(!state.voiceEnabled)return;
-  if(!('speechSynthesis'in window)){setMessage('Japanese speech is not supported in this browser.','wrong');return;}
-  const clean=stripMarkup(text).trim();if(!clean)return;
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(clean);u.lang='ja-JP';u.rate=Math.max(.55,Math.min(1.15,Number(rate)||.85));u.pitch=1;
-  refreshJapaneseVoices();if(japaneseVoices.length)u.voice=japaneseVoices.find(v=>/Google|Kyoko|O-ren|Hattori/i.test(v.name))||japaneseVoices[0];
-  speechSynthesis.speak(u);
+  return speakLanguageMinerText(text,'ja-JP',rate);
 }
 function speakActiveQuestion(rate=state.voiceRate){if(silentTestingActive())return;const text=japaneseSpeechText();if(text)speakJapanese(text,rate);else setMessage('This question does not contain spoken Japanese.','');}
 function updateSessionDashboard(){
@@ -1363,7 +1417,7 @@ function syncPageScrollLock(){
   return locked;
 }
 function initPageScrollGuard(){
-  if(pageScrollObserver||!document.body)return;
+  if(pageScrollObserver||!(document.body instanceof Node))return;
   pageScrollObserver=new MutationObserver(syncPageScrollLock);
   pageScrollObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','aria-hidden']});
   syncPageScrollLock();
@@ -1410,6 +1464,7 @@ function openDeveloperPanel(){
   const overlay=document.getElementById("developerOverlay");
   overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");
   document.getElementById("adminInfiniteHearts").checked=!!state.developerInfiniteHearts;
+  renderAdminPlayerSearch();
   syncPageScrollLock();
 }
 function closeDeveloperPanel(){
@@ -1448,8 +1503,142 @@ function applyAdminStage(index){
   state.answered=false;
   state.xp=0;
 }
-function runAdminAction(action){
+function completeAllJapaneseCourseProgress(){
+  masterAllKana();masterAllQuestions();
+  state.level=150;state.xp=0;state.stageXp=STAGE_XP_REQUIREMENTS.map(value=>value);state.hiraganaXp=state.stageXp[0];
+  state.clearedStages=stages.map((_,index)=>index);state.selectedStage=stages.length-1;state.placementUnlockedThrough=stages.length-1;
+  state.onboardingComplete=true;state.placementTestCompleted=true;state.placementRewardClaimed=true;
+  state.placementResult={date:Date.now(),route:"admin-unlock-all",overall:100,hiragana:100,katakana:100,n5:100,n4:100,n3:100,n2:100,n1:100};
+  state.active=null;state.answered=false;state.shieldArmed=false;state.recentQuestionIds=[];
+  ensureJlptSectionState();
+  for(let stage=2;stage<stages.length;stage++){
+    JLPT_SECTION_SPECS.forEach(({id:section})=>{
+      const levels=jlptSectionLevels(stage,section);
+      levels.flat().forEach(item=>{if(item?.masteryId)state.n5AcademyMastery[item.masteryId]=100;});
+      for(let evenLesson=2;evenLesson<=levels.length;evenLesson+=2){
+        state.jlptReviewCheckpoints[jlptReviewCheckpointKey(stage,section,evenLesson)]={best:100,lastScore:100,attempts:1,passed:true,passedAt:Date.now(),adminUnlocked:true};
+      }
+      state.jlptSectionLevel[stage][section]=Math.max(0,levels.length-1);
+      if(section==="vocabulary")state.jlptVocabularyLevel[stage]=Math.max(0,levels.length-1);
+    });
+    state.jlptSectionSelection[stage]="vocabulary";
+  }
+  state.maxHearts=14;state.hearts=14;state.heartRecoveryEnd=null;state.hints=999;state.shields=999;
+  state.ownedPickaxeSkins=PICKAXE_SKINS.map(item=>item.id);state.ownedWallpapers=WALLPAPERS.map(item=>item.id);
+  gemTiers.forEach(gem=>state.gemInventory[gem.name]=Math.max(100,Number(state.gemInventory[gem.name]||0)));
+  window.japaneseMinerV5Admin?.unlockAll?.();
+  window.japaneseMinerV38Admin?.unlockAll?.();
+  window.LanguageMinerCourseAdmin?.unlockAll?.();
+}
+function resetStateFields(fields,targetState=state){
+  const fresh=normalizeState(structuredClone(DEFAULT_STATE));
+  fields.forEach(key=>{if(Object.prototype.hasOwnProperty.call(fresh,key))targetState[key]=structuredClone(fresh[key]);else delete targetState[key];});
+}
+function resetOfflineV5Progress(targetState){
+  const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:{},collection={ownedCompanions:Array.isArray(v.ownedCompanions)?[...v.ownedCompanions]:["none"],companion:String(v.companion||"none"),buildings:v.buildings&&typeof v.buildings==="object"?{...v.buildings}:{},fashion:v.fashion&&typeof v.fashion==="object"?{...v.fashion}:{jacket:"none",gloves:"none",shoes:"boots"},ownedFashion:Array.isArray(v.ownedFashion)?[...v.ownedFashion]:["jacket:none","gloves:none","shoes:boots"]};
+  targetState.v5=collection;
+}
+function resetJapaneseCourseProgress(targetState=state){
+  resetStateFields(["supportMode","n5Tier","n5Curriculum","tutorTrack","n5AcademyMastery","academyTestBest","academyReviewDate","recentQuestionIds","onboardingComplete","placementResult","placementTestCompleted","placementRewardClaimed","placementUnlockedThrough","selectedStage","jlptSectionSelection","jlptVocabularyLevel","jlptSectionLevel","jlptReviewCheckpoints","jlptVocabularyLessonSize","kanaFamilyLevel","kanaStats","stats","hiraganaXp","stageXp","clearedStages","questionStats","level","xp","active","answered","shieldArmed","sessionAnswered","sessionCorrect"],targetState);
+  if(targetState===state)window.japaneseMinerV5Admin?.resetProgress?.();else resetOfflineV5Progress(targetState);
+}
+function resetJapanesePlacement(targetState=state){
+  resetStateFields(["placementResult","placementTestCompleted","placementRewardClaimed","placementUnlockedThrough"],targetState);targetState.onboardingComplete=true;
+}
+function resetBossesAndReviews(targetState=state){
+  targetState.jlptReviewCheckpoints={};
+  if(targetState===state){window.japaneseMinerV5Admin?.resetBosses?.();window.LanguageMinerCourseAdmin?.resetBossesAndReviews?.();}
+  else if(targetState.v5&&typeof targetState.v5==="object"){targetState.v5.boss=null;targetState.v5.bossDefeated=[];targetState.v5.bossWins=0;}
+}
+function resetEconomyAndInventory(targetState=state){
+  resetStateFields(["gems","gemInventory","gemCheckpointClaims","gemUnlockRewards","lastGem","stoneCurrencyMigrated","hearts","maxHearts","heartRecoveryEnd","hints","shields","shieldArmed"],targetState);
+}
+function resetCosmeticsAndCompanions(targetState=state){
+  resetStateFields(["ownedPickaxeSkins","equippedPickaxeSkin","ownedWallpapers","equippedWallpaper","colorTheme","character","ownedCosmetics","selectedTitle"],targetState);
+  if(targetState===state){window.japaneseMinerV5Admin?.resetCosmetics?.();window.japaneseMinerV38Admin?.resetCosmetics?.();}
+  else{const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:(targetState.v5={});v.ownedCompanions=["none"];v.companion="none";v.ownedFashion=["jacket:none","gloves:none","shoes:boots"];v.fashion={jacket:"none",gloves:"none",shoes:"boots"};v.buildings={forge:0,library:0,garden:0,museum:0,home:0};}
+}
+function resetQuestsAndHistory(targetState=state){
+  resetStateFields(["streak","bestStreak","practiceStreak","lastPracticeDate","sessionAnswered","sessionCorrect","analytics","mistakes","notebookNotes","notebookView","achievements","selectedTitle","questData","studyTimeByDate","studyDates","practiceDates"],targetState);
+  if(targetState===state)window.japaneseMinerV5Admin?.resetHistory?.();
+  else{const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:(targetState.v5={});Object.assign(v,{srs:{},wordBook:{},checkpoints:{},reviewed:0,totalCorrect:0,chests:0,lastChestAt:0,companionDailyReview:"",deferredTreasures:[],studySessions:[],currentStudySession:null,dailyRefresher:null,missions:{},achievements:{},seasonClaim:""});}
+}
+const ADMIN_RESET_LABELS={
+  "course:current":"the current language course","course:ja":"Japanese course progress","course:en":"English course progress","course:es":"Spanish course progress","course:ru":"Russian course progress","course:ko":"Korean course progress","course:zh":"Mandarin Chinese course progress","course:it":"Italian course progress","course:fr":"French course progress","course:de":"German course progress","courses:all":"course progress for every language","placement:current":"the current language placement test","placements:all":"placement tests for every language",bosses:"all boss and review results",economy:"economy, gems, supplies, and hearts",cosmetics:"cosmetics, companions, fashion, and settlement",history:"quests, streaks, reviews, and study history",profile:"the entire administrator profile"
+};
+function applySelectedAdminReset(){
+  const target=document.getElementById("adminResetTarget")?.value||"course:current",label=ADMIN_RESET_LABELS[target]||"the selected data";
+  if(!confirm(`Reset ${label}? This cannot be undone unless you exported a save backup.`))return false;
+  if(target==="course:current"){
+    const current=window.LanguageMinerCourseAdmin?.currentLanguage?.()||"ja";
+    if(current==="ja"){resetJapaneseCourseProgress();window.LanguageMinerCourseAdmin?.resetPlacement?.("ja");}else window.LanguageMinerCourseAdmin?.resetLanguage?.(current);
+  }else if(target==="course:ja"){resetJapaneseCourseProgress();window.LanguageMinerCourseAdmin?.resetPlacement?.("ja");}
+  else if(target.startsWith("course:"))window.LanguageMinerCourseAdmin?.resetLanguage?.(target.split(":")[1]);
+  else if(target==="courses:all"){resetJapaneseCourseProgress();window.LanguageMinerCourseAdmin?.resetAll?.();window.LanguageMinerCourseAdmin?.resetAllPlacements?.();}
+  else if(target==="placement:current"){const current=window.LanguageMinerCourseAdmin?.currentLanguage?.()||"ja";if(current==="ja")resetJapanesePlacement();window.LanguageMinerCourseAdmin?.resetPlacement?.(current);}
+  else if(target==="placements:all"){resetJapanesePlacement();window.LanguageMinerCourseAdmin?.resetAllPlacements?.();}
+  else if(target==="bosses")resetBossesAndReviews();
+  else if(target==="economy")resetEconomyAndInventory();
+  else if(target==="cosmetics")resetCosmeticsAndCompanions();
+  else if(target==="history")resetQuestsAndHistory();
+  else if(target==="profile"){state=normalizeState(structuredClone(DEFAULT_STATE));window.LanguageMinerCourseAdmin?.resetAll?.();window.LanguageMinerCourseAdmin?.resetAllPlacements?.();}
+  state=normalizeState(state);return true;
+}
+let selectedAdminPlayerId="",adminPlayerResultsCache=[],adminPlayerSearchRequest=0;
+function adminEscape(value){return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));}
+function adminPlayerAccountKey(profile){return profile?.cloudUserId?`cloud:${profile.cloudUserId}`:`local:${profile?.name||"preview-player"}`;}
+function storedPlayerState(profile){let raw=null;try{raw=JSON.parse(localStorage.getItem(profileStorageKey(profile.id)));}catch{}return normalizeState(raw);}
+function localAdminPlayerResults(term){
+  const active=readProfiles().find(profile=>profile.id===activeProfileId);return readProfiles().filter(profile=>profile.id!==activeProfileId&&(!active?.cloudUserId||profile.cloudUserId!==active.cloudUserId)&&!(window.LANGUAGE_MINER_PREVIEW&&profile.name===active?.name)).filter(profile=>!term||[profile.name,profile.email,profile.id,profile.cloudUserId].some(value=>String(value||"").toLowerCase().includes(term))).sort((a,b)=>Number(b.lastPlayed||0)-Number(a.lastPlayed||0)).map(profile=>{const playerState=storedPlayerState(profile);return {selectionId:`local:${profile.id}`,source:profile.cloudUserId&&window.LANGUAGE_MINER_PREVIEW?"preview-global":"local",profile,name:profile.name||"Player",email:profile.email||"",userId:profile.cloudUserId||"",level:Math.max(1,Number(playerState.level)||1),detail:stages[Math.max(0,Math.min(stages.length-1,Number(playerState.selectedStage)||0))]?.label||"Hiragana"};});
+}
+async function renderAdminPlayerSearch(){
+  const results=document.getElementById("adminPlayerResults"),summary=document.getElementById("adminSelectedPlayer"),resetButton=document.querySelector('[data-admin="reset-selected-player"]');if(!results||!summary||!resetButton)return;
+  const request=++adminPlayerSearchRequest,term=String(document.getElementById("adminPlayerSearch")?.value||"").trim().toLowerCase(),localPlayers=localAdminPlayerResults(term);results.innerHTML='<div class="admin-player-empty">Searching secure cloud accounts…</div>';
+  let globalPlayers=[],cloudUnavailable=false;
+  try{
+    if(window.languageMinerCloudAuth?.enabled?.()&&window.languageMinerCloudAuth?.getSession?.()){
+      const rows=await window.languageMinerCloudAuth.adminSearchPlayers(term,50);globalPlayers=rows.map(row=>({selectionId:`global:${row.user_id}`,source:"global",userId:row.user_id,name:row.display_name||"Player",email:row.email||"",level:Math.max(1,Number(row.player_level)||1),detail:String(row.current_language||"ja").toUpperCase(),revision:Number(row.revision)||0}));
+    }
+  }catch(error){cloudUnavailable=true;console.warn("Secure global player search is not available until its Supabase migration is deployed.",error);}
+  if(request!==adminPlayerSearchRequest)return;
+  const globalIds=new Set(globalPlayers.map(player=>player.userId)),players=globalPlayers.concat(localPlayers.filter(player=>!player.userId||!globalIds.has(player.userId))).slice(0,50);adminPlayerResultsCache=players;
+  if(selectedAdminPlayerId&&!players.some(player=>player.selectionId===selectedAdminPlayerId)&&term)selectedAdminPlayerId="";
+  results.innerHTML=players.length?players.map(player=>{const selected=player.selectionId===selectedAdminPlayerId,isGlobal=player.source==="global",isGlobalDemo=player.source==="preview-global",accountLabel=isGlobal?(player.email||"Supabase player account"):isGlobalDemo?(player.email||"Cloud account demo"):(player.email||player.userId?"Cloud-linked save cached on this device":"Local preview profile");return `<button type="button" class="admin-player-result ${selected?'selected':''}" data-admin-player-id="${adminEscape(player.selectionId)}" aria-pressed="${selected}"><span><strong>${adminEscape(player.name)}</strong><small>${adminEscape(accountLabel)}</small></span><span><b>Lv. ${player.level}</b><small>${adminEscape(isGlobal?`GLOBAL · ${player.detail}`:isGlobalDemo?`GLOBAL DEMO · ${player.detail}`:player.detail)}</small></span></button>`;}).join(""):`<div class="admin-player-empty">No player accounts match that search.${cloudUnavailable?' Deploy the included Supabase migration to enable global results.':''}</div>`;
+  const selected=players.find(player=>player.selectionId===selectedAdminPlayerId);
+  summary.innerHTML=selected?`<span>Selected ${selected.source==='global'?'global':'preview'} player</span><strong>${adminEscape(selected.name)}</strong><small>${adminEscape(selected.email||selected.userId||selected.profile?.id)} · ${selected.source==='global'?'Secure Supabase cloud save':selected.source==='preview-global'?'Global reset workflow demo':'Profile stored on this preview device'}</small>`:'<span>No player selected</span><small>Search globally by player name, email, or cloud user ID.</small>';
+  resetButton.disabled=!selected;
+}
+function applyResetTargetToPlayerState(playerState,target,currentLanguage){
+  if(target==="course:current"&&currentLanguage==="ja")resetJapaneseCourseProgress(playerState);
+  else if(target==="course:ja")resetJapaneseCourseProgress(playerState);
+  else if(target==="courses:all")resetJapaneseCourseProgress(playerState);
+  else if(target==="placement:current"&&currentLanguage==="ja")resetJapanesePlacement(playerState);
+  else if(target==="placements:all")resetJapanesePlacement(playerState);
+  else if(target==="bosses")resetBossesAndReviews(playerState);
+  else if(target==="economy")resetEconomyAndInventory(playerState);
+  else if(target==="cosmetics")resetCosmeticsAndCompanions(playerState);
+  else if(target==="history")resetQuestsAndHistory(playerState);
+  else if(target==="profile")playerState=normalizeState(structuredClone(DEFAULT_STATE));
+  return normalizeState(playerState);
+}
+async function resetSelectedPlayerData(){
+  const selected=adminPlayerResultsCache.find(player=>player.selectionId===selectedAdminPlayerId);if(!selected){developerMessage("Select another player account first.",true);await renderAdminPlayerSearch();return false;}
+  const target=document.getElementById("adminPlayerResetTarget")?.value||"course:current",label=target==="profile"?"the entire player profile":ADMIN_RESET_LABELS[target]||"the selected data";
+  if(!confirm(`Reset ${label} for ${selected.name||"this player"}? This cannot be undone without a backup.`))return false;
+  if(selected.source==="global"){
+    const cloud=window.languageMinerCloudAuth,record=await cloud.adminGetPlayerSave(selected.userId);if(!record)throw new Error("That global player account could not be loaded.");
+    const courseResult=window.LanguageMinerCourseCloud?.resetSnapshot?.(record.course_settings||{},target)||{settings:record.course_settings||{},learning:String(record.course_settings?.learning||"ja")},playerState=applyResetTargetToPlayerState(normalizeState(record.game_state||{}),target,String(courseResult.learning||"ja"));
+    const result=await cloud.adminUpdatePlayerSave(selected.userId,{gameState:playerState,courseSettings:courseResult.settings,target,baseRevision:Number(record.revision)||0});
+    if(!result?.accepted)throw new Error("The player saved new progress during this reset. Search again, reselect the player, and retry so no recent progress is overwritten.");
+    await renderAdminPlayerSearch();return `${selected.name}: ${label} was reset securely in Supabase.`;
+  }
+  const profiles=readProfiles(),profile=profiles.find(item=>item.id===selected.profile?.id&&item.id!==activeProfileId);if(!profile)throw new Error("That preview player profile is no longer available.");
+  const accountKey=adminPlayerAccountKey(profile),courseResult=window.LanguageMinerCourseAdmin?.resetForAccount?.(accountKey,target)||null,playerState=applyResetTargetToPlayerState(storedPlayerState(profile),target,String(courseResult?.learning||"ja"));
+  localStorage.setItem(profileStorageKey(profile.id),JSON.stringify(playerState));profile.adminResetAt=Date.now();profile.adminResetTarget=target;writeProfiles(profiles);await renderAdminPlayerSearch();return `${profile.name||"Player"}: ${label} was reset successfully in this preview.`;
+}
+async function runAdminAction(action){
   if(!isDeveloperSession){developerMessage("Administrator access required.",true);return;}
+  let successMessage="Developer action applied successfully.";
   if(action==="set-nuggets") setTotalNuggets(document.getElementById("adminNuggetAmount").value);
   if(action==="add-million") addStoneChange(1000000,gemTiers.length-1);
   if(action==="add-gems") gemTiers.forEach(g=>state.gemInventory[g.name]=Number(state.gemInventory[g.name]||0)+100);
@@ -1458,9 +1647,7 @@ function runAdminAction(action){
   if(action==="set-stage") applyAdminStage(document.getElementById("adminStageSelect").value);
   if(action==="master-kana") masterAllKana();
   if(action==="unlock-all"){
-    masterAllKana();masterAllQuestions();state.level=100;state.xp=0;state.stageXp=STAGE_XP_REQUIREMENTS.map(x=>x);state.hiraganaXp=state.stageXp[0];state.clearedStages=[0,1,2,3,4,5,6];state.selectedStage=6;state.maxHearts=14;state.hearts=14;
-    state.ownedPickaxeSkins=PICKAXE_SKINS.map(x=>x.id);state.hints=999;state.shields=999;
-    gemTiers.forEach(g=>state.gemInventory[g.name]=Math.max(100,Number(state.gemInventory[g.name]||0)));
+    completeAllJapaneseCourseProgress();successMessage="Everything is unlocked: all nine language courses, lessons, review quizzes, guardian gates, cosmetics, companions, and settlement upgrades.";
   }
   if(action==="unlock-pickaxes") state.ownedPickaxeSkins=PICKAXE_SKINS.map(x=>x.id);
   if(action==="add-items"){state.hints=Number(state.hints||0)+99;state.shields=Number(state.shields||0)+99;}
@@ -1478,19 +1665,32 @@ function runAdminAction(action){
     try{state=normalizeState(JSON.parse(document.getElementById("adminSaveJson").value));}
     catch{developerMessage("The pasted save JSON is invalid.",true);return;}
   }
+  if(action==="reset-selected"){
+    if(!applySelectedAdminReset())return;
+    successMessage="The selected admin data was reset successfully.";
+  }
+  if(action==="reset-selected-player"){
+    try{const playerMessage=await resetSelectedPlayerData();if(!playerMessage)return;successMessage=playerMessage;}
+    catch(error){developerMessage(String(error?.message||"The selected player could not be reset."),true);return;}
+  }
   if(action==="reset-profile"){
     if(!confirm("Reset all progress for the administrator profile?")) return;
     state=normalizeState(structuredClone(DEFAULT_STATE));
+    window.LanguageMinerCourseAdmin?.resetAll?.();
+    successMessage="The entire administrator profile was reset successfully.";
   }
   save();render();
   document.getElementById("adminInfiniteHearts").checked=!!state.developerInfiniteHearts;
-  developerMessage("Developer action applied successfully.");
+  developerMessage(successMessage);
 }
 
 document.getElementById("developerBtn").onclick=openDeveloperPanel;
 document.getElementById("closeDeveloperBtn").onclick=closeDeveloperPanel;
 document.getElementById("developerOverlay").addEventListener("click",e=>{if(e.target.id==="developerOverlay")closeDeveloperPanel();});
 document.querySelectorAll("[data-admin]").forEach(btn=>btn.addEventListener("click",()=>runAdminAction(btn.dataset.admin)));
+let adminPlayerSearchTimer=null;
+document.getElementById("adminPlayerSearch")?.addEventListener("input",()=>{clearTimeout(adminPlayerSearchTimer);adminPlayerSearchTimer=setTimeout(renderAdminPlayerSearch,250);});
+document.getElementById("adminPlayerResults")?.addEventListener("click",event=>{const result=event.target.closest?.("[data-admin-player-id]");if(!result||!isDeveloperSession)return;selectedAdminPlayerId=result.dataset.adminPlayerId;renderAdminPlayerSearch();});
 document.getElementById("adminInfiniteHearts").addEventListener("change",e=>{
   if(!isDeveloperSession)return;
   state.developerInfiniteHearts=e.target.checked;
@@ -1546,8 +1746,12 @@ async function loadCloudProfile(session,requestedName=""){
     if(document.getElementById("migrateOldSave").checked&&localStorage.getItem("jm_save")){try{initial=JSON.parse(localStorage.getItem("jm_save"))||initial;}catch{}localStorage.removeItem("jm_save");}
     localStorage.setItem(profileStorageKey(profile.id),JSON.stringify(normalizeState(initial)));
   }
+  let remoteRecord=null;cloudSaveRevision=0;
+  try{remoteRecord=await window.languageMinerCloudAuth?.loadPlayerSave?.(session)||null;}catch(error){console.warn("Language Miner global saves are awaiting the Supabase player-save migration.",error);}
+  if(remoteRecord)applyCloudSaveRecord(remoteRecord,profile);
   writeProfiles(profiles);loadProfile(profile,verifiedCloudAdmin);
-  if(!hadLocalSave)setTimeout(()=>openPlacementOnboarding(true),120);
+  if(!remoteRecord)setTimeout(()=>scheduleCloudSave(0),550);
+  if(!hadLocalSave&&!remoteRecord)setTimeout(()=>openPlacementOnboarding(true),120);
   if(attachedExisting)setTimeout(()=>setMessage("Your Language Miner account is now attached to this existing save. Its progress and Patreon access are preserved.","correct"),120);
   return profile;
 }
@@ -1875,13 +2079,14 @@ placementOverlay()?.addEventListener('click',e=>{if(e.target===placementOverlay(
 
 // Existing profiles created before v3.1 are not forced through onboarding.
 const originalLoadProfileV31=loadProfile;
-loadProfile=function(profile){
-  originalLoadProfileV31(profile);
+loadProfile=function(profile,...args){
+  const result=originalLoadProfileV31(profile,...args);
   if(state.onboardingComplete===false && profile.createdAt && profile.createdAt<Date.now()-30000){
     state.onboardingComplete=true;save();
   }else if(state.onboardingComplete===false){
     setTimeout(()=>openPlacementOnboarding(true),140);
   }
+  return result;
 };
 
 // v3.2 — Persistent study calendar
@@ -2187,7 +2392,10 @@ document.getElementById('voiceToggle')?.addEventListener('change',e=>{state.voic
 document.getElementById('autoSpeakToggle')?.addEventListener('change',e=>{state.autoSpeak=e.target.checked;save();});
 document.getElementById('smartReviewToggle')?.addEventListener('change',e=>{state.smartReview=e.target.checked;save();});
 document.getElementById('voiceRate')?.addEventListener('input',e=>{state.voiceRate=Number(e.target.value);document.getElementById('voiceRateLabel').textContent=`${state.voiceRate.toFixed(2)}×`;save();});
-document.getElementById('testVoiceBtn')?.addEventListener('click',()=>speakJapanese('日本語を一緒に勉強しましょう。'));
+function testCurrentLearningVoice(){if(window.LanguageMinerCourseVoice?.test?.())return true;return speakJapanese('日本語を一緒に勉強しましょう。');}
+document.getElementById('voiceGenderOptions')?.addEventListener('click',event=>{const button=event.target.closest?.('[data-voice-gender]');if(!button)return;state.voiceGender=button.dataset.voiceGender;save();render();testCurrentLearningVoice();});
+document.getElementById('voiceStyleOptions')?.addEventListener('click',event=>{const button=event.target.closest?.('[data-voice-style]');if(!button)return;state.voiceStyle=button.dataset.voiceStyle;save();render();testCurrentLearningVoice();});
+document.getElementById('testVoiceBtn')?.addEventListener('click',testCurrentLearningVoice);
 document.getElementById('gameMenuBtn')?.addEventListener('click',openGameMenu);
 document.getElementById('closeGameMenuBtn')?.addEventListener('click',closeGameMenu);
 document.getElementById('backGameMenuToGame')?.addEventListener('click',closeGameMenu);
@@ -2505,8 +2713,12 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
   }
 
   function addMenuItems(){const grid=document.querySelector('.game-menu-grid');if(!grid)return;const items=[['profile','🧍','Character','Customize hair, skin, and clothing'],['quests','🎯','Quests','Daily and weekly rewards'],['achievements','🏆','Achievements','Titles and milestones'],['notebook','📓','Notebook','Difficult items and personal sticky notes'],['statistics','📈','Player Stats','Accuracy and study trends'],['account','☁️','Account','Backup and transfer saves']];items.forEach(([tab,icon,name,desc])=>{if(grid.querySelector(`[data-feature-open="${tab}"],[data-menu-action="${tab}"]`))return;const b=document.createElement('button');b.type='button';b.dataset.featureOpen=tab;b.dataset.menuCategoryName=tab==='profile'||tab==='notebook'?'gear':'player';b.innerHTML=`<span>${icon}</span><strong>${name}</strong><small>${desc}</small>`;b.addEventListener('click',()=>{closeGameMenu();openFeatureCenter(tab);});grid.appendChild(b);});}
+  function v38AdminAllowed(){return window.japaneseMinerIsDeveloperSession?.()===true;}
+  function v38AdminUnlockAll(){if(!v38AdminAllowed())return false;ensureV38();state.ownedCosmetics=Object.entries(CHARACTER_OPTIONS).filter(([key])=>key!=='skin').flatMap(([key,items])=>items.map(([value])=>cosmeticId(key,value)));ACHIEVEMENTS.forEach(item=>state.achievements[item.id]=true);return true;}
+  function v38AdminResetCosmetics(){if(!v38AdminAllowed())return false;state.character={skin:'warm',hairStyle:'short',hairColor:'brown',shirt:'miner',pants:'denim',accessory:'none',accessories:[]};state.ownedCosmetics=['hairStyle:short','hairColor:brown','shirt:miner','pants:denim','accessory:none'];state.selectedTitle='';return true;}
+  window.japaneseMinerV38Admin=Object.freeze({unlockAll:v38AdminUnlockAll,resetCosmetics:v38AdminResetCosmetics});
   const renderV38=render;render=function(){ensureV38();renderV38();checkAchievements();const chip=document.querySelector('.account-chip #activePlayerName');if(chip&&state.selectedTitle)chip.title=state.selectedTitle;let mini=document.getElementById('headerCharacterAvatar');if(!mini){const holder=document.querySelector('.account-chip');if(holder){mini=document.createElement('button');mini.id='headerCharacterAvatar';mini.className='header-character-avatar';mini.type='button';mini.title='Customize character';mini.setAttribute('aria-label','Open character customization');mini.addEventListener('click',()=>openFeatureCenter('profile'));holder.prepend(mini);}}if(mini){mini.innerHTML=characterPortraitMarkup();const portrait=mini.querySelector('.header-avatar-photo');if(portrait)portrait.onerror=()=>{portrait.onerror=null;portrait.src='anime-miner-v1.png';};}};
-  const loadV38=loadProfile;loadProfile=function(profile){loadV38(profile);ensureV38();save();};
+  const loadV38=loadProfile;loadProfile=function(profile,...args){const result=loadV38(profile,...args);ensureV38();save();return result;};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{featureShell();addMenuItems();});else{featureShell();addMenuItems();}
 })();
 
@@ -3028,7 +3240,7 @@ normalizeState=function(raw){const next=ensureJlptSectionState(normalizeStateV64
 const renderV649Sections=render;
 render=function(){ensureJlptSectionState();const repaired=repairActiveJlptQuestion();renderV649Sections();if(repaired)save();};
 const loadProfileV649Sections=loadProfile;
-loadProfile=function(profile){const result=loadProfileV649Sections(profile);ensureJlptSectionState();repairActiveJlptQuestion();render();return result;};
+loadProfile=function(profile,...args){const result=loadProfileV649Sections(profile,...args);ensureJlptSectionState();repairActiveJlptQuestion();render();return result;};
 ensureJlptSectionState();
 repairActiveJlptQuestion();
 const importedVocabularyProgress=importVocabularyQuestionProgress(state);
@@ -3072,7 +3284,7 @@ normalizeState=function(raw){return ensureKanaFamilyState(normalizeStateV646(raw
 const renderV646=render;
 render=function(){ensureKanaFamilyState();const tutorRepaired=repairTutorAccessState(),repaired=repairActiveKanaQuestion();renderV646();removeMainKanaFamilyPanel();if(repaired||tutorRepaired)save();};
 const loadProfileV646=loadProfile;
-loadProfile=function(profile){const result=loadProfileV646(profile);ensureKanaFamilyState();repairActiveKanaQuestion();render();return result;};
+loadProfile=function(profile,...args){const result=loadProfileV646(profile,...args);ensureKanaFamilyState();repairActiveKanaQuestion();render();return result;};
 ensureKanaFamilyState();
 repairActiveKanaQuestion();
 if(activeProfileId)render();

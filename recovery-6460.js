@@ -27,7 +27,7 @@ renderStudyCalendar=function(){flushStudyTimer();renderStudyCalendarV643();ensur
 const logoutV643=logout;
 logout=function(){pauseStudyTimer();return logoutV643();};
 const loadProfileV643=loadProfile;
-loadProfile=function(profile){pauseStudyTimer();const result=loadProfileV643(profile);ensureStudyTimeState();resumeStudyTimer();return result;};
+loadProfile=function(profile,...args){pauseStudyTimer();const result=loadProfileV643(profile,...args);ensureStudyTimeState();resumeStudyTimer();return result;};
 setInterval(()=>{flushStudyTimer();if(document.getElementById("studyCalendarOverlay")?.classList.contains("open"))renderStudyCalendar();},15000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")pauseStudyTimer();else resumeStudyTimer();});
 document.addEventListener("pointerdown",()=>{if(activeProfileId&&document.visibilityState!=="hidden")markStudyActivity();},{passive:true});

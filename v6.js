@@ -284,12 +284,14 @@ const oldShowQuestion=showQuestion;showQuestion=function(q){oldShowQuestion(q);r
 const oldAnswer=answer;answer=function(opt,button){const q=state.active,was=state.answered,correct=!!q&&opt===q.a;if(q&&!was&&/[\u3040-\u30ff\u3400-\u9fff]/.test(stripMarkup(opt)))speakJapanese(opt);oldAnswer(opt,button);if(q&&!was){explanation(q,opt,correct);renderCoach(correct?'correct':'wrong');}createSnapshot();};
 const oldRender=render;render=function(){ensureV6();oldRender();applySettings();renderCoach('refresh');addMenuItems();storyCheck();};
 const oldSave=save;save=function(){oldSave();if(state?.v6)createSnapshot();};
-const oldLoad=loadProfile;loadProfile=function(profile){oldLoad(profile);ensureV6();applySettings();setTimeout(init,0);};
+const oldLoad=loadProfile;loadProfile=function(profile,...args){const result=oldLoad(profile,...args);ensureV6();applySettings();setTimeout(init,0);return result;};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCoach();document.querySelectorAll('.v6-overlay.open').forEach(o=>closeOverlay(o.id.includes('Tour')?'tour':o.id.includes('Settings')?'settings':'feedback'));}});
 document.addEventListener('click',e=>{if(e.target.closest?.('#beginJourneyBtn,#acceptPlacementBtn'))advertiseGuideAfterOnboarding();});
 document.addEventListener('click',e=>{const toggle=e.target.closest?.('.character-option-toggle');if(!toggle)return;const section=toggle.closest('.character-option'),collapsed=section.classList.toggle('collapsed');toggle.setAttribute('aria-expanded',String(!collapsed));const key=section.dataset.characterSection;if(key)try{localStorage.setItem('jmCharacterSection:'+key,collapsed?'collapsed':'open');}catch{}});
 document.addEventListener('jm-character-sections-ready',()=>document.querySelectorAll('.character-option[data-character-section]').forEach(section=>{try{if(localStorage.getItem('jmCharacterSection:'+section.dataset.characterSection)==='collapsed'){section.classList.add('collapsed');section.querySelector('.character-option-toggle')?.setAttribute('aria-expanded','false');}}catch{}}));
-const characterSectionObserver=new MutationObserver(rows=>{if(rows.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('.character-option')||n.querySelector?.('.character-option')))))document.dispatchEvent(new Event('jm-character-sections-ready'));});characterSectionObserver.observe(document.body,{childList:true,subtree:true});
+const characterSectionObserver=new MutationObserver(rows=>{if(rows.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('.character-option')||n.querySelector?.('.character-option')))))document.dispatchEvent(new Event('jm-character-sections-ready'));});
+const observeCharacterSections=()=>{if(document.body instanceof Node)characterSectionObserver.observe(document.body,{childList:true,subtree:true});};
+if(document.body)observeCharacterSections();else document.addEventListener('DOMContentLoaded',observeCharacterSections,{once:true});
 window.openJapaneseMinerGuide=openTour;window.openJapaneseMinerSettings=openSettings;window.openJapaneseMinerFeedback=openFeedback;
 init();
 })();

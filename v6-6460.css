@@ -338,6 +338,8 @@ input,select,textarea{font:inherit;font-size:16px}
  .account-chip{width:100%;max-width:100%;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overscroll-behavior-x:contain;padding:0 0 3px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
  .account-chip::-webkit-scrollbar{display:none}
  .account-chip>span,.account-chip>button{flex:0 0 auto;min-height:44px;display:flex;align-items:center}
+ .account-chip>[hidden]{display:none!important}
+ .account-chip>button{touch-action:manipulation}
  .grid{gap:8px;margin-top:8px}
  .panel{padding:12px;border-radius:14px}
  .mine{min-height:min(58dvh,440px);padding:18px 9px 32px}

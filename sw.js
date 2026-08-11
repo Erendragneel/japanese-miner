@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.91-guide-audio-review-feedback-update';
+const CACHE_NAME='language-miner-v6.4.100-voice-and-style-controls';
 const APP_SHELL=[
   './',
   './index.html',
@@ -7,13 +7,16 @@ const APP_SHELL=[
   './v6-6460.css',
   './multilingual-preview.css',
   './n5-vocabulary-1000.js',
+  './multilingual-course-data.js',
   './game-6460.js',
   './v5-6400.js',
   './v6.js',
   './recovery-6460.js',
   './patreon-config.js',
   './cloud-auth.js',
+  './auth-utilities.js',
   './patreon-linking.js',
+  './interface-localization.js',
   './multilingual-preview.js',
   './manifest.webmanifest',
   './anime-miner-v1.png',

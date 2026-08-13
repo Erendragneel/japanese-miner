@@ -322,6 +322,21 @@ Object.entries(advancedBanks).forEach(([stage,list])=>{
 });
 questions.forEach((q,i)=>{if(!q.id) q.id=`base-${q.stage}-${i}`;});
 
+function normalizeAssessmentTimeMs(value){const time=Math.round(Number(value)||0);return Number.isFinite(time)&&time>0?time:0;}
+function assessmentTimeLabel(value){
+  const milliseconds=normalizeAssessmentTimeMs(value);if(!milliseconds)return 'No record yet';
+  const tenths=Math.max(1,Math.round(milliseconds/100)),seconds=Math.floor(tenths/10),decimal=tenths%10;
+  if(seconds>=60)return `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}.${decimal}`;
+  return `${seconds}.${decimal}s`;
+}
+function assessmentRecordMarkup(value,newRecord=false,label='Fastest successful completion'){
+  const time=normalizeAssessmentTimeMs(value);if(!time)return '';
+  return `<div class="assessment-time-record ${newRecord?'new-record':''}"><span>${newRecord?'&#127942; New fastest time':'&#9201;&#65039; '+label}</span><strong>${assessmentTimeLabel(time)}</strong><small>Saved to this player profile</small></div>`;
+}
+function fastestAssessmentTime(values){const times=values.map(normalizeAssessmentTimeMs).filter(Boolean);return times.length?Math.min(...times):0;}
+window.japaneseMinerAssessmentTimeLabel=assessmentTimeLabel;
+window.japaneseMinerAssessmentRecordMarkup=assessmentRecordMarkup;
+
 const DEFAULT_STATE = {
   supportMode:"guided", n5Tier:"beginner", n5Curriculum:"mixed", tutorTrack:"all",
   n5AcademyMastery:{}, academyTestBest:0, academyReviewDate:"", recentQuestionIds:[], onboardingComplete:false, placementResult:null, placementTestCompleted:false,
@@ -343,12 +358,15 @@ function syncDeveloperControls(){
   if(button)button.hidden=!isDeveloperSession;
 }
 function mobilePortraitDevice(){
-  const coarse=window.matchMedia?.("(pointer: coarse)")?.matches===true;
+  const coarse=window.matchMedia?.("(pointer: coarse)")?.matches===true||Number(navigator.maxTouchPoints||0)>0;
   const shortest=Math.min(Number(window.screen?.width)||innerWidth,Number(window.screen?.height)||innerHeight);
   return coarse&&shortest<=1024;
 }
 let portraitLockInFlight=false;
 function portraitLockEnabled(){return state?.v6?.portraitLockEnabled!==false;}
+function portraitIsLandscape(){
+  return window.matchMedia?.("(orientation: landscape)")?.matches===true||innerWidth>innerHeight;
+}
 async function requestMobilePortraitLock(){
   if(!portraitLockEnabled()||!activeProfileId||!mobilePortraitDevice()||portraitLockInFlight)return false;
   const orientation=window.screen?.orientation;
@@ -367,16 +385,26 @@ async function setMobilePortraitLock(enabled){
   const orientation=window.screen?.orientation;
   if(!enabled){
     try{orientation?.unlock?.();}catch{}
-    return {enabled:false,locked:false,supported:!!orientation?.lock,mobile:mobilePortraitDevice()};
+    syncPortraitGuard(false);
+    return {enabled:false,locked:false,supported:!!orientation?.lock,mobile:mobilePortraitDevice(),fallback:false};
   }
   const locked=await requestMobilePortraitLock();
-  return {enabled:true,locked,supported:!!orientation?.lock,mobile:mobilePortraitDevice()};
+  const fallback=syncPortraitGuard(false);
+  return {enabled:true,locked,supported:!!orientation?.lock,mobile:mobilePortraitDevice(),fallback};
 }
-function syncPortraitGuard(){
+function syncPortraitGuard(requestLock=true){
   const guard=document.getElementById("portraitGuard");
-  guard?.classList.remove("active");
-  guard?.setAttribute("aria-hidden","true");
-  if(activeProfileId&&mobilePortraitDevice()&&portraitLockEnabled())requestMobilePortraitLock();
+  const active=!!(activeProfileId&&mobilePortraitDevice()&&portraitLockEnabled()&&portraitIsLandscape());
+  if(guard){
+    guard.hidden=!active;
+    guard.classList.toggle("active",active);
+    guard.setAttribute("aria-hidden",String(!active));
+    const message=document.getElementById("portraitGuardMessage");
+    if(message)message.textContent="Turn your phone upright to continue. If it stays sideways, enable Auto rotate in your phone settings and try again.";
+  }
+  document.documentElement.classList.toggle("portrait-guard-active",active);
+  if(requestLock&&activeProfileId&&mobilePortraitDevice()&&portraitLockEnabled())requestMobilePortraitLock().finally(()=>syncPortraitGuard(false));
+  return active;
 }
 window.setJapaneseMinerPortraitLock=setMobilePortraitLock;
 window.japaneseMinerPortraitLockEnabled=portraitLockEnabled;
@@ -509,6 +537,7 @@ function normalizeState(raw){
   next.academyReviewDate=String(next.academyReviewDate||"");
   next.onboardingComplete=Boolean(next.onboardingComplete);
   next.placementResult=next.placementResult&&typeof next.placementResult==="object"?next.placementResult:null;
+  if(next.placementResult){next.placementResult.elapsedTimeMs=normalizeAssessmentTimeMs(next.placementResult.elapsedTimeMs);next.placementResult.fastestTimeMs=normalizeAssessmentTimeMs(next.placementResult.fastestTimeMs||next.placementResult.elapsedTimeMs);}
   return next;
 }
 function loadProfile(profile,verifiedCloudAdmin=false){
@@ -922,29 +951,49 @@ function dayDifference(a,b){
   const x=new Date(a+"T12:00:00"), y=new Date(b+"T12:00:00");
   return Math.round((y-x)/86400000);
 }
+function validStudyDateKey(value){
+  const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||""));
+  if(!match)return false;
+  const parsed=new Date(Number(match[1]),Number(match[2])-1,Number(match[3]),12);
+  return dateKey(parsed)===match[0];
+}
+function studyDateKeys(source=state){
+  const dates=[];
+  if(Array.isArray(source?.studyDates))dates.push(...source.studyDates);
+  if(Array.isArray(source?.practiceDates))dates.push(...source.practiceDates);
+  if(source?.lastPracticeDate)dates.push(source.lastPracticeDate);
+  return [...new Set(dates.map(String).filter(validStudyDateKey))].sort();
+}
+function calculatePracticeStreak(source=state,today=dateKey()){
+  const dates=studyDateKeys(source).filter(key=>dayDifference(key,today)>=0);
+  if(!dates.length)return 0;
+  const latest=dates[dates.length-1];
+  if(dayDifference(latest,today)>1)return 0;
+  let streak=1;
+  for(let index=dates.length-1;index>0;index--){
+    if(dayDifference(dates[index-1],dates[index])!==1)break;
+    streak++;
+  }
+  return streak;
+}
 function applyDailyDecay(){
+  const previous=Number(state.practiceStreak)||0;
+  state.practiceStreak=calculatePracticeStreak(state);
   if(state.developerInfiniteHearts){
     const changed=state.hearts!==state.maxHearts;
     state.hearts=state.maxHearts;
-    return changed;
+    return changed||state.practiceStreak!==previous;
   }
-  if(!state.lastPracticeDate)return false;
-  // Time away may reset a practice streak, but it never removes hearts.
-  if(dayDifference(state.lastPracticeDate,dateKey())>1&&state.practiceStreak!==0){
-    state.practiceStreak=0;
-    return true;
-  }
-  return false;
+  // Streaks are derived from the calendar, so old counters repair themselves
+  // after imports, cloud syncs, missed days, and previous app versions.
+  return state.practiceStreak!==previous;
 }
 function markPracticeToday(){
   const today=dateKey();
-  if(state.lastPracticeDate===today) return;
-  if(!state.lastPracticeDate) state.practiceStreak=1;
-  else {
-    const diff=dayDifference(state.lastPracticeDate,today);
-    state.practiceStreak=diff===1 ? state.practiceStreak+1 : 1;
-  }
+  if(!Array.isArray(state.studyDates))state.studyDates=[];
+  if(!state.studyDates.includes(today))state.studyDates.push(today);
   state.lastPracticeDate=today;
+  state.practiceStreak=calculatePracticeStreak(state,today);
 }
 const HEART_UPGRADE_STONES=["Agate","Amethyst","Aquamarine","Citrine","Emerald","Garnet","Opal","Peridot","Ruby","Sapphire","Topaz"];
 function maxHeartCost(){
@@ -1668,7 +1717,7 @@ function resetJapanesePlacement(targetState=state){
 function resetBossesAndReviews(targetState=state){
   targetState.jlptReviewCheckpoints={};
   if(targetState===state){window.japaneseMinerV5Admin?.resetBosses?.();window.LanguageMinerCourseAdmin?.resetBossesAndReviews?.();}
-  else if(targetState.v5&&typeof targetState.v5==="object"){targetState.v5.boss=null;targetState.v5.bossDefeated=[];targetState.v5.bossWins=0;}
+  else if(targetState.v5&&typeof targetState.v5==="object"){targetState.v5.boss=null;targetState.v5.bossDefeated=[];targetState.v5.bossWins=0;targetState.v5.bossFastestTimes={};}
 }
 function resetEconomyAndInventory(targetState=state){
   resetStateFields(["gems","gemInventory","gemCheckpointClaims","gemUnlockRewards","lastGem","stoneCurrencyMigrated","hearts","maxHearts","heartRecoveryEnd","hints","shields","shieldArmed"],targetState);
@@ -1679,9 +1728,9 @@ function resetCosmeticsAndCompanions(targetState=state){
   else{const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:(targetState.v5={});v.ownedCompanions=["none"];v.companion="none";v.ownedFashion=["jacket:none","gloves:none","shoes:boots"];v.fashion={jacket:"none",gloves:"none",shoes:"boots"};v.buildings={forge:0,library:0,garden:0,museum:0,home:0};}
 }
 function resetQuestsAndHistory(targetState=state){
-  resetStateFields(["streak","bestStreak","practiceStreak","lastPracticeDate","sessionAnswered","sessionCorrect","analytics","mistakes","notebookNotes","notebookView","achievements","selectedTitle","questData","studyTimeByDate","studyDates","practiceDates"],targetState);
+  resetStateFields(["streak","bestStreak","practiceStreak","lastPracticeDate","sessionAnswered","sessionCorrect","analytics","mistakes","notebookNotes","notebookView","notebookQueueVersion","achievements","selectedTitle","questData","studyTimeByDate","studyDates","practiceDates"],targetState);
   if(targetState===state)window.japaneseMinerV5Admin?.resetHistory?.();
-  else{const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:(targetState.v5={});Object.assign(v,{srs:{},wordBook:{},checkpoints:{},reviewed:0,totalCorrect:0,chests:0,lastChestAt:0,companionDailyReview:"",deferredTreasures:[],studySessions:[],currentStudySession:null,dailyRefresher:null,missions:{},achievements:{},seasonClaim:""});}
+  else{const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:(targetState.v5={});Object.assign(v,{srs:{},wordBook:{},checkpoints:{},reviewed:0,totalCorrect:0,chests:0,lastChestAt:0,companionDailyReview:"",deferredTreasures:[],studySessions:[],currentStudySession:null,dailyRefresher:null,smartReviewSession:null,missions:{},achievements:{},seasonClaim:""});}
 }
 const ADMIN_RESET_LABELS={
   "course:current":"the current language course","course:ja":"Japanese course progress","course:en":"English course progress","course:es":"Spanish course progress","course:ru":"Russian course progress","course:ko":"Korean course progress","course:zh":"Mandarin Chinese course progress","course:it":"Italian course progress","course:fr":"French course progress","course:de":"German course progress","course:pt":"Brazilian Portuguese course progress","course:vi":"Vietnamese course progress","course:th":"Thai course progress","course:tr":"Turkish course progress","course:id":"Indonesian course progress","course:pl":"Polish course progress","course:el":"Greek course progress","course:uk":"Ukrainian course progress","courses:all":"course progress for every language","placement:current":"the current language placement test","placements:all":"placement tests for every language",bosses:"all boss and review results",economy:"economy, gems, supplies, and hearts",cosmetics:"cosmetics, companions, fashion, and settlement",history:"quests, streaks, reviews, and study history",profile:"the entire administrator profile"
@@ -1814,11 +1863,11 @@ developerButton.addEventListener("pointerup",event=>{
 document.getElementById("portraitLockBtn")?.addEventListener("click",async()=>{
   const result=await setMobilePortraitLock(true);
   const message=document.getElementById("portraitGuardMessage");
-  if(message)message.textContent=result.locked?"Portrait is locked.":"Portrait preference is on. You can change it in Accessibility & Settings.";
+  if(message)message.textContent=result.locked?"Portrait lock was requested. Turn your phone upright to continue.":"Turn your phone upright to continue. If it stays sideways, enable Auto rotate in your phone settings and try again.";
 });
 window.addEventListener("resize",syncPortraitGuard,{passive:true});
 window.screen?.orientation?.addEventListener?.("change",syncPortraitGuard);
-document.addEventListener("pointerup",()=>{if(activeProfileId&&mobilePortraitDevice()&&portraitLockEnabled())requestMobilePortraitLock();},{passive:true});
+document.addEventListener("pointerup",()=>{if(activeProfileId&&mobilePortraitDevice()&&portraitLockEnabled())requestMobilePortraitLock().finally(()=>syncPortraitGuard(false));},{passive:true});
 document.getElementById("closeDeveloperBtn").onclick=closeDeveloperPanel;
 document.getElementById("developerOverlay").addEventListener("click",e=>{if(e.target.id==="developerOverlay")closeDeveloperPanel();});
 document.querySelectorAll("[data-admin]").forEach(btn=>btn.addEventListener("click",()=>runAdminAction(btn.dataset.admin)));
@@ -1959,6 +2008,11 @@ function academyCard(id,title,sub,body){const m=academyItemMastery(id);return `<
 function academyVocabularyBank(){
  return n5CompleteVocabulary.map(([jp,reading,en])=>({jp,reading,en}));
 }
+function academyFastestRecordsMarkup(){
+ const quizRecords=Object.values(state.jlptReviewCheckpoints||{}).map(record=>record?.fastestTimeMs),guardianRecords=Object.values(state.v5?.bossFastestTimes||{}),placement=state.placementResult?.fastestTimeMs;
+ const rows=[['Placement test',normalizeAssessmentTimeMs(placement)],['Passing review quiz',fastestAssessmentTime(quizRecords)],['Perfect Guardian test',fastestAssessmentTime(guardianRecords)]];
+ return `<section class="academy-fastest-records"><header><span>PERSONAL BESTS</span><h3>Fastest completion records</h3><p>Only successful quiz runs and perfect Guardian tests set competitive records.</p></header><div>${rows.map(([label,time])=>`<article class="assessment-record-summary ${time?'has-record':''}"><span>${label}</span><strong>${assessmentTimeLabel(time)}</strong><small>${time?'Saved on this profile':'Complete an eligible assessment'}</small></article>`).join('')}</div></section>`;
+}
 function renderAcademy(){
  const box=document.getElementById('academyContent');if(!box)return;document.querySelectorAll('[data-academy-tab]').forEach(b=>b.classList.toggle('primary',b.dataset.academyTab===academyTab));const c=academyCounts();
  if(academyTab==='overview')box.innerHTML=`<div class="n5-hub-actions"><button id="hubEnterMineBtn" class="primary" type="button">⛏️ Enter N5 Mine</button><span class="small">Mine questions update the same vocabulary, kanji, grammar, and reading mastery shown here${tutorAccessGranted()?', including your private Tutor Curriculum':''}.</span></div><div class="academy-metrics"><div><strong>${c.readiness}%</strong><span>Estimated readiness</span></div><div><strong>${c.vocabKnown}</strong><span>Vocabulary mastered</span></div><div><strong>${c.kanjiKnown}</strong><span>Kanji mastered</span></div><div><strong>${c.grammarKnown}</strong><span>Grammar mastered</span></div></div><div class="academy-roadmap">${[['Vocabulary',c.vocabKnown,1000],['Kanji',c.kanjiKnown,120],['Grammar',c.grammarKnown,90],['Reading',c.readingKnown,N5_READING_PASSAGES.length]].map(([n,v,t])=>`<div><div class="progress-label"><span>${n}</span><strong>${v}/${t}</strong></div>${progressBar(v/t*100)}</div>`).join('')}</div><div class="academy-callout"><strong>Recommended next step</strong><p>${c.kanjiKnown<30?'Study the first kanji set and answer its mine questions.':c.grammarKnown<20?'Continue the core grammar path.':'Complete today’s review and try a mini test.'}</p></div>`;
@@ -1970,7 +2024,7 @@ function renderAcademy(){
  if(academyTab==='reading')box.innerHTML=`<div class="academy-toolbar"><strong>Reading Passage Mine</strong><span>Short passages without automatic furigana.</span></div><div class="study-grid">${N5_READING_PASSAGES.map((p,i)=>academyCard('reading:'+i,p[0],`★${'★'.repeat(Math.min(3,Math.floor(i/4)))}`,`<p class="jp-passage">${p[1]}</p><p><strong>${p[2]}</strong><br>${p[3]}</p>`)).join('')}</div>`;
  if(academyTab==='listening')box.innerHTML=`<div class="academy-toolbar"><strong>Listening Practice</strong><span>Uses your browser’s Japanese speech voice when available.</span></div><div class="study-grid">${N5_READING_PASSAGES.slice(0,8).map((p,i)=>`<article class="study-card"><strong>Listening ${i+1}</strong><p class="jp-passage listening-hidden" id="listenText${i}">${p[1]}</p><button data-speak="${i}" type="button">▶ Play Japanese</button><button data-reveal-listen="${i}" type="button">Reveal text</button></article>`).join('')}</div>`;
  if(academyTab==='review'){const due=[...N5_KANJI_LIST.slice(0,30).map(k=>['kanji:'+k,k]),...N5_GRAMMAR_POINTS.slice(0,20).map((g,i)=>['grammar:'+i,g[0]])].filter(([id])=>academyItemMastery(id)<75).slice(0,12);box.innerHTML=`<div class="academy-toolbar"><strong>Today’s Review</strong><span>${due.length} cards due</span></div><div class="review-list">${due.map(([id,label])=>`<button data-review-id="${id}" type="button"><span>${label}</span><strong>${academyItemMastery(id)}%</strong></button>`).join('')||'<p>Everything due today is mastered. Great work!</p>'}</div>`;}
- if(academyTab==='tests')box.innerHTML=`<div class="academy-test-grid"><article class="study-card"><h3>Mini N5 Test</h3><p>20 mixed vocabulary, kanji, grammar, and reading questions.</p><button data-start-test="20" class="primary" type="button">Start 20-question test</button></article><article class="study-card"><h3>Half N5 Exam</h3><p>50 mixed questions. Best attempted after 50% readiness.</p><button data-start-test="50" type="button">Start 50-question test</button></article><article class="study-card"><h3>Full N5 Simulation</h3><p>100 mixed questions with listening-style prompts.</p><button data-start-test="100" type="button">Start simulation</button></article><article class="study-card"><h3>Best score</h3><p class="big-test-score">${state.academyTestBest}%</p></article></div>`;
+ if(academyTab==='tests')box.innerHTML=`<div class="academy-test-grid"><article class="study-card"><h3>Mini N5 Test</h3><p>20 mixed vocabulary, kanji, grammar, and reading questions.</p><button data-start-test="20" class="primary" type="button">Start 20-question test</button></article><article class="study-card"><h3>Half N5 Exam</h3><p>50 mixed questions. Best attempted after 50% readiness.</p><button data-start-test="50" type="button">Start 50-question test</button></article><article class="study-card"><h3>Full N5 Simulation</h3><p>100 mixed questions with listening-style prompts.</p><button data-start-test="100" type="button">Start simulation</button></article><article class="study-card"><h3>Best score</h3><p class="big-test-score">${state.academyTestBest}%</p></article></div>${academyFastestRecordsMarkup()}`;
  box.querySelector('#hubEnterMineBtn')?.addEventListener('click',enterN5Mine);
  box.querySelectorAll('[data-master-id]').forEach(b=>b.addEventListener('click',()=>academyMaster(b.dataset.masterId)));
  box.querySelectorAll('[data-vocab-lesson]').forEach(b=>b.addEventListener('click',()=>showVocabLesson(Number(b.dataset.vocabLesson))));
@@ -1990,7 +2044,7 @@ N5_KANJI_LIST.slice(0,120).forEach((k,i)=>{const info=N5_KANJI_INFO[k]||['—','
 N5_GRAMMAR_POINTS.slice(0,90).forEach((g,i)=>addQuestion({stage:2,tier:i<30?'beginner':i<65?'intermediate':'advanced',q:g[2],prompt:'Choose the grammar point demonstrated.',a:g[0],opts:shuffle([g[0],...shuffle(N5_GRAMMAR_POINTS.map(x=>x[0]).filter(x=>x!==g[0])).slice(0,3)]),help:`${g[0]}: ${g[1]}`,kind:'academy-grammar'}));
 N5_READING_PASSAGES.forEach((p,i)=>addQuestion({stage:2,tier:'advanced',q:p[1],displayChallenge:p[1],prompt:p[2],a:p[3],opts:shuffle([p[3],...shuffle(N5_READING_PASSAGES.map(x=>x[3]).filter(x=>x!==p[3])).slice(0,3)]),help:`${p[0]}: ${p[3]}`,kind:'academy-reading'}));
 
-function enterN5Mine(){if(!isStageUnlocked(2)){setMessage('JLPT N5 is still locked.','wrong');return;}closeAcademy();selectStage(2,false);document.getElementById('rock')?.scrollIntoView({behavior:'smooth',block:'center'});}
+function enterN5Mine(){if(!isStageUnlocked(2)){setMessage('This mine is still locked.','wrong');return;}closeAcademy();selectStage(2,false);document.getElementById('rock')?.scrollIntoView({behavior:'smooth',block:'center'});}
 document.getElementById('enterN5MineBtn')?.addEventListener('click',enterN5Mine);
 document.getElementById('openAcademyBtn')?.addEventListener('click',openAcademy);
 document.getElementById('closeAcademyBtn')?.addEventListener('click',closeAcademy);
@@ -2144,7 +2198,7 @@ function randomizePlacementTest(){
 function startPlacementTest(){
   if(placementTestAlreadyCompleted()){setMessage('The placement test has already been completed for this player save.','');syncPlacementTestButton();return false;}
   randomizePlacementTest();
-  placementSession.index=0;placementSession.answers=[];placementSession.missed=[];placementSession.locked=false;placementSession.mode='test';
+  placementSession.index=0;placementSession.answers=[];placementSession.missed=[];placementSession.locked=false;placementSession.mode='test';placementSession.startedAt=Date.now();
   renderPlacementQuestion();
   return true;
 }
@@ -2226,9 +2280,8 @@ loadProfile=function(profile,...args){
 // v3.2 — Persistent study calendar
 let studyCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 function normalizeStudyDates(){
-  const dates = Array.isArray(state.studyDates) ? state.studyDates : [];
-  if(state.lastPracticeDate) dates.push(state.lastPracticeDate);
-  state.studyDates = [...new Set(dates.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d))))].sort();
+  state.studyDates=studyDateKeys(state);
+  state.practiceStreak=calculatePracticeStreak(state);
 }
 function totalStudyDays(){ normalizeStudyDates(); return state.studyDates.length; }
 function openStudyCalendar(){
@@ -2287,11 +2340,11 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElement
 
 // Extend existing functions without altering the learning logic.
 const originalNormalizeStateV32=normalizeState;
-normalizeState=function(raw){const next=originalNormalizeStateV32(raw);next.studyDates=Array.isArray(next.studyDates)?[...new Set(next.studyDates)]:[];if(next.lastPracticeDate&&!next.studyDates.includes(next.lastPracticeDate))next.studyDates.push(next.lastPracticeDate);next.studyDates.sort();return next;};
+normalizeState=function(raw){const next=originalNormalizeStateV32(raw);next.studyDates=studyDateKeys(next);const recordedDates=next.studyDates.filter(key=>dayDifference(key,dateKey())>=0);next.lastPracticeDate=recordedDates[recordedDates.length-1]||null;next.practiceStreak=calculatePracticeStreak(next);return next;};
 const originalMarkPracticeTodayV32=markPracticeToday;
-markPracticeToday=function(){originalMarkPracticeTodayV32();normalizeStudyDates();const today=dateKey();if(!state.studyDates.includes(today))state.studyDates.push(today);state.studyDates.sort();refreshStudyCalendarCounters();};
+markPracticeToday=function(){originalMarkPracticeTodayV32();normalizeStudyDates();refreshStudyCalendarCounters();};
 const originalRenderV32=render;
-render=function(){originalRenderV32();refreshStudyCalendarCounters();};
+render=function(){normalizeStudyDates();originalRenderV32();refreshStudyCalendarCounters();};
 
 // v3.4 — Full JLPT course hubs (N4–N1), expanded placement test, and score rewards
 const JLPT_COURSES={
@@ -2448,7 +2501,8 @@ function grantPlacementReward(routeStage,overall){
 }
 const finishPlacementTestV34=finishPlacementTest;
 finishPlacementTest=function(){const scores={};['hiragana','katakana','n5','n4','n3','n2','n1'].forEach(s=>scores[s]=placementSectionScore(s));let stage=0;if(scores.hiragana>=70)stage=1;if(stage===1&&scores.katakana>=70)stage=2;if(stage===2&&scores.n5>=65)stage=3;if(stage===3&&scores.n4>=65)stage=4;if(stage===4&&scores.n3>=65)stage=5;if(stage===5&&scores.n2>=65)stage=6; // N1 score refines reward/readiness but N1 remains the highest placement.
- unlockThroughStage(stage);const unlockedGemRewards=grantUnlockedGemRewards();state.selectedStage=stage;state.supportMode=stage>=4?'challenge':stage>=2?'standard':'guided';state.n5Tier=scores.n5>=75?'advanced':scores.n5>=45?'intermediate':'beginner';state.onboardingComplete=true;state.placementTestCompleted=true;state.active=null;state.answered=false;const overall=Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/7);const reward=grantPlacementReward(stage,overall);const missed=Array.isArray(placementSession.missed)?placementSession.missed:[];state.placementResult={date:Date.now(),route:stages[stage].label.toLowerCase(),overall,...scores,reward,unlockedGemRewards:unlockedGemRewards.map(gem=>gem.name),missed};save();render();placementSession.required=false;document.getElementById('placementCloseBtn').hidden=false;const scoreCards=Object.entries(scores).map(([k,v])=>`<div class="placement-score"><strong>${v}%</strong><span>${k==='hiragana'?'Hiragana':k==='katakana'?'Katakana':'JLPT '+k.toUpperCase()}</span></div>`).join('');const placementBonus=reward.bonusPercent?` <strong>Mastery bonus: +${reward.bonusPercent}% Nuggets.</strong>`:'';const gemBonus=unlockedGemRewards.length?` <strong>Mine access bonus: ${unlockedGemRewards.length} unlocked gemstones added for heart upgrades.</strong>`:'';const missedMarkup=window.japaneseMinerAssessmentMissesMarkup?.(missed)||'';document.getElementById('placementContent').innerHTML=`<div class="placement-results"><div class="placement-score-grid">${scoreCards}</div><div class="placement-recommendation"><h3>🧭 Start in the ${stages[stage].name}</h3><p>Your one-time placement result is saved. Every earlier mine remains available for review.</p></div><div class="placement-note"><strong>${stages[stage].label} placement reward:</strong> ${reward.nuggets.toLocaleString()} Nuggets, ${reward.hints} hints, and ${reward.shields} shields.${placementBonus}${gemBonus}</div>${missedMarkup}<div class="placement-result-actions"><button id="acceptPlacementBtn" class="primary" type="button">Begin ${stages[stage].label}</button></div></div>`;document.getElementById('acceptPlacementBtn').addEventListener('click',()=>{syncPlacementTestButton();closePlacementOnboarding();document.getElementById('rock')?.scrollIntoView({behavior:'smooth',block:'center'});});};
+ const completedAt=Date.now(),elapsedTimeMs=normalizeAssessmentTimeMs(completedAt-Number(placementSession.startedAt||completedAt));
+ unlockThroughStage(stage);const unlockedGemRewards=grantUnlockedGemRewards();state.selectedStage=stage;state.supportMode=stage>=4?'challenge':stage>=2?'standard':'guided';state.n5Tier=scores.n5>=75?'advanced':scores.n5>=45?'intermediate':'beginner';state.onboardingComplete=true;state.placementTestCompleted=true;state.active=null;state.answered=false;const overall=Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/7);const reward=grantPlacementReward(stage,overall);const missed=Array.isArray(placementSession.missed)?placementSession.missed:[];state.placementResult={date:completedAt,completedAt,elapsedTimeMs,fastestTimeMs:elapsedTimeMs,route:stages[stage].label.toLowerCase(),overall,...scores,reward,unlockedGemRewards:unlockedGemRewards.map(gem=>gem.name),missed};save();render();placementSession.required=false;document.getElementById('placementCloseBtn').hidden=false;const scoreCards=Object.entries(scores).map(([k,v])=>`<div class="placement-score"><strong>${v}%</strong><span>${k==='hiragana'?'Hiragana':k==='katakana'?'Katakana':'JLPT '+k.toUpperCase()}</span></div>`).join('');const placementBonus=reward.bonusPercent?` <strong>Mastery bonus: +${reward.bonusPercent}% Nuggets.</strong>`:'';const gemBonus=unlockedGemRewards.length?` <strong>Mine access bonus: ${unlockedGemRewards.length} unlocked gemstones added for heart upgrades.</strong>`:'';const missedMarkup=window.japaneseMinerAssessmentMissesMarkup?.(missed)||'',timeMarkup=assessmentRecordMarkup(elapsedTimeMs,true,'Placement test record');document.getElementById('placementContent').innerHTML=`<div class="placement-results"><div class="placement-score-grid">${scoreCards}</div>${timeMarkup}<div class="placement-recommendation"><h3>🧭 Start in the ${stages[stage].name}</h3><p>Your one-time placement result is saved. Every earlier mine remains available for review.</p></div><div class="placement-note"><strong>${stages[stage].label} placement reward:</strong> ${reward.nuggets.toLocaleString()} Nuggets, ${reward.hints} hints, and ${reward.shields} shields.${placementBonus}${gemBonus}</div>${missedMarkup}<div class="placement-result-actions"><button id="acceptPlacementBtn" class="primary" type="button">Begin ${stages[stage].label}</button></div></div>`;document.getElementById('acceptPlacementBtn').addEventListener('click',()=>{syncPlacementTestButton();closePlacementOnboarding();document.getElementById('rock')?.scrollIntoView({behavior:'smooth',block:'center'});});};
 
 // v3.4 polish: correct advanced placement labels and make the launch button honor the selected JLPT mine.
 const enterSelectedMineButton=document.getElementById('enterN5MineBtn');
@@ -2567,6 +2621,14 @@ renderShop=function(){
   const pageWallpaperGrid=document.getElementById('wallpaperShop');
   WALLPAPERS.forEach(wallpaper=>{const owned=state.ownedWallpapers.includes(wallpaper.id),equipped=state.colorTheme==='midnight'&&state.equippedWallpaper===wallpaper.id,card=document.createElement('article');card.className='cosmetic-card'+(equipped?' equipped':'');card.innerHTML=`<div class="wallpaper-preview" style="background:${wallpaper.preview};background-size:${wallpaper.id==='paper'?'18px 18px':'cover'}"></div><h3>${wallpaper.name}</h3><p>${wallpaper.desc}</p><button type="button" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Use wallpaper':`Buy — ${wallpaper.cost.toLocaleString()} Nuggets`}</button>`;card.querySelector('button').addEventListener('click',()=>{if(owned){state.colorTheme='midnight';state.equippedWallpaper=wallpaper.id;applyWallpaper();save();render();renderShop();setMessage(`${wallpaper.name} wallpaper equipped. Bright game colors cleared.`,'correct');}else if(spendStoneValue(wallpaper.cost)){state.ownedWallpapers.push(wallpaper.id);state.colorTheme='midnight';state.equippedWallpaper=wallpaper.id;applyWallpaper();save();render();renderShop();setMessage(`${wallpaper.name} purchased and equipped!`,'correct');}else setMessage(`You need ${wallpaper.cost.toLocaleString()} Nuggets for ${wallpaper.name}.`,'wrong');});pageWallpaperGrid.appendChild(card);});
 };
+const renderShopBeforeArcade=renderShop;
+renderShop=function(){
+  if(activeShopTab!=='arcade'){renderShopBeforeArcade();return;}
+  const balance=document.getElementById('shopNuggetBalance');if(balance)balance.textContent=totalStoneValue().toLocaleString();
+  document.querySelectorAll('[data-shop-tab]').forEach(button=>button.classList.toggle('primary',button.dataset.shopTab==='arcade'));
+  const box=document.getElementById('shopContent');if(!box)return;box.innerHTML=window.LanguageMinerArcade?.shopMarkup?.()||'<p>Study Arcade is loading…</p>';window.LanguageMinerArcade?.bind?.(box,renderShop);
+};
+window.openJapaneseMinerArcadeShop=()=>openShop('arcade');
 function scrollToSection(id){closeGameMenu();const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
 document.getElementById('voiceToggle')?.addEventListener('change',e=>{state.voiceEnabled=e.target.checked;save();});
 document.getElementById('autoSpeakToggle')?.addEventListener('change',e=>{state.autoSpeak=e.target.checked;save();});
@@ -2676,7 +2738,8 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
     state.analytics=state.analytics||{answered:0,correct:0,wrong:0,reading:0,listening:0,grammar:0,vocabulary:0,kanji:0,minutes:0,firstStudyAt:0,lastAnswerAt:0};
     state.mistakes=Array.isArray(state.mistakes)?state.mistakes:[];
     state.notebookNotes=Array.isArray(state.notebookNotes)?state.notebookNotes.map((note,index)=>{const createdAt=Math.max(0,Number(note?.createdAt)||Date.now());return{id:String(note?.id||`legacy-note-${index}-${createdAt}`),mistakeKey:String(note?.mistakeKey||''),target:String(note?.target||'').slice(0,120),note:String(note?.note||'').slice(0,800),stage:Math.max(0,Number(note?.stage)||0),createdAt,updatedAt:Math.max(createdAt,Number(note?.updatedAt)||createdAt),tutor:Boolean(note?.tutor)};}).filter(note=>note.target&&note.note).slice(0,300):[];
-    state.notebookView=state.notebookView==='stickies'?'stickies':'review';
+    if(Number(state.notebookQueueVersion||0)<1){state.notebookView='queue';state.notebookQueueVersion=1;}
+    else state.notebookView=['queue','review','stickies'].includes(state.notebookView)?state.notebookView:'queue';
     state.achievements=state.achievements||{};
     state.selectedTitle=state.selectedTitle||'';
     state.character=Object.assign({skin:'warm',hairStyle:'short',hairColor:'brown',shirt:'miner',pants:'denim',accessory:'none',accessories:[]},state.character||{});
@@ -2821,7 +2884,7 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
   }
   window.japaneseMinerCharacterMarkup=characterMarkup;
   function optionButtons(key,label){return `<div class="character-option" data-character-section="${key}"><button type="button" class="character-option-toggle" aria-expanded="true"><span>${label}</span><b aria-hidden="true">⌄</b></button><div class="character-choice-grid">${CHARACTER_OPTIONS[key].map(([value,name],index)=>{const owned=cosmeticOwned(key,value),price=index===0?0:COSMETIC_PRICES[key]||0,visual=key!=='skin',hideJacket=['shirt','pants'].includes(key);return `<button type="button" data-character-key="${key}" data-character-value="${value}" class="${visual?'visual-choice ':''}${state.character[key]===value?'selected':''} ${owned?'owned':'locked'}">${visual?`<div class="choice-avatar-preview">${characterMarkup('mini',{[key]:value},{hideJacket})}</div>`:`<span class="choice-swatch ${key}-${value}"></span>`}<span>${name}<small>${owned?'Owned':`${price.toLocaleString()} 🪙`}</small></span></button>`;}).join('')}</div></div>`;}
-  function renderProfile(){const player=document.getElementById('activePlayerName')?.textContent||'Miner',tier=window.japaneseMinerSupporterTier?.()||0,customizer=tier<1?`${optionButtons('skin','Skin tone — free')}${window.japaneseMinerSupporterGate?.(1,'Character cosmetics, hats, and accessories')||''}`:`${optionButtons('skin','Skin tone — free')}${optionButtons('hairStyle','Hair style')}${optionButtons('hairColor','Hair color')}${optionButtons('shirt','Clothing top')}${optionButtons('pants','Clothing bottom')}${optionButtons('accessory','Accessory')}<button id="randomizeCharacterBtn" class="primary" type="button">🎲 Randomize owned style</button>`;return `<div class="character-profile"><section class="character-preview-card"><div class="profile-nameplate"><span class="placement-kicker">Your miner</span><h3>${player}</h3><p>${state.selectedTitle||'Japanese Learner'}</p><strong class="cosmetic-balance">🪙 ${totalStoneValue().toLocaleString()} Nuggets</strong></div>${characterMarkup('large')}<div class="character-save-note">Skin tones are always free. Hair, clothes, and accessories are one-time unlocks saved to this profile.</div></section><section class="character-customizer">${customizer}</section></div>`;}
+  function renderProfile(){const player=document.getElementById('activePlayerName')?.textContent||'Miner',tier=window.japaneseMinerSupporterTier?.()||0,customizer=tier<1?`${optionButtons('skin','Skin tone — free')}${window.japaneseMinerSupporterGate?.(1,'Character cosmetics, hats, and accessories')||''}`:`${optionButtons('skin','Skin tone — free')}${optionButtons('hairStyle','Hair style')}${optionButtons('hairColor','Hair color')}${optionButtons('shirt','Clothing top')}${optionButtons('pants','Clothing bottom')}${optionButtons('accessory','Accessory')}<button id="randomizeCharacterBtn" class="primary" type="button">🎲 Randomize owned style</button>`;return `<div class="character-profile"><section class="character-preview-card"><div class="profile-nameplate"><span class="placement-kicker">Your miner</span><h3>${player}</h3><p>${state.selectedTitle||'Language Learner'}</p><strong class="cosmetic-balance">🪙 ${totalStoneValue().toLocaleString()} Nuggets</strong></div>${characterMarkup('large')}<div class="character-save-note">Skin tones are always free. Hair, clothes, and accessories are one-time unlocks saved to this profile.</div></section><section class="character-customizer">${customizer}</section></div>`;}
   function randomizeCharacter(){Object.entries(CHARACTER_OPTIONS).forEach(([key,values])=>{const available=values.filter(([value])=>cosmeticOwned(key,value));const picked=available[Math.floor(Math.random()*available.length)][0];if(key==='accessory')setSelectedAccessories(picked==='none'?[]:[picked]);else state.character[key]=picked;});save();renderFeatureCenter('profile');render();}
   function optionButtons(key,label){return `<div class="character-option" data-character-section="${key}"><button type="button" class="character-option-toggle" aria-expanded="true"><span>${label}</span><b aria-hidden="true">▼</b></button><div class="character-choice-grid">${CHARACTER_OPTIONS[key].map(([value,name],index)=>{const owned=cosmeticOwned(key,value),price=index===0?0:COSMETIC_PRICES[key]||0,visual=key!=='skin',hideJacket=['shirt','pants'].includes(key),selected=key==='accessory'?(value==='none'?selectedAccessories().length===0:selectedAccessories().includes(value)):state.character[key]===value,previewOverride=key==='accessory'&&value!=='none'?{accessories:[value],accessory:value}:{[key]:value};return `<button type="button" data-character-key="${key}" data-character-value="${value}" class="${visual?'visual-choice ':''}${selected?'selected':''} ${owned?'owned':'locked'}">${visual?`<div class="choice-avatar-preview">${characterMarkup('mini',previewOverride,{hideJacket})}</div>`:`<span class="choice-swatch ${key}-${value}"></span>`}<span>${name}<small>${owned?'Owned':`${price.toLocaleString()} 🪙`}</small></span></button>`;}).join('')}</div></div>`;}
 
@@ -2865,7 +2928,21 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
     const notes=visibleNotebookNotes();
     return `<section class="new-sticky-note"><span>New reference</span><h3>Create a sticky note</h3><p>Add any word or phrase you want to remember, even if it has not appeared as a mistake yet.</p><label for="newStickyTarget">Word or phrase</label><input id="newStickyTarget" maxlength="120" placeholder="Example: つき"><label for="newStickyText">Your reference or memory tip</label><textarea id="newStickyText" maxlength="800" rows="4" placeholder="Example: 月 means moon/month. Picture the moon appearing once each month."></textarea><button id="createStickyNoteBtn" class="primary" type="button">Add sticky note</button></section>${notes.length?`<div class="sticky-note-grid">${notes.map(note=>`<article class="saved-sticky-note" data-sticky-id="${v3Esc(note.id)}"><header><span>🗒️ ${note.mistakeKey?'Attached note':'Personal note'}</span><button data-delete-sticky="${v3Esc(note.id)}" aria-label="Delete sticky note">×</button></header><label>Word or phrase</label><input data-sticky-target maxlength="120" value="${v3Esc(note.target)}" ${note.mistakeKey?'readonly':''}><label>Reference</label><textarea data-sticky-text maxlength="800" rows="4">${v3Esc(note.note)}</textarea><footer><small>${stages[note.stage]?.label||'Personal'} · Updated ${new Date(note.updatedAt).toLocaleDateString()}</small><button data-save-sticky="${v3Esc(note.id)}">Save changes</button></footer></article>`).join('')}</div>`:'<div class="empty-feature">🗒️ No sticky notes yet. Attach one to a difficult item or create your own reference above.</div>'}`;
   }
-  function renderNotebook(){ensureV38();const difficult=visibleNotebookMistakes().length,stickies=visibleNotebookNotes().length,view=state.notebookView;return `<div class="notebook-hero"><div><span>Personal study reference</span><h3>📓 Japanese Notebook</h3><p>Review difficult questions and attach your own memory tips directly to a word or phrase.</p></div><b>${difficult}</b></div><nav class="notebook-tabs" aria-label="Notebook sections"><button data-notebook-view="review" class="${view==='review'?'primary':''}">📖 Difficult Items <span>${difficult}</span></button><button data-notebook-view="stickies" class="${view==='stickies'?'primary':''}">🗒️ Sticky Notes <span>${stickies}</span></button></nav>${view==='stickies'?renderNotebookStickies():renderNotebookReview()}`;}
+  function notebookSmartReviewStatus(){
+    try{return window.japaneseMinerSmartReview?.status?.()||{active:false,dueCount:0,total:0,completed:0,remaining:0,canStart:false};}
+    catch(_error){return {active:false,dueCount:0,total:0,completed:0,remaining:0,canStart:false};}
+  }
+  function notebookSmartReviewItems(){try{return window.japaneseMinerSmartReview?.items?.()||[];}catch(_error){return [];}}
+  function renderNotebookSmartReview(){
+    const review=notebookSmartReviewStatus(),headline=review.active?'Smart Review in progress':review.dueCount?`${review.dueCount} Smart Review${review.dueCount===1?'':'s'} due`:'Nothing is due right now.',progress=review.active?`${review.completed} of ${review.total} completed`:review.dueCount?'Choose any due word below.':'New due items will appear here automatically.';
+    return `<section class="notebook-smart-review ${review.active?'session-active':''}"><div class="notebook-smart-review-icon" aria-hidden="true">🧠</div><div class="notebook-smart-review-copy"><span>Established long-term review</span><h3>${headline}</h3><p>Review all due items in a saved session, or choose one from the queue below.</p><small>${progress}</small></div><div class="notebook-smart-review-actions"><button class="primary" type="button" data-notebook-smart-review="start" ${review.canStart?'':'disabled'}>${review.active?'Continue Smart Review':'Start Smart Review'}</button><button type="button" data-notebook-smart-review="center">Open Review Center</button></div></section>`;
+  }
+  function renderNotebookReviewQueue(){
+    const items=notebookSmartReviewItems();if(!items.length)return '<div class="empty-feature notebook-review-empty">🧠 Nothing is due right now. New review words will appear here automatically.</div>';
+    const cards=items.map(item=>{const searchable=`${item.term} ${item.answer} ${item.prompt} ${item.stageLabel}`.toLocaleLowerCase(),status=item.current?'Current review':item.inSession?'In saved queue':'Due now';return `<article class="notebook-review-item ${item.current?'current':''}" data-notebook-review-item data-review-search="${v3Esc(searchable)}"><div class="notebook-review-word">${v3Esc(item.term)}</div><div class="notebook-review-details"><div><span>${v3Esc(item.stageLabel)}</span><em>${status}</em></div><strong>${v3Esc(item.answer)}</strong>${item.prompt&&item.prompt!==item.term?`<p>${v3Esc(item.prompt)}</p>`:''}<small>Reviewed ${Number(item.reviewed)||0} time${Number(item.reviewed)===1?'':'s'}</small></div><button type="button" data-review-word="${v3Esc(item.id)}">${item.current?'Continue this review':'Review this word'}</button></article>`;}).join('');
+    return `<section class="notebook-review-browser"><header><div><span>Due review words</span><h3>Choose what to review</h3><p>Search every due item, then select the exact word or question you want to review next.</p></div><strong>${items.length}</strong></header><div class="notebook-review-search"><label for="notebookReviewSearch">Search due words</label><div><input id="notebookReviewSearch" type="search" autocomplete="off" placeholder="Search by word, meaning, prompt, or mine…"><button id="clearNotebookReviewSearch" type="button" hidden>Clear</button></div><small id="notebookReviewVisibleCount" aria-live="polite">Showing ${items.length} of ${items.length} due items</small></div><div class="notebook-review-list">${cards}</div><p id="notebookReviewNoMatches" class="notebook-review-no-matches" hidden>No review words match this search.</p></section>`;
+  }
+  function renderNotebook(){ensureV38();const difficult=visibleNotebookMistakes().length,stickies=visibleNotebookNotes().length,review=notebookSmartReviewStatus(),view=state.notebookView;return `<div class="notebook-hero"><div><span>Personal study reference</span><h3>📓 Study Notebook</h3><p>Choose review words, inspect difficult items, and keep your own memory notes.</p></div><b title="${review.dueCount} words due">${review.dueCount}</b></div>${renderNotebookSmartReview()}<nav class="notebook-tabs" aria-label="Notebook sections"><button data-notebook-view="queue" class="${view==='queue'?'primary':''}">🧠 Review Queue <span>${review.dueCount}</span></button><button data-notebook-view="review" class="${view==='review'?'primary':''}">📖 Difficult <span>${difficult}</span></button><button data-notebook-view="stickies" class="${view==='stickies'?'primary':''}">🗒️ Notes <span>${stickies}</span></button></nav>${view==='queue'?renderNotebookReviewQueue():view==='stickies'?renderNotebookStickies():renderNotebookReview()}`;}
   function statPercent(){return state.analytics.answered?Math.round(state.analytics.correct/state.analytics.answered*100):0;}
   function renderStatistics(){const days=(state.practiceDates||state.studyDates||[]).length;const weakest=['vocabulary','kanji','grammar','reading','listening'].sort((a,b)=>(state.analytics[a]||0)-(state.analytics[b]||0))[0];return `<div class="stats-feature-grid"><div class="metric-card"><span>Total questions</span><strong class="viz-stat-value">${state.analytics.answered.toLocaleString()}</strong></div><div class="metric-card"><span>Overall accuracy</span><strong class="viz-stat-value">${statPercent()}%</strong></div><div class="metric-card"><span>Study days</span><strong class="viz-stat-value">${days}</strong></div><div class="metric-card"><span>Best streak</span><strong class="viz-stat-value">${Number(state.bestStreak||0)}</strong></div></div><div class="feature-section"><h3>Practice distribution</h3>${['vocabulary','kanji','grammar','reading','listening'].map(k=>`<div class="stat-row"><span>${k[0].toUpperCase()+k.slice(1)}</span><strong>${Number(state.analytics[k]||0).toLocaleString()}</strong></div>`).join('')}<div class="viz-callout"><strong>Recommended focus:</strong> ${weakest[0].toUpperCase()+weakest.slice(1)} has received the least practice so far.</div><h3>Current progression</h3>${stages.map((s,i)=>`<div class="stat-row"><span>${s.label}</span><strong>${Math.round(stageMastery(i))}% mastery · ${Number(state.stageXp[i]||0).toLocaleString()} XP</strong></div>`).join('')}</div>`;}
   function backupPayload(){const profiles=readProfiles();const profile=profiles.find(p=>p.id===activeProfileId);return {format:'JapaneseMinerBackup',version:'4.0',exportedAt:new Date().toISOString(),profile:{name:profile?.name||'Player',id:activeProfileId},state};}
@@ -2881,7 +2958,10 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
     document.getElementById('randomizeCharacterBtn')?.addEventListener('click',randomizeCharacter);
     content.querySelectorAll('[data-claim-quest]').forEach(b=>b.addEventListener('click',()=>{const [type,id]=b.dataset.claimQuest.split(':');claimQuest(type,id);}));
     content.querySelectorAll('[data-title]').forEach(b=>b.addEventListener('click',()=>{if((window.japaneseMinerSupporterTier?.()||0)<1)return;state.selectedTitle=b.dataset.title;save();renderFeatureCenter('achievements');render();}));
-    content.querySelectorAll('[data-notebook-view]').forEach(b=>b.addEventListener('click',()=>{state.notebookView=b.dataset.notebookView==='stickies'?'stickies':'review';save();renderFeatureCenter('notebook');}));
+    content.querySelectorAll('[data-notebook-view]').forEach(b=>b.addEventListener('click',()=>{state.notebookView=['queue','review','stickies'].includes(b.dataset.notebookView)?b.dataset.notebookView:'queue';save();renderFeatureCenter('notebook');}));
+    content.querySelectorAll('[data-notebook-smart-review]').forEach(b=>b.addEventListener('click',()=>{const api=window.japaneseMinerSmartReview,action=b.dataset.notebookSmartReview;if(!api)return;closeFeatureCenter();if(action==='center'){api.openCenter?.();return;}if(api.start?.()===false)api.openCenter?.();}));
+    content.querySelectorAll('[data-review-word]').forEach(b=>b.addEventListener('click',()=>{const api=window.japaneseMinerSmartReview,questionId=b.dataset.reviewWord;if(!api||!questionId)return;closeFeatureCenter();if(api.start?.(questionId)===false)api.openCenter?.();}));
+    const reviewSearch=document.getElementById('notebookReviewSearch'),clearReviewSearch=document.getElementById('clearNotebookReviewSearch');if(reviewSearch){const filterReviewWords=()=>{const query=reviewSearch.value.trim().toLocaleLowerCase(),cards=[...content.querySelectorAll('[data-notebook-review-item]')];let visible=0;cards.forEach(card=>{const match=!query||String(card.dataset.reviewSearch||'').includes(query);card.hidden=!match;if(match)visible++;});const count=document.getElementById('notebookReviewVisibleCount'),empty=document.getElementById('notebookReviewNoMatches');if(count)count.textContent=`Showing ${visible} of ${cards.length} due items`;if(empty)empty.hidden=visible>0;if(clearReviewSearch)clearReviewSearch.hidden=!query;};reviewSearch.addEventListener('input',filterReviewWords);clearReviewSearch?.addEventListener('click',()=>{reviewSearch.value='';filterReviewWords();reviewSearch.focus();});}
     content.querySelectorAll('[data-resolve-mistake]').forEach(b=>b.addEventListener('click',()=>{const m=state.mistakes[Number(b.dataset.resolveMistake)];if(m){m.resolved=!m.resolved;save();renderFeatureCenter('notebook');}}));
     content.querySelectorAll('[data-save-mistake-note]').forEach(b=>b.addEventListener('click',()=>{const index=Number(b.dataset.saveMistakeNote),text=content.querySelector(`[data-mistake-note="${index}"]`)?.value||'';if(upsertNotebookNoteForMistake(index,text)){setMessage(text.trim()?'Sticky note saved to this Notebook item.':'Sticky note removed.','correct');renderFeatureCenter('notebook');}}));
     document.getElementById('createStickyNoteBtn')?.addEventListener('click',()=>{const target=document.getElementById('newStickyTarget')?.value||'',text=document.getElementById('newStickyText')?.value||'';if(!createNotebookSticky(target,text)){setMessage('Enter both a word or phrase and a reference before saving.','wrong');return;}setMessage('New sticky note added to your Notebook.','correct');renderFeatureCenter('notebook');});
@@ -2892,7 +2972,8 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
     if(tab==='profile')window.refreshJapaneseMinerCompanionDisplays?.();
   }
 
-  function addMenuItems(){const grid=document.querySelector('.game-menu-grid');if(!grid)return;const items=[['profile','🧍','Character','Customize hair, skin, and clothing'],['quests','🎯','Quests','Daily and weekly rewards'],['achievements','🏆','Achievements','Titles and milestones'],['notebook','📓','Notebook','Difficult items and personal sticky notes'],['statistics','📈','Player Stats','Accuracy and study trends'],['account','☁️','Account','Backup and transfer saves']];items.forEach(([tab,icon,name,desc])=>{if(grid.querySelector(`[data-feature-open="${tab}"],[data-menu-action="${tab}"]`))return;const b=document.createElement('button');b.type='button';b.dataset.featureOpen=tab;b.dataset.menuCategoryName=tab==='profile'||tab==='notebook'?'gear':'player';b.innerHTML=`<span>${icon}</span><strong>${name}</strong><small>${desc}</small>`;b.addEventListener('click',()=>{closeGameMenu();openFeatureCenter(tab);});grid.appendChild(b);});}
+  function addMenuItems(){const grid=document.querySelector('.game-menu-grid');if(!grid)return;const items=[['profile','🧍','Character','Customize hair, skin, and clothing'],['quests','🎯','Quests','Daily and weekly rewards'],['achievements','🏆','Achievements','Titles and milestones'],['notebook','📓','Notebook','Review queue, difficult items, and notes'],['statistics','📈','Player Stats','Accuracy and study trends'],['account','☁️','Account','Backup and transfer saves']];items.forEach(([tab,icon,name,desc])=>{if(grid.querySelector(`[data-feature-open="${tab}"],[data-menu-action="${tab}"]`))return;const b=document.createElement('button');b.type='button';b.dataset.featureOpen=tab;b.dataset.menuCategoryName=tab==='profile'||tab==='notebook'?'gear':'player';b.innerHTML=`<span>${icon}</span><strong>${name}</strong><small>${desc}</small>`;b.addEventListener('click',()=>{closeGameMenu();openFeatureCenter(tab);});grid.appendChild(b);});}
+  window.refreshJapaneseMinerFeatureMenu=addMenuItems;
   function v38AdminAllowed(){return window.japaneseMinerIsDeveloperSession?.()===true;}
   function v38AdminUnlockAll(){if(!v38AdminAllowed())return false;ensureV38();state.ownedCosmetics=Object.entries(CHARACTER_OPTIONS).filter(([key])=>key!=='skin').flatMap(([key,items])=>items.map(([value])=>cosmeticId(key,value)));ACHIEVEMENTS.forEach(item=>state.achievements[item.id]=true);return true;}
   function v38AdminResetCosmetics(){if(!v38AdminAllowed())return false;state.character={skin:'warm',hairStyle:'short',hairColor:'brown',shirt:'miner',pants:'denim',accessory:'none',accessories:[]};state.ownedCosmetics=['hairStyle:short','hairColor:brown','shirt:miner','pants:denim','accessory:none'];state.selectedTitle='';return true;}
@@ -2937,6 +3018,7 @@ function ensureJlptSectionState(target=state){
   if(!target.jlptSectionLevel||typeof target.jlptSectionLevel!=="object"||Array.isArray(target.jlptSectionLevel))target.jlptSectionLevel={};
   if(!target.jlptReviewCheckpoints||typeof target.jlptReviewCheckpoints!=="object"||Array.isArray(target.jlptReviewCheckpoints))target.jlptReviewCheckpoints={};
   migrateJlptVocabularyLessonLayout(target);
+  Object.values(target.jlptReviewCheckpoints).forEach(record=>{if(record&&typeof record==='object'){record.fastestTimeMs=normalizeAssessmentTimeMs(record.fastestTimeMs);record.fastestAt=record.fastestTimeMs?Math.max(0,Number(record.fastestAt)||0):0;}});
   for(let stage=2;stage<stages.length;stage++){
     const section=String(target.jlptSectionSelection[stage]||"vocabulary");
     target.jlptSectionSelection[stage]=JLPT_SECTION_IDS.has(section)?section:"vocabulary";
@@ -3056,6 +3138,7 @@ function filterJlptPoolForSelection(pool,stage){
 }
 function validJlptQuestionForSelection(question){
   const stage=selectedStageIndex();
+  if(question?.smartReview===true)return true;
   if(stage<2)return true;
   if(!question||Number(question.stage)!==stage)return false;
   const boss=state.v5?.boss;
@@ -3257,9 +3340,9 @@ function buildJlptReviewCheckpointQuestions(stage,section,evenLesson){
   return result;
 }
 function renderJlptReviewCheckpointCard(stage,section,evenLesson,world=false){
-  const result=jlptReviewCheckpointResult(stage,section,evenLesson),passed=result.passed===true,available=jlptReviewCheckpointAvailable(stage,section,evenLesson),open=passed||available,best=Math.max(0,Number(result.best)||0),pair=`Lessons ${evenLesson-1}–${evenLesson}`;
-  if(world)return `<button data-world-review-checkpoint-stage="${stage}" data-world-review-checkpoint-section="${section}" data-world-review-checkpoint-lesson="${evenLesson}" class="jlpt-vocabulary-level jlpt-review-checkpoint ${open?'open':'locked'} ${passed?'complete':''}" ${open?'':'disabled'}><span>${passed?'✓':open?'🧠':'🔒'}</span><strong>${pair} Quiz</strong><small>${passed?`${best}% best · Passed`:available?'25 questions · 2:30 · Need 75%':`Reach 75% in both lessons`}</small><i><b style="width:${passed?100:best}%"></b></i></button>`;
-  return `<button class="lesson-button jlpt-review-checkpoint ${open?'lesson-open':'lesson-locked'} ${passed?'lesson-complete':''}" data-review-checkpoint-stage="${stage}" data-review-checkpoint-section="${section}" data-review-checkpoint-lesson="${evenLesson}" type="button" ${open?'':'disabled'}><strong>${passed?'✓':open?'🧠':'🔒'} ${pair} Review Quiz</strong><span>${passed?`${best}% best · Passed`:available?'25 randomized questions · 2:30 · Pass at 75%':`Reach 75% in Lessons ${evenLesson-1} and ${evenLesson}`}</span>${progressBar(passed?100:best)}</button>`;
+  const result=jlptReviewCheckpointResult(stage,section,evenLesson),passed=result.passed===true,available=jlptReviewCheckpointAvailable(stage,section,evenLesson),open=passed||available,best=Math.max(0,Number(result.best)||0),fastest=normalizeAssessmentTimeMs(result.fastestTimeMs),record=fastest?` · Record ${assessmentTimeLabel(fastest)}`:'',pair=`Lessons ${evenLesson-1}–${evenLesson}`;
+  if(world)return `<button data-world-review-checkpoint-stage="${stage}" data-world-review-checkpoint-section="${section}" data-world-review-checkpoint-lesson="${evenLesson}" class="jlpt-vocabulary-level jlpt-review-checkpoint ${open?'open':'locked'} ${passed?'complete':''}" ${open?'':'disabled'}><span>${passed?'✓':open?'🧠':'🔒'}</span><strong>${pair} Quiz</strong><small>${passed?`${best}% best · Passed${record}`:available?'25 questions · 2:30 · Need 75%':`Reach 75% in both lessons`}</small><i><b style="width:${passed?100:best}%"></b></i></button>`;
+  return `<button class="lesson-button jlpt-review-checkpoint ${open?'lesson-open':'lesson-locked'} ${passed?'lesson-complete':''}" data-review-checkpoint-stage="${stage}" data-review-checkpoint-section="${section}" data-review-checkpoint-lesson="${evenLesson}" type="button" ${open?'':'disabled'}><strong>${passed?'✓':open?'🧠':'🔒'} ${pair} Review Quiz</strong><span>${passed?`${best}% best · Passed${record}`:available?'25 randomized questions · 2:30 · Pass at 75%':`Reach 75% in Lessons ${evenLesson-1} and ${evenLesson}`}</span>${progressBar(passed?100:best)}</button>`;
 }
 function jlptCourseQuestionMatchesItem(question,item){
   if(!question||!item||Number(question.stage)!==Number(item.stage))return false;
@@ -3322,7 +3405,7 @@ filterJlptPoolForSelection=function(pool,stage){
   return selected;
 };
 validJlptQuestionForSelection=function(question){
-  const stage=selectedStageIndex();if(stage<2)return true;
+  const stage=selectedStageIndex();if(question?.smartReview===true)return true;if(stage<2)return true;
   if(!question||Number(question.stage)!==stage)return false;
   const boss=state.v5?.boss;if(boss?.status==="active"&&Number(question.bossCourseStage)===Number(boss.stage))return true;
   const section=currentJlptSection(stage);if(jlptQuestionSection(question)!==section)return false;
@@ -3455,7 +3538,7 @@ function kanaFamilyUnlocked(stage,index){if(index===0)return true;if(state.clear
 function highestUnlockedKanaFamily(stage){const families=kanaFamiliesForStage(stage);let highest=0;for(let i=1;i<families.length;i++){if(kanaFamilyUnlocked(stage,i))highest=i;else break;}return highest;}
 function currentKanaFamily(stage=selectedStageIndex()){ensureKanaFamilyState();const kind=kanaKindForStage(stage),highest=highestUnlockedKanaFamily(stage);state.kanaFamilyLevel[kind]=Math.min(highest,Math.max(0,Number(state.kanaFamilyLevel[kind])||0));return kanaFamiliesForStage(stage)[state.kanaFamilyLevel[kind]];}
 function prepareKanaFamilyQuestion(question,family){if(!question)return question;const isCharacterAnswer=family.entries.some(([ch])=>ch===question.a);const values=family.entries.map(row=>row[isCharacterAnswer?0:1]);const options=shuffle([question.a,...shuffle(values.filter(value=>value!==question.a)).slice(0,3)]);return {...question,opts:[...new Set(options)]};}
-function validKanaQuestionForSelection(question){const stage=selectedStageIndex();if(stage>1)return !question||Number(question.stage)===stage;if(!question||Number(question.stage)!==stage)return false;const kana=kanaFromQuestion(question),boss=state.v5?.boss;if(boss?.status==='active'&&Number(question.bossCourseStage)===Number(boss.stage)&&Number(boss.stage)===stage)return !!kana&&kanaSetForStage(stage).some(([character])=>character===kana);return !!kana&&currentKanaFamily(stage).chars.includes(kana);}
+function validKanaQuestionForSelection(question){const stage=selectedStageIndex();if(question?.smartReview===true)return true;if(stage>1)return !question||Number(question.stage)===stage;if(!question||Number(question.stage)!==stage)return false;const kana=kanaFromQuestion(question),boss=state.v5?.boss;if(boss?.status==='active'&&Number(question.bossCourseStage)===Number(boss.stage)&&Number(boss.stage)===stage)return !!kana&&kanaSetForStage(stage).some(([character])=>character===kana);return !!kana&&currentKanaFamily(stage).chars.includes(kana);}
 function repairActiveKanaQuestion(){if(!state.active)return false;if(validKanaQuestionForSelection(state.active))return false;state.active=null;state.answered=false;state.shieldArmed=false;const area=document.getElementById('challengeArea');if(area)area.innerHTML='<div class="empty">Choose a kana family, then tap the rock for an alphabet-only question.</div>';return true;}
 function selectKanaFamily(stage,index){stage=Number(stage);index=Number(index);if(stage!==selectedStageIndex()||stage>1||!kanaFamilyUnlocked(stage,index))return;ensureKanaFamilyState();state.kanaFamilyLevel[kanaKindForStage(stage)]=index;state.active=null;state.answered=false;state.shieldArmed=false;state.recentQuestionIds=[];const family=currentKanaFamily(stage);const area=document.getElementById('challengeArea');if(area)area.innerHTML=`<div class="empty"><strong>${family.name}</strong><br>${family.entries.map(([ch,rom])=>`${ch} (${rom})`).join(' · ')}<br>Tap the rock to begin.</div>`;save();render();setMessage(`${family.name} selected. Questions will use only ${family.entries.map(([ch])=>ch).join('、')}.`,'correct');}
 function removeMainKanaFamilyPanel(){document.getElementById('kanaFamilyPanel')?.remove();}
@@ -3488,7 +3571,9 @@ function finishJlptReviewCheckpoint(reason="completed"){
   const quiz=academyView.checkpointQuiz;if(!quiz||quiz.finished)return false;
   clearJlptReviewQuizClock();quiz.finished=true;quiz.finishReason=reason;quiz.finishedAt=Date.now();quiz.score=Math.round(Number(quiz.correct||0)/JLPT_REVIEW_QUIZ_QUESTION_COUNT*100);quiz.passed=quiz.score>=JLPT_REVIEW_QUIZ_PASS_SCORE;
   ensureJlptSectionState();const key=jlptReviewCheckpointKey(quiz.stage,quiz.section,quiz.evenLesson),previous=jlptReviewCheckpointResult(quiz.stage,quiz.section,quiz.evenLesson);
-  state.jlptReviewCheckpoints[key]={best:Math.max(Number(previous.best)||0,quiz.score),lastScore:quiz.score,attempts:Number(previous.attempts||0)+1,passed:previous.passed===true||quiz.passed,passedAt:quiz.passed?Date.now():Number(previous.passedAt||0)};
+  const elapsedTimeMs=normalizeAssessmentTimeMs(quiz.finishedAt-Number(quiz.startedAt||quiz.finishedAt)),previousFastest=normalizeAssessmentTimeMs(previous.fastestTimeMs),eligibleForRecord=reason==='completed'&&quiz.passed&&Number(quiz.answeredCount)===JLPT_REVIEW_QUIZ_QUESTION_COUNT,newFastest=eligibleForRecord&&(!previousFastest||elapsedTimeMs<previousFastest),fastestTimeMs=newFastest?elapsedTimeMs:previousFastest;
+  quiz.elapsedTimeMs=elapsedTimeMs;quiz.newFastest=newFastest;quiz.fastestTimeMs=fastestTimeMs;
+  state.jlptReviewCheckpoints[key]={best:Math.max(Number(previous.best)||0,quiz.score),lastScore:quiz.score,attempts:Number(previous.attempts||0)+1,passed:previous.passed===true||quiz.passed,passedAt:quiz.passed?Date.now():Number(previous.passedAt||0),fastestTimeMs,fastestAt:newFastest?quiz.finishedAt:Number(previous.fastestAt||0)};
   const nextExists=!!jlptSectionLevels(quiz.stage,quiz.section)[quiz.evenLesson];
   save();renderAcademy();setMessage(quiz.passed?(nextExists?`Review quiz passed with ${quiz.score}%. Lesson ${quiz.evenLesson+1} is now available.`:`Final lesson-pair review passed with ${quiz.score}%.`):`Review quiz score: ${quiz.score}%. Reach 75% to continue.`,quiz.passed?"correct":"wrong");return true;
 }
@@ -3502,11 +3587,11 @@ function renderJlptReviewCheckpointQuiz(){
   const quiz=academyView.checkpointQuiz;if(!quiz)return "";const spec=jlptSectionSpec(quiz.section),pair=`Lessons ${quiz.evenLesson-1}–${quiz.evenLesson}`,levels=jlptSectionLevels(quiz.stage,quiz.section),nextExists=!!levels[quiz.evenLesson];
   if(quiz.finished){
     const record=jlptReviewCheckpointResult(quiz.stage,quiz.section,quiz.evenLesson),gatePassed=record.passed===true,elapsed=Math.min(150,Math.max(0,Math.ceil((Number(quiz.finishedAt)-Number(quiz.startedAt))/1000))),unanswered=JLPT_REVIEW_QUIZ_QUESTION_COUNT-Number(quiz.answeredCount||0);
-    const missedMarkup=window.japaneseMinerAssessmentMissesMarkup?.(quiz.missed)||'';
-    return `<section class="jlpt-review-quiz-result ${quiz.passed?'passed':'failed'}"><div class="lesson-review-check">${quiz.passed?'✓':'!'}</div><div class="course-kicker">${vocabularyCourseLabel(quiz.stage)} ${spec.name} · ${pair} checkpoint</div><h3>${quiz.passed?'Review quiz passed':'Review quiz needs another try'}</h3><div class="jlpt-review-result-score">${quiz.score}%</div><p>${quiz.correct}/${JLPT_REVIEW_QUIZ_QUESTION_COUNT} correct · ${unanswered} unanswered · ${elapsed} seconds used</p><strong>${quiz.passed?(nextExists?`Lesson ${quiz.evenLesson+1} is now available.`:'Final lesson-pair review complete.'):gatePassed?'This checkpoint remains passed from your earlier score.':'Score at least 75% (19 correct answers) to unlock the next lesson.'}</strong>${missedMarkup}<div class="lesson-preview-actions"><button data-checkpoint-back type="button">← All lessons</button><button data-checkpoint-retry type="button">Try another random set</button>${gatePassed&&nextExists?`<button data-checkpoint-continue class="primary" type="button">Continue to Lesson ${quiz.evenLesson+1}</button>`:""}</div></section>`;
+    const missedMarkup=window.japaneseMinerAssessmentMissesMarkup?.(quiz.missed)||'',recordMarkup=assessmentRecordMarkup(record.fastestTimeMs,quiz.newFastest,'Fastest passing quiz');
+    return `<section class="jlpt-review-quiz-result ${quiz.passed?'passed':'failed'}"><div class="lesson-review-check">${quiz.passed?'✓':'!'}</div><div class="course-kicker">${vocabularyCourseLabel(quiz.stage)} ${spec.name} · ${pair} checkpoint</div><h3>${quiz.passed?'Review quiz passed':'Review quiz needs another try'}</h3><div class="jlpt-review-result-score">${quiz.score}%</div><p>${quiz.correct}/${JLPT_REVIEW_QUIZ_QUESTION_COUNT} correct · ${unanswered} unanswered · ${elapsed} seconds used</p>${recordMarkup}<strong>${quiz.passed?(nextExists?`Lesson ${quiz.evenLesson+1} is now available.`:'Final lesson-pair review complete.'):gatePassed?'This checkpoint remains passed from your earlier score.':'Score at least 75% (19 correct answers) to unlock the next lesson.'}</strong>${missedMarkup}<div class="lesson-preview-actions"><button data-checkpoint-back type="button">← All lessons</button><button data-checkpoint-retry type="button">Try another random set</button>${gatePassed&&nextExists?`<button data-checkpoint-continue class="primary" type="button">Continue to Lesson ${quiz.evenLesson+1}</button>`:""}</div></section>`;
   }
-  const question=quiz.questions[quiz.current],remaining=jlptReviewQuizRemainingMs(quiz),progress=(quiz.current+1)/JLPT_REVIEW_QUIZ_QUESTION_COUNT*100;
-  return `<section class="course-focus jlpt-review-quiz"><header><div><div class="course-kicker">${vocabularyCourseLabel(quiz.stage)} ${spec.name} · ${pair} Review Quiz</div><h3>Question ${quiz.current+1} of ${JLPT_REVIEW_QUIZ_QUESTION_COUNT}</h3><p>${quiz.correct} correct so far · 75% required to pass</p></div><strong id="jlptReviewQuizTimer" class="jlpt-review-timer ${remaining<=30000?'urgent':''}" aria-live="polite">${jlptReviewQuizTimeLabel(remaining)}</strong></header>${progressBar(progress)}<article class="jlpt-review-question"><div class="jlpt-review-question-display">${v3Esc(question.display)}</div><p>${v3Esc(question.prompt)}</p><div class="course-answer-grid">${question.options.map((option,index)=>{const correct=quiz.answered&&option===question.answer,wrong=quiz.answered&&option===quiz.selected&&option!==question.answer;return `<button data-checkpoint-answer="${index}" class="${correct?'answer-good':wrong?'answer-bad':''}" type="button" ${quiz.answered?'disabled':''}>${v3Esc(option)}</button>`;}).join("")}</div><div class="course-feedback" aria-live="polite">${quiz.answered?(quiz.selected===question.answer?'✅ Correct!':`❌ Correct answer: <strong>${v3Esc(question.answer)}</strong>`):"Choose the best answer before time runs out."}</div></article><div class="lesson-preview-actions"><button data-checkpoint-quit type="button">Quit quiz</button>${quiz.answered?'<span class="jlpt-review-auto-advance" role="status">Next question loading automatically…</span>':""}</div></section>`;
+  const question=quiz.questions[quiz.current],remaining=jlptReviewQuizRemainingMs(quiz),progress=(quiz.current+1)/JLPT_REVIEW_QUIZ_QUESTION_COUNT*100,record=jlptReviewCheckpointResult(quiz.stage,quiz.section,quiz.evenLesson),recordCopy=record.fastestTimeMs?` · Record ${assessmentTimeLabel(record.fastestTimeMs)}`:'';
+  return `<section class="course-focus jlpt-review-quiz"><header><div><div class="course-kicker">${vocabularyCourseLabel(quiz.stage)} ${spec.name} · ${pair} Review Quiz</div><h3>Question ${quiz.current+1} of ${JLPT_REVIEW_QUIZ_QUESTION_COUNT}</h3><p>${quiz.correct} correct so far · 75% required to pass${recordCopy}</p></div><strong id="jlptReviewQuizTimer" class="jlpt-review-timer ${remaining<=30000?'urgent':''}" aria-live="polite">${jlptReviewQuizTimeLabel(remaining)}</strong></header>${progressBar(progress)}<article class="jlpt-review-question"><div class="jlpt-review-question-display">${v3Esc(question.display)}</div><p>${v3Esc(question.prompt)}</p><div class="course-answer-grid">${question.options.map((option,index)=>{const correct=quiz.answered&&option===question.answer,wrong=quiz.answered&&option===quiz.selected&&option!==question.answer;return `<button data-checkpoint-answer="${index}" class="${correct?'answer-good':wrong?'answer-bad':''}" type="button" ${quiz.answered?'disabled':''}>${v3Esc(option)}</button>`;}).join("")}</div><div class="course-feedback" aria-live="polite">${quiz.answered?(quiz.selected===question.answer?'✅ Correct!':`❌ Correct answer: <strong>${v3Esc(question.answer)}</strong>`):"Choose the best answer before time runs out."}</div></article><div class="lesson-preview-actions"><button data-checkpoint-quit type="button">Quit quiz</button>${quiz.answered?'<span class="jlpt-review-auto-advance" role="status">Next question loading automatically…</span>':""}</div></section>`;
 }
 function leaveJlptReviewCheckpoint(){clearJlptReviewQuizClock();academyView.checkpointQuiz=null;syncJlptReviewQuizTabs(false);resetJlptLessonView();renderAcademy();}
 function openJlptReviewCheckpoint(stage,section,evenLesson){

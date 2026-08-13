@@ -176,6 +176,9 @@
 .lm-course-feedback.correct{border:1px solid #5ce1b5;color:#bdffe8}
 .lm-course-feedback.wrong{border:1px solid #ff7c8d;color:#ffd6dd}
 .lm-course-feedback:empty{display:none}
+.lm-course-reward{width:min(100%,560px);padding:12px 16px;border:1px solid #f0cc63;border-radius:13px;background:linear-gradient(135deg,#4c3a16,#1f322d);box-shadow:0 8px 22px #050a1270;color:#fff0a5;font-size:15px;font-weight:950;text-align:center}
+.lm-course-reward.treasure{border-color:#75dfbc;background:linear-gradient(135deg,#134437,#152f46);color:#a9ffe2}
+.lm-inline-reward{display:inline-block;margin-left:7px;padding:3px 7px;border:1px solid #e8c45f;border-radius:999px;background:#4a371b;color:#fff0a0;font-size:11px;font-weight:950;white-space:nowrap}
 .lm-next-course-question{display:block;margin:13px 0 0 auto;border:0;background:linear-gradient(100deg,#328cf6,#7656ff);color:#fff}
 .lm-next-course-question[hidden]{display:none}
 .lm-placement-test-shell{display:grid;gap:14px}

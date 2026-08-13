@@ -103,6 +103,7 @@
   Object.assign(T.it,{lessonUnlockRequirement:'Raggiungi il {mastery}% nella lezione precedente e supera il ripasso obbligatorio.',reviewPlanAvailable:'25 domande casuali · 2:30 · supera il 75%',reviewPlanLocked:'Raggiungi il 75% nelle lezioni {first} e {second}',reviewPlanPassed:'Migliore {best}% · Superato',reviewQuizTitle:'Quiz di ripasso · Lezioni {first}–{second}',reviewQuestionNumber:'Domanda {number} di {total}',reviewCorrectSoFar:'{correct} corrette · richiesto 75%',reviewChooseAnswer:'Scegli la risposta migliore prima dello scadere del tempo.',reviewPassed:'Quiz di ripasso superato',reviewTryAgain:'Riprova il quiz di ripasso',reviewResultDetails:'{correct}/{total} corrette · {unanswered} senza risposta · {seconds} secondi',reviewUnlockNext:'La lezione {lesson} è ora disponibile.',reviewFinalComplete:'Ripasso finale della coppia completato.',reviewStillPassed:'Questo checkpoint resta superato grazie al risultato precedente.',reviewNeedScore:'Ottieni almeno il 75% (19 risposte corrette) per sbloccare la lezione successiva.',retryReview:'Prova un altro set casuale',continueLesson:'Continua alla lezione {lesson}',reviewLocked:'Raggiungi il 75% nelle lezioni {first} e {second} prima del quiz.',reviewDeckTooSmall:'Questo quiz non ha ancora abbastanza domande.'});
   Object.assign(T.fr,{lessonUnlockRequirement:'Atteignez {mastery} % dans la leçon précédente et réussissez la révision obligatoire.',reviewPlanAvailable:'25 questions aléatoires · 2:30 · 75 % requis',reviewPlanLocked:'Atteignez 75 % dans les leçons {first} et {second}',reviewPlanPassed:'Meilleur score {best} % · Réussi',reviewQuizTitle:'Quiz de révision · Leçons {first}–{second}',reviewQuestionNumber:'Question {number} sur {total}',reviewCorrectSoFar:'{correct} correctes · 75 % requis',reviewChooseAnswer:'Choisissez la meilleure réponse avant la fin du temps.',reviewPassed:'Quiz de révision réussi',reviewTryAgain:'Le quiz de révision doit être retenté',reviewResultDetails:'{correct}/{total} correctes · {unanswered} sans réponse · {seconds} secondes',reviewUnlockNext:'La leçon {lesson} est maintenant disponible.',reviewFinalComplete:'Révision de la dernière paire terminée.',reviewStillPassed:'Ce point de contrôle reste réussi grâce à votre score précédent.',reviewNeedScore:'Obtenez au moins 75 % (19 bonnes réponses) pour débloquer la leçon suivante.',retryReview:'Essayer un autre tirage',continueLesson:'Continuer vers la leçon {lesson}',reviewLocked:'Atteignez 75 % dans les leçons {first} et {second} avant le quiz.',reviewDeckTooSmall:'Ce quiz ne contient pas encore assez de questions.'});
   Object.assign(T.de,{lessonUnlockRequirement:'Erreiche {mastery} % in der vorherigen Lektion und bestehe die Pflichtwiederholung.',reviewPlanAvailable:'25 Zufallsfragen · 2:30 · 75 % erforderlich',reviewPlanLocked:'Erreiche 75 % in Lektion {first} und {second}',reviewPlanPassed:'Bestwert {best} % · Bestanden',reviewQuizTitle:'Wiederholungsquiz · Lektionen {first}–{second}',reviewQuestionNumber:'Frage {number} von {total}',reviewCorrectSoFar:'{correct} richtig · 75 % erforderlich',reviewChooseAnswer:'Wähle die beste Antwort, bevor die Zeit abläuft.',reviewPassed:'Wiederholungsquiz bestanden',reviewTryAgain:'Wiederholungsquiz erneut versuchen',reviewResultDetails:'{correct}/{total} richtig · {unanswered} unbeantwortet · {seconds} Sekunden',reviewUnlockNext:'Lektion {lesson} ist jetzt verfügbar.',reviewFinalComplete:'Letzte Lektionspaar-Wiederholung abgeschlossen.',reviewStillPassed:'Dieser Kontrollpunkt bleibt durch dein früheres Ergebnis bestanden.',reviewNeedScore:'Erreiche mindestens 75 % (19 richtige Antworten), um die nächste Lektion freizuschalten.',retryReview:'Anderen Zufallssatz versuchen',continueLesson:'Weiter zu Lektion {lesson}',reviewLocked:'Erreiche vor dem Quiz 75 % in Lektion {first} und {second}.',reviewDeckTooSmall:'Dieses Quiz enthält noch nicht genügend Lektionsfragen.'});
+  Object.assign(EN,{newFastestTime:'New fastest time',fastestSuccessfulCompletion:'Fastest successful completion',fastestPassingQuiz:'Fastest passing quiz',fastestPerfectGuardian:'Fastest perfect Guardian test',placementTestRecord:'Placement test record',savedToPlayerProfile:'Saved to this player profile',recordTime:'Record {time}',currentRecord:'Current record: {time}.'});
   EN.alphabetLessonUnlockRequirement='Reach {mastery}% mastery in the previous alphabet lesson.';EN.bossStateMissing='The guardian test could not be restored. Reopen it from the Expedition Map.';
   T.es.alphabetLessonUnlockRequirement='Alcanza {mastery}% en la lección anterior del alfabeto.';T.es.bossStateMissing='No se pudo restaurar la prueba del jefe. Vuelve a abrirla desde el mapa.';
   T.ru.alphabetLessonUnlockRequirement='Освойте предыдущий урок алфавита на {mastery}%.';T.ru.bossStateMissing='Не удалось восстановить тест босса. Откройте его снова на карте.';
@@ -155,16 +156,32 @@
   Object.entries(window.LANGUAGE_MINER_MINE_COSMETIC_TRANSLATIONS||{}).forEach(([languageId,translations])=>{
     if(languageId==='en')Object.assign(EN,translations||{});else if(T[languageId])Object.assign(T[languageId],translations||{});
   });
+  Object.entries(window.LANGUAGE_MINER_GENERATED_INTERFACE_TRANSLATIONS||{}).forEach(([languageId,translations])=>{
+    if(languageId==='en')Object.assign(EN,translations||{});else if(T[languageId])Object.assign(T[languageId],translations||{});
+  });
+  Object.entries(window.LANGUAGE_MINER_FULL_INTERFACE_TRANSLATIONS||{}).forEach(([languageId,translations])=>{
+    if(languageId==='meta')return;if(languageId==='en')Object.assign(EN,translations||{});else if(T[languageId])Object.assign(T[languageId],translations||{});
+  });
+  const activePatreonTierKey=Object.keys(EN).find(key=>EN[key]==='ACTIVE PATREON TIER {tier}');
+  if(activePatreonTierKey&&T.el)T.el[activePatreonTierKey]='ΕΝΕΡΓΟ ΕΠΙΠΕΔΟ PATREON {tier}';
+  const shareLanguageMinerKey=Object.keys(EN).find(key=>EN[key]==='Share Language Miner');
+  if(shareLanguageMinerKey){if(T.el)T.el[shareLanguageMinerKey]='Κοινοποίηση Language Miner';if(T.uk)T.uk[shareLanguageMinerKey]='Поділитися Language Miner';}
+  const GENERATED_SOURCE_ALIASES={'Nugget Marketplace':'NUGGET MARKETPLACE','Previous-session refresher':'PREVIOUS-SESSION REFRESHER','Established long-term review':'ESTABLISHED LONG-TERM REVIEW','Vocabulary collection':'VOCABULARY COLLECTION','Balanced companion roster':'BALANCED COMPANION ROSTER','Long-term settlement':'LONG-TERM SETTLEMENT','Player Level':'PLAYER LEVEL','Expanded wardrobe':'EXPANDED WARDROBE'};
+  Object.entries(GENERATED_SOURCE_ALIASES).forEach(([source,translatedSource],index)=>{const inheritedKey=Object.keys(EN).find(key=>EN[key]===translatedSource);if(!inheritedKey)return;const aliasKey=`fullSourceAlias${index}`;EN[aliasKey]=source;Object.values(T).forEach(pack=>pack[aliasKey]=pack[inheritedKey]||source);});
   const HTML_LANG={en:'en',es:'es',ru:'ru',ja:'ja',ko:'ko',zh:'zh-CN',it:'it',fr:'fr',de:'de',...(ADDITIONAL_PACKS.htmlLang||{})};
   const EXACT_SOURCE=new Map(Object.entries(EN).filter(([,source])=>!source.includes('{')).map(([key,source])=>[source,key]));
   const ENDING_SOURCES=[...EXACT_SOURCE.entries()].sort((a,b)=>b[0].length-a[0].length);
+  const escapePattern=value=>String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const TEMPLATE_SOURCES=Object.entries(EN).filter(([,source])=>String(source).includes('{')).map(([key,source])=>{const names=[];let pattern='^',offset=0;String(source).replace(/\{([a-zA-Z]+)\}/g,(token,name,index)=>{pattern+=escapePattern(String(source).slice(offset,index))+'(.+?)';names.push(name);offset=index+token.length;return token;});pattern+=escapePattern(String(source).slice(offset))+'$';return {key,source:String(source),names,pattern:new RegExp(pattern,'iu')};}).sort((a,b)=>b.source.length-a.source.length);
   let locale='en';
   let context={known:'en',learning:'ja'};
   let observer;
   let queued=false;
   let running=false;
   const originalText=new WeakMap();
+  const renderedText=new WeakMap();
   const originalAttributes=new WeakMap();
+  const renderedAttributes=new WeakMap();
 
   function format(template,values={}){
     return String(template??'').replace(/\{([a-zA-Z]+)\}/g,(_,key)=>values[key]??`{${key}}`);
@@ -188,7 +205,9 @@
   }
   function translateDynamic(value){
     const raw=String(value),trimmed=raw.trim();
-    let match=trimmed.match(/^Reward:\s*(.+)$/i);if(match)return raw.replace(trimmed,t('reward',{value:match[1]}));
+    let match=trimmed.match(/^Reward:\s*(.+)$/i);if(match){const localizedValue=match[1].replace(/\b(Nuggets|Hints?|Shields?)\b/g,token=>translateExact(token).trim());return raw.replace(trimmed,t('reward',{value:localizedValue}));}
+    const leading=trimmed.match(/^([^\p{L}\p{N}]*)([\s\S]+)$/u),templateCandidates=leading&&leading[1]?[{prefix:leading[1],value:leading[2]},{prefix:'',value:trimmed}]:[{prefix:'',value:trimmed}];
+    for(const candidate of templateCandidates){for(const template of TEMPLATE_SOURCES){const match=candidate.value.match(template.pattern);if(!match)continue;const values={};template.names.forEach((name,index)=>values[name]=match[index+1]);return raw.replace(trimmed,candidate.prefix+t(template.key,values));}}
     match=trimmed.match(/^Finish mine-focused objectives\. Nugget rewards are locked to (.+?) for the day(?: and boosted.+)?\.$/i);if(match)return raw.replace(trimmed,t('missionIntro',{stage:match[1]}));
     match=trimmed.match(/^Lesson\s+(\d+)$/i);if(match)return raw.replace(trimmed,t('lesson',{number:match[1]}));
     match=trimmed.match(/^(\d+)% complete$/i);if(match)return raw.replace(trimmed,t('complete',{value:match[1]}));
@@ -201,15 +220,20 @@
   function localizeTextNode(node){
     if(excluded(node)||!node.nodeValue||!node.nodeValue.trim())return;
     if(!originalText.has(node))originalText.set(node,node.nodeValue);
+    else if(renderedText.has(node)&&node.nodeValue!==renderedText.get(node))originalText.set(node,node.nodeValue);
     const source=originalText.get(node),next=locale==='en'?source:translateExact(source);
     if(node.nodeValue!==next)node.nodeValue=next;
+    renderedText.set(node,next);
   }
   function localizeAttribute(element,name){
     if(!element.hasAttribute(name))return;
     let record=originalAttributes.get(element);if(!record){record={};originalAttributes.set(element,record);}
+    let rendered=renderedAttributes.get(element);if(!rendered){rendered={};renderedAttributes.set(element,rendered);}
     if(!(name in record))record[name]=element.getAttribute(name);
+    else if(name in rendered&&element.getAttribute(name)!==rendered[name])record[name]=element.getAttribute(name);
     const source=record[name],next=locale==='en'?source:translateExact(source);
     if(element.getAttribute(name)!==next)element.setAttribute(name,next);
+    rendered[name]=next;
   }
   function localizeAll(root=document.body){
     if(running||!root)return;running=true;
@@ -233,9 +257,9 @@
     if(changed)window.dispatchEvent(new CustomEvent('lm-interface-language-changed',{detail:{locale,...context}}));
   }
 
-  window.LanguageMinerI18n={t,setLocale,localize:queueLocalization,getLocale:()=>locale,getContext:()=>({...context}),keys:Object.keys(EN)};
+  window.LanguageMinerI18n={t,setLocale,localize:queueLocalization,translate:value=>locale==='en'?String(value):translateExact(value),getLocale:()=>locale,getContext:()=>({...context}),keys:Object.keys(EN)};
   window.addEventListener('DOMContentLoaded',()=>{
-    observer=new MutationObserver(records=>{if(running)return;const root=records.find(record=>record.target)?.target||document.body;queueLocalization(root.nodeType===1?root:document.body);});
+    observer=new MutationObserver(()=>{if(running)return;queueLocalization(document.body);});
     try{if(document.body?.nodeType===Node.ELEMENT_NODE)observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-label','title','placeholder']});}catch{}
     queueLocalization();
   });

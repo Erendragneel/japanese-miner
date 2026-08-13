@@ -652,14 +652,15 @@
   }
   function startCourseLesson(section,lesson,mineIndex=selectedCourseMine){
     if(!courseMineUnlocked(mineIndex)||section!=='boss'&&!courseLessonUnlocked(section,lesson,mineIndex))return;selectedCourseMine=Number(mineIndex)||0;selectedCourseSection=section;selectedCourseLesson=Number(lesson)||0;activePreviewQuestion=null;clearCourseBossClock();clearCourseReviewClock();multilingualReviewQuiz=null;const progress=languageProgress();progress.selectedMine=selectedCourseMine;saveLanguageProgress(progress);
+    if(section!=='boss'){progress.selectedSection=selectedCourseSection;progress.selectedLesson=selectedCourseLesson;saveLanguageProgress(progress);}
     if(section==='boss'){if(!courseBossUnlocked(selectedCourseMine)){showToast(courseBossRequirement(selectedCourseMine));return;}multilingualBoss=savedCourseBoss(selectedCourseMine)||{mine:selectedCourseMine,status:'ready',questions:[],index:0,answeredCount:0,correct:0,answered:false,missed:[],startedAt:0,deadline:0,finishedAt:0,finishReason:''};if(multilingualBoss.status==='passed')multilingualBoss={mine:selectedCourseMine,status:'ready',questions:[],index:0,answeredCount:0,correct:0,answered:false,missed:[],startedAt:0,deadline:0,finishedAt:0,finishReason:''};if(multilingualBoss.status==='active'&&courseBossRemainingMs(multilingualBoss)<=0)finishCourseBoss('timeout');else persistCourseBoss();}else multilingualBoss=null;
     document.getElementById('v5Close')?.click();renderCourseQuestion(section,selectedCourseLesson);showToast(ui('courseOpened',{language:targetName(),section:sectionLabel(section)}));
   }
   function renderFoundationQuestion(){renderCourseQuestion(selectedCourseSection,selectedCourseLesson);}
   function answerFoundationQuestion(button){answerCourseQuestion(button);}
   function updateCourseChrome(){
-    const target=LANGUAGES[learning],subtitle=document.querySelector('.app>header .subtitle'),mineTitle=document.querySelector('.mine-title');
-    if(subtitle)subtitle.textContent=ui('learnSubtitle',{language:targetName(),path:coursePath()});if(mineTitle)mineTitle.textContent=ui('minePrompt',{language:targetName()});
+    const target=LANGUAGES[learning],mineTitle=document.querySelector('.mine-title');
+    if(mineTitle)mineTitle.textContent=ui('minePrompt',{language:targetName()});
     const mineNote=document.querySelector('.mine-note');if(mineNote)mineNote.textContent=ui('mineNote');
     const voiceLabel=document.querySelector('label[for="voiceToggle"] .form-check-label'),voiceTest=document.getElementById('testVoiceBtn');if(voiceLabel)voiceLabel.textContent=ui('voice',{language:targetName()});if(voiceTest)voiceTest.textContent=`🔊 ${ui('voice',{language:targetName()})}`;
     const quickLabel=document.getElementById('quickMineLabel');if(quickLabel&&!activePreviewQuestion)quickLabel.textContent=ui('newQuestion');
@@ -726,9 +727,9 @@
   if(typeof openExpeditionBeforeCourse==='function')window.openJapaneseMinerV5=function(tab='map',...args){const result=openExpeditionBeforeCourse.call(this,tab,...args);if(tab==='map'){ensureExpeditionHubObserver();syncExpeditionHub();}return result;};
   let lastAppliedLearning='';
   function applyCourse(settings=currentSettings()){
-    const previous=learning;known=settings.known&&LANGUAGES[settings.known]?settings.known:'en';learning=settings.learning&&LANGUAGES[settings.learning]?settings.learning:'ja';
-    if(previous!==learning||lastAppliedLearning!==learning){clearCourseBossClock();clearCourseReviewClock();activePreviewQuestion=null;selectedCourseMine=0;selectedCourseSection='alphabet';selectedCourseLesson=0;multilingualBoss=null;multilingualReviewQuiz=null;expandedCourseMines.clear();expandedCourseMines.add(0);}
-    if(learning!=='ja'){const savedMine=Math.max(0,Math.min(6,Number(languageProgress().selectedMine)||0));if(courseMineUnlocked(savedMine))selectedCourseMine=savedMine;expandedCourseMines.add(selectedCourseMine);}
+    const previous=learning;known=settings.known&&LANGUAGES[settings.known]?settings.known:'en';learning=settings.learning&&LANGUAGES[settings.learning]?settings.learning:'ja';const courseChanged=previous!==learning||lastAppliedLearning!==learning;
+    if(courseChanged){clearCourseBossClock();clearCourseReviewClock();activePreviewQuestion=null;selectedCourseMine=0;selectedCourseSection='alphabet';selectedCourseLesson=0;multilingualBoss=null;multilingualReviewQuiz=null;expandedCourseMines.clear();expandedCourseMines.add(0);}
+    if(learning!=='ja'){const progress=languageProgress(),savedMine=Math.max(0,Math.min(6,Number(progress.selectedMine)||0));if(courseMineUnlocked(savedMine))selectedCourseMine=savedMine;if(courseChanged){const sections=courseMineSections(selectedCourseMine).filter(section=>section!=='boss'),savedSection=String(progress.selectedSection||sections[0]||'alphabet');selectedCourseSection=sections.includes(savedSection)?savedSection:sections[0];const lessons=courseSectionLessons(selectedCourseSection,selectedCourseMine),savedLesson=Math.max(0,Math.min(Math.max(0,lessons.length-1),Number(progress.selectedLesson)||0));selectedCourseLesson=courseLessonUnlocked(selectedCourseSection,savedLesson,selectedCourseMine)?savedLesson:0;}expandedCourseMines.add(selectedCourseMine);}
     window.LanguageMinerI18n?.setLocale?.(known,{known,learning});
     if(indicator)indicator.innerHTML=`${LANGUAGES[known].flag} ${escapeHtml(LANGUAGES[known].native)} <b>→</b> ${LANGUAGES[learning].flag} ${escapeHtml(LANGUAGES[learning].native)}`;
     const voiceToggleLabel=document.querySelector('#voiceToggle + .form-check-label');if(voiceToggleLabel)voiceToggleLabel.textContent=ui('voice',{language:targetName()});
@@ -811,8 +812,23 @@
   function adminCourseStatus(languageId=learning){
     if(!multilingualAdminAllowed()||languageId==='ja'||!LANGUAGES[languageId])return null;const progress=currentSettings().progress[languageId]||{},bosses=Array.from({length:7},(_,mine)=>progress.bossDefeatedByMine?.[mine]===true&&Number(progress.bossBestByMine?.[mine])===100),expectedMastery=(ALPHABET_SYSTEMS[languageId]?.units||[]).length+Object.values(multilingualCourseData()).filter(Array.isArray).reduce((sum,items)=>sum+items.length,0);return {languageId,bossesDefeated:bosses.filter(Boolean).length,minesUnlocked:1+bosses.slice(0,6).filter(Boolean).length,masteredItems:Object.values(progress.courseMastery||{}).filter(value=>Number(value)>=100).length,expectedMastery};
   }
+  function courseArcadeLesson(mineIndex=selectedCourseMine,section=selectedCourseSection,lesson=selectedCourseLesson){
+    if(learning==='ja'||section==='boss')return null;mineIndex=Number(mineIndex)||0;lesson=Number(lesson)||0;const items=courseSectionLessons(section,mineIndex)[lesson]||[],pairs=[];
+    items.forEach((item,index)=>{const learn=section==='alphabet'?item?.symbol:item?.forms?.[learning],meaning=section==='alphabet'?item?.name:item?.forms?.[known];if(learn&&meaning&&String(learn)!==String(meaning))pairs.push({id:`course-${mineIndex}-${section}-${lesson}-${item?.id??item?.symbol??index}`,learn:String(learn),meaning:String(meaning)});});
+    if(!pairs.length)return null;const sectionName=section==='alphabet'?(ALPHABET_SYSTEMS[learning]?.name||sectionLabel(section)):sectionLabel(section);return {key:`course:${mineIndex}:${section}:${lesson}`,learning,known,mine:mineIndex,section,lesson,label:`${targetName()} Â· ${sectionName} Â· ${ui('lesson',{number:lesson+1})}`,pairs};
+  }
+  function courseArcadeLessonOptions(){
+    if(learning==='ja')return[];const options=[];
+    for(let mineIndex=0;mineIndex<=6;mineIndex++){if(!courseMineUnlocked(mineIndex))continue;courseMineSections(mineIndex).filter(section=>section!=='boss').forEach(section=>courseSectionLessons(section,mineIndex).forEach((_,lesson)=>{if(!courseLessonUnlocked(section,lesson,mineIndex))return;const record=courseArcadeLesson(mineIndex,section,lesson);if(record)options.push({key:record.key,label:record.label});}));}
+    return options;
+  }
+  function selectCourseArcadeLesson(key){
+    const match=/^course:(\d+):([a-z]+):(\d+)$/.exec(String(key||''));if(!match||learning==='ja')return false;const mineIndex=Number(match[1]),section=match[2],lesson=Number(match[3]);if(!courseMineUnlocked(mineIndex)||section==='boss'||!courseLessonUnlocked(section,lesson,mineIndex)||!courseSectionLessons(section,mineIndex)[lesson])return false;
+    selectedCourseMine=mineIndex;selectedCourseSection=section;selectedCourseLesson=lesson;activePreviewQuestion=null;const progress=languageProgress();progress.selectedMine=mineIndex;progress.selectedSection=section;progress.selectedLesson=lesson;saveLanguageProgress(progress);expandedCourseMines.add(mineIndex);updateFoundationProgress();return true;
+  }
   window.LanguageMinerCourseAdmin=Object.freeze({unlockAll:adminUnlockAllLanguages,resetLanguage:adminResetLanguage,resetAll:adminResetAllLanguages,resetBossesAndReviews:adminResetBossesAndReviews,resetPlacement:adminResetPlacement,resetAllPlacements:adminResetAllPlacements,resetForAccount:adminResetForAccount,currentLanguage:()=>multilingualAdminAllowed()?learning:null,status:adminCourseStatus});
   window.LanguageMinerCourseCloud=Object.freeze({exportCurrent:()=>cloneSettings(currentSettings()),importCurrent:value=>{const settings=normalizeSettings(cloneSettings(value));saveSettings(settings);refreshAfterAdmin(settings);return settings;},resetSnapshot:(value,target)=>resetSettingsSnapshot(value,target)});
+  window.LanguageMinerCourseLesson=Object.freeze({current:()=>courseArcadeLesson(),options:courseArcadeLessonOptions,select:selectCourseArcadeLesson});
   function build(){
     overlay=document.createElement('div');overlay.id='lmMultilingualOverlay';overlay.className='lm-multilingual-overlay';overlay.setAttribute('aria-hidden','true');overlay.innerHTML=`<section class="lm-multilingual-card" role="dialog" aria-modal="true" aria-labelledby="lmFlowTitle"><header class="lm-flow-head"><div id="lmFlowIcon" class="lm-flow-icon">🌐</div><div class="lm-flow-copy"><h2 id="lmFlowTitle">Choose your Language Miner course</h2><p id="lmFlowCopy"></p></div><button id="lmFlowClose" class="lm-flow-close" type="button" aria-label="Close language setup">×</button></header><div class="lm-flow-progress" aria-label="Language setup progress"><i class="active"></i><i></i><i></i></div><div id="lmFlowContent"></div></section>`;document.body.appendChild(overlay);
     toast=document.createElement('div');toast.className='lm-preview-toast';toast.setAttribute('role','status');document.body.appendChild(toast);

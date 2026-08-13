@@ -3620,3 +3620,104 @@ renderAcademy=function(){
   if(academyView.checkpointQuiz){updateAcademyChrome();const box=document.getElementById("academyContent");if(!box)return;syncJlptReviewQuizTabs(true);box.innerHTML=renderJlptReviewCheckpointQuiz();box.onclick=event=>{const target=event.target.closest("button");if(target)handleJlptReviewCheckpointAction(target);};if(!academyView.checkpointQuiz.finished)startJlptReviewQuizClock();return;}
   syncJlptReviewQuizTabs(false);return renderAcademyV6417Review();
 };
+
+// v6.4.126 - Explicitly whitelisted, read-only learner summaries for the
+// Parent/Teacher Center. This bridge never returns raw saves, Notebook notes,
+// answer content, economy controls, or mutable references to player state.
+(()=>{
+  'use strict';
+  const COURSE_STORAGE_PREFIX='lm_multilingual_functional_preview_v1:';
+  const PARENT_TEACHER_LINK_KEY='lm_parent_teacher_links_v1';
+  const LANGUAGE_NAMES={en:'English',es:'Spanish',ru:'Russian',ja:'Japanese',ko:'Korean',zh:'Mandarin Chinese',it:'Italian',fr:'French',de:'German',pt:'Brazilian Portuguese',vi:'Vietnamese',th:'Thai',tr:'Turkish',id:'Indonesian',pl:'Polish',el:'Greek',uk:'Ukrainian'};
+  const SECTION_NAMES={vocabulary:'Vocabulary',grammar:'Grammar',reading:'Reading',listening:'Listening',sentences:'Sentences'};
+  const safeNumber=value=>Number.isFinite(Number(value))?Number(value):0;
+  const safeTime=value=>Math.max(0,Math.round(safeNumber(value)));
+  const safeDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||''))?String(value):'';
+  const clone=value=>{try{return structuredClone(value);}catch{return JSON.parse(JSON.stringify(value));}};
+  const deepFreeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){Object.freeze(value);Object.values(value).forEach(deepFreeze);}return value;};
+  function profileList(){
+    return readProfiles().filter(profile=>profile&&profile.id).map(profile=>({id:String(profile.id),name:String(profile.name||'Player'),email:String(profile.email||''),cloudUserId:String(profile.cloudUserId||''),lastPlayed:safeTime(profile.lastPlayed),createdAt:safeTime(profile.createdAt)}));
+  }
+  function profileState(profileId){
+    try{const raw=JSON.parse(localStorage.getItem(profileStorageKey(profileId))||'{}')||{};return normalizeState(raw);}catch{return normalizeState({});}
+  }
+  function readOnlyAccessApproved(profileId){
+    const target=String(profileId||'');if(!target||!activeProfileId)return false;if(target===String(activeProfileId))return true;
+    try{const links=JSON.parse(localStorage.getItem(PARENT_TEACHER_LINK_KEY)||'[]');return Array.isArray(links)&&links.some(link=>link&&String(link.adultProfileId)===String(activeProfileId)&&String(link.studentProfileId)===target&&link.status==='approved');}catch{return false;}
+  }
+  function courseSettings(profile){
+    const keys=[];
+    if(profile.cloudUserId)keys.push(`cloud:${profile.cloudUserId}`);
+    if(profile.name)keys.push(`local:${profile.name}`);
+    for(const key of keys){
+      try{const value=JSON.parse(localStorage.getItem(COURSE_STORAGE_PREFIX+key)||'null');if(value&&typeof value==='object')return clone(value);}catch{}
+    }
+    return {known:'en',learning:'ja',placements:{},progress:{}};
+  }
+  function masteryFromStat(stat,requiredCorrect=3){
+    const attempts=Math.max(0,safeNumber(stat?.attempts??stat?.a)),correct=Math.max(0,safeNumber(stat?.correct??stat?.c));
+    if(!attempts||!correct)return 0;
+    return Math.round(Math.min(1,correct/attempts)*Math.min(1,correct/requiredCorrect)*100);
+  }
+  function stateStageMastery(source,index){
+    if(index===0||index===1){const set=index===0?hira:kata;if(!set.length)return 0;return Math.round(set.reduce((sum,[character])=>sum+masteryFromStat(source.kanaStats?.[character],25),0)/set.length);}
+    const pool=questions.filter(question=>Number(question.stage)===index&&question.curriculum!=='tutor');
+    if(!pool.length)return 0;
+    return Math.round(pool.reduce((sum,question)=>sum+masteryFromStat(source.questionStats?.[question.id],3),0)/pool.length);
+  }
+  function activitySummary(source){
+    const dates=studyDateKeys(source).filter(Boolean),times={};
+    if(source.studyTimeByDate&&typeof source.studyTimeByDate==='object'&&!Array.isArray(source.studyTimeByDate))Object.entries(source.studyTimeByDate).forEach(([key,value])=>{const date=safeDate(key),milliseconds=safeTime(value);if(date&&milliseconds)times[date]=milliseconds;});
+    Object.keys(times).forEach(key=>{if(!dates.includes(key))dates.push(key);});dates.sort();
+    const days=dates.map(date=>({date,milliseconds:times[date]||0}));
+    return {currentStreak:calculatePracticeStreak(source),bestStreak:Math.max(safeNumber(source.bestStreak),calculatePracticeStreak(source)),totalStudyDays:dates.length,totalMilliseconds:Object.values(times).reduce((sum,value)=>sum+value,0),days:days.slice(-120),recentDays:days.slice(-14).reverse()};
+  }
+  function dueSummary(source){
+    const entries=source.v5?.srs&&typeof source.v5.srs==='object'&&!Array.isArray(source.v5.srs)?Object.values(source.v5.srs):[],now=Date.now();
+    const due=entries.filter(record=>record&&safeTime(record.dueAt)<=now),upcoming=entries.map(record=>safeTime(record?.dueAt)).filter(time=>time>now).sort((a,b)=>a-b);
+    return {dueCount:due.length,scheduledCount:entries.length,nextDueAt:upcoming[0]||0,completedReviews:Math.max(0,safeNumber(source.v5?.reviewed))};
+  }
+  function japaneseCourseSummary(source){
+    const selected=Math.max(0,Math.min(stages.length-1,Math.round(safeNumber(source.selectedStage)))),cleared=new Set((Array.isArray(source.clearedStages)?source.clearedStages:[]).map(Number));
+    const levels=stages.map((stage,index)=>{const xp=Math.max(0,safeNumber(source.stageXp?.[index])),mastery=stateStageMastery(source,index),completed=cleared.has(index)||(xp>=STAGE_XP_REQUIREMENTS[index]&&mastery>=STAGE_MASTERY_REQUIREMENTS[index]),unlocked=index===0||index<=safeNumber(source.placementUnlockedThrough)||cleared.has(index-1);return {index,name:stage.name,label:stage.label,xp,xpRequired:STAGE_XP_REQUIREMENTS[index],mastery,masteryRequired:STAGE_MASTERY_REQUIREMENTS[index],completed,unlocked,selected:index===selected};});
+    const overall=Math.round(levels.reduce((sum,level)=>sum+Math.min(100,(Math.min(1,level.xp/Math.max(1,level.xpRequired))*50)+(Math.min(1,level.mastery/Math.max(1,level.masteryRequired))*50)),0)/levels.length);
+    return {known:'en',learning:'ja',knownName:'English',learningName:'Japanese',selectedLevel:selected,selectedLabel:levels[selected]?.name||'Hiragana Mine',overallPercent:overall,levels};
+  }
+  function multilingualCourseSummary(settings){
+    const known=LANGUAGE_NAMES[settings.known]?settings.known:'en',learning=LANGUAGE_NAMES[settings.learning]?settings.learning:'ja',progress=settings.progress?.[learning]&&typeof settings.progress[learning]==='object'?settings.progress[learning]:{},selected=Math.max(0,Math.min(6,Math.round(safeNumber(progress.selectedMine)))),defeated=progress.bossDefeatedByMine&&typeof progress.bossDefeatedByMine==='object'?progress.bossDefeatedByMine:{};
+    const levels=Array.from({length:7},(_,index)=>{const xp=Math.max(0,safeNumber(progress.mineXpByMine?.[index])),completed=defeated[index]===true||safeNumber(progress.bossBestByMine?.[index])>=100,unlocked=index===0||defeated[index-1]===true;return {index,name:`${LANGUAGE_NAMES[learning]} Level ${index+1}`,label:`Level ${index+1}`,xp,xpRequired:STAGE_XP_REQUIREMENTS[index],mastery:0,masteryRequired:0,completed,unlocked,selected:index===selected};});
+    const answered=Math.max(0,safeNumber(progress.answered)),correct=Math.max(0,safeNumber(progress.correct)),overall=Math.round(levels.reduce((sum,level)=>sum+(level.completed?100:Math.min(95,level.xp/Math.max(1,level.xpRequired)*100)),0)/levels.length);
+    return {known,learning,knownName:LANGUAGE_NAMES[known],learningName:LANGUAGE_NAMES[learning],selectedLevel:selected,selectedLabel:levels[selected].name,overallPercent:overall,answered,correct,levels};
+  }
+  function assessmentSummary(source,settings){
+    const history=[],fastest={placement:0,reviewQuiz:0,guardian:0};
+    const add=(record)=>{history.push(record);if(record.fastestTimeMs&&(!fastest[record.group]||record.fastestTimeMs<fastest[record.group]))fastest[record.group]=record.fastestTimeMs;};
+    const placement=source.placementResult&&typeof source.placementResult==='object'?source.placementResult:null;
+    if(placement)add({group:'placement',type:'Placement test',course:'Japanese',result:'Completed',score:safeNumber(placement.score),total:safeNumber(placement.total),attempts:1,completedAt:safeTime(placement.completedAt||placement.finishedAt),fastestTimeMs:safeTime(placement.fastestTimeMs||placement.elapsedTimeMs)});
+    Object.entries(source.jlptReviewCheckpoints||{}).forEach(([key,record])=>{if(!record||typeof record!=='object')return;const parts=key.split(':'),stage=stages[Math.max(0,Math.min(6,safeNumber(parts[0])))]?.label||'Course',section=SECTION_NAMES[parts[1]]||String(parts[1]||'Review'),lessons=safeNumber(parts[2]);add({group:'reviewQuiz',type:`${stage} ${section} Review`,course:'Japanese',result:record.passed?'Passed':'Attempted',score:safeNumber(record.best||record.lastScore),total:100,attempts:Math.max(1,safeNumber(record.attempts)),completedAt:safeTime(record.passedAt||record.fastestAt),fastestTimeMs:safeTime(record.fastestTimeMs)});});
+    Object.entries(source.v5?.bossFastestTimes||{}).forEach(([index,time])=>add({group:'guardian',type:`${stages[Math.max(0,Math.min(6,safeNumber(index)))]?.label||'Course'} Guardian`,course:'Japanese',result:'Perfect',score:100,total:100,attempts:1,completedAt:0,fastestTimeMs:safeTime(time)}));
+    const learning=LANGUAGE_NAMES[settings.learning]?settings.learning:'ja';
+    if(learning!=='ja'){
+      const language=LANGUAGE_NAMES[learning],placementRecord=settings.placements?.[learning];
+      if(placementRecord&&typeof placementRecord==='object')add({group:'placement',type:'Placement test',course:language,result:'Completed',score:safeNumber(placementRecord.score),total:safeNumber(placementRecord.total),attempts:1,completedAt:safeTime(placementRecord.completedAt),fastestTimeMs:safeTime(placementRecord.fastestTimeMs||placementRecord.elapsedTimeMs)});
+      const progress=settings.progress?.[learning]||{};
+      Object.entries(progress.reviewCheckpoints||{}).forEach(([key,record])=>{if(!record||typeof record!=='object')return;add({group:'reviewQuiz',type:`Level ${safeNumber(key.split(':')[0])+1} Review`,course:language,result:record.passed?'Passed':'Attempted',score:safeNumber(record.best||record.lastScore),total:100,attempts:Math.max(1,safeNumber(record.attempts)),completedAt:safeTime(record.passedAt||record.fastestAt),fastestTimeMs:safeTime(record.fastestTimeMs)});});
+      Object.entries(progress.bossFastestByMine||{}).forEach(([index,time])=>add({group:'guardian',type:`Level ${safeNumber(index)+1} Guardian`,course:language,result:'Perfect',score:100,total:100,attempts:1,completedAt:0,fastestTimeMs:safeTime(time)}));
+    }
+    history.sort((a,b)=>(b.completedAt||b.fastestTimeMs)-(a.completedAt||a.fastestTimeMs));
+    return {history:history.slice(0,100),fastest};
+  }
+  function snapshot(profileId){
+    if(!readOnlyAccessApproved(profileId))return null;
+    const profile=profileList().find(item=>item.id===String(profileId));if(!profile)return null;
+    const source=profileState(profile.id),settings=courseSettings(profile),analytics=source.analytics&&typeof source.analytics==='object'?source.analytics:{},coreAnswered=Math.max(0,safeNumber(analytics.answered)),coreCorrect=Math.max(0,safeNumber(analytics.correct)),course=settings.learning!=='ja'?multilingualCourseSummary(settings):japaneseCourseSummary(source),answered=course.learning==='ja'?coreAnswered:Math.max(coreAnswered,safeNumber(course.answered)),correct=course.learning==='ja'?coreCorrect:Math.max(coreCorrect,safeNumber(course.correct)),activity=activitySummary(source),reviews=dueSummary(source),assessments=assessmentSummary(source,settings);
+    const summary={profile:{id:profile.id,name:profile.name},generatedAt:Date.now(),level:Math.max(1,safeNumber(source.level)||1),questions:{answered,correct,accuracy:answered?Math.round(correct/answered*100):0,distribution:{vocabulary:Math.max(0,safeNumber(analytics.vocabulary)),grammar:Math.max(0,safeNumber(analytics.grammar)),reading:Math.max(0,safeNumber(analytics.reading)),listening:Math.max(0,safeNumber(analytics.listening)),kanji:Math.max(0,safeNumber(analytics.kanji))}},activity,reviews,course,assessments};
+    return deepFreeze(summary);
+  }
+  window.LanguageMinerReadOnly=Object.freeze({
+    activeProfile:()=>deepFreeze(clone(window.japaneseMinerActiveProfile?.()||null)),
+    profiles:()=>deepFreeze(profileList()),
+    learnerSummary:profileId=>snapshot(profileId),
+    capabilities:deepFreeze({rawSaves:false,answers:false,economy:false,resets:false,privateNotes:false,accessSummariesOnly:true})
+  });
+})();

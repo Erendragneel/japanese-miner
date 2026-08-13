@@ -1,4 +1,71 @@
-# Language Miner v6.4.118
+# Language Miner v6.4.126
+
+## v6.4.126 Parent/Teacher Center
+
+- Adds a separate read-only Parent/Teacher Center under Menu → Player.
+- Adults and teachers can switch between learner-approved profiles and review activity, streaks, due-review counts, course progress, assessment history, and fastest completion records.
+- Link student sends a pending request; only the learner can approve or decline it from their own profile.
+- Manage access lets adults cancel or remove links and lets learners revoke approved access.
+- The Center receives only whitelisted summaries and cannot answer questions, spend Nuggets, reset progress, inspect raw saves, or read private Notebook notes.
+- Adds a complete Game Guide topic explaining learner linking, approval, switching, permissions, and access removal.
+- Adds Parent/Teacher Center translations for all 17 supported known languages.
+
+## v6.4.125 Patreon benefits refresh
+
+- Rebuilt all three Patreon tier graphics so each image advertises the benefits that are actually available in the game.
+- Expanded the in-game descriptions for Tier 1 customization, Tier 2's 11 active companions and Shop display controls, and Tier 3's five-building Settlement, 25 upgrades, and three lesson-based Study Arcade games.
+- Removed the old Tier 2 claims for companion cosmetics, custom names, and idle animations because those features are not implemented.
+- Added the Tier 3 lesson selector and saved personal-best moves, completion times, and scores to the advertised Arcade benefits.
+- Redesigned each benefit card with responsive side-by-side artwork and copy on desktop and a clean stacked layout on phones.
+- Moved account linking below the tier benefits so players see the membership offers first and connect only after choosing a tier.
+- Added the corrected tier descriptions to all 17 known-language interface packs and cached the new graphics for installed/offline play.
+
+## v6.4.124 lesson-based Study Arcade
+
+- Added a Current lesson dropdown to the Study Arcade library and inside Memory Mine, Crystal Match, and Star Word Defender.
+- Every Arcade game now builds its complete study set from the exact unlocked lesson the player selects instead of a general language word pool.
+- Changing the Arcade lesson also updates and saves the active Course or Expedition lesson, including Japanese kana families, JLPT sections, and every non-Japanese course.
+- Memory Mine and Crystal Match adapt to the number of items in smaller lessons, while Star Word Defender keeps every prompt and target inside the same selected lesson.
+- Learning words still follow the selected learning language, and meanings continue to follow the selected known language whenever that course material provides them.
+
+## v6.4.123 visible Memory cards and arrow alignment game
+
+- Memory Mine now uses explicit card faces so every turned card visibly shows its learning word or known-language meaning on phone and desktop browsers.
+- Star Word Defender is now a timed alignment game: move the arrow left or right beneath the matching falling word before it reaches the target line.
+- Each correct alignment awards exactly one point; a missed or incorrect alignment awards no point.
+- Removed the Fire button, lasers, target tapping, shooting controls, and shooting penalties.
+- The revised Arcade name, instructions, target line, and movement labels are included in all 17 known-language interfaces.
+
+## v6.4.122 Study Arcade Bag dropdown
+
+- Added a clear expand/collapse button to the right side of the Study Arcade header in the Inventory or Bag.
+- The dropdown hides or reveals the complete mini-game card collection without changing game ownership or personal-best records.
+- Its expanded or collapsed state is saved to the current player profile and restored when the Bag is reopened.
+- The arrow, accessibility state, and responsive layout work on desktop and phone screens.
+
+## v6.4.121 companion display control moved into the Shop
+
+- Removed the Companion Show/Hide/Choose control from the main mine screen.
+- Added the same saved display control to the companion-roster summary in Menu, then Gear, then Shop, then Companions.
+- The control clearly shows Shown, Hidden, or Choose and remains synchronized with the Accessibility setting.
+- Hiding affects only the companion's display; the equipped companion and its active bonus remain selected.
+- The updated Game Guide explains the new location in all 17 known-language interfaces.
+
+## v6.4.120 cleaner header
+
+- Removed the course-description banner beneath the Language Miner logo.
+- The language pair, Change Language button, account controls, hero artwork, and course behavior remain unchanged.
+- Switching either the known language or learning language cannot bring the removed banner back.
+- Desktop and phone header layouts retain their responsive spacing without the extra text.
+
+## v6.4.119 complete beginner Game Guide
+
+- The Player menu’s Game Guide now opens a searchable handbook instead of the old five-page quick-start guide.
+- Twenty-one topics explain the main controls, every Menu category, language selection, lessons, assessments, guardians, Smart Review, Notebook, Word Book, streaks, rewards, Shop, Bag, companions, Settlement, Patreon, Arcade, settings, sharing, backups, and common problems.
+- Every topic includes an exact “Where to find it” path, four plain-language instructions, a reminder, and direct buttons that open the feature being explained.
+- A searchable topic index and five category filters make the guide manageable on phones without forcing players through every page in order.
+- The guide distinguishes commonly confused systems such as Notebook versus Word Book, Shop versus Inventory or Bag, Quests versus Missions, and Stats versus Calendar.
+- The full handbook and its search controls are bundled in all 17 known-language interfaces.
 
 ## v6.4.118 Tier 3 Study Arcade
 

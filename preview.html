@@ -3,47 +3,60 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Language Miner v6.4.118 Preview</title>
+  <title>Language Miner v6.4.126 Preview</title>
   <style>
     html,body,iframe{width:100%;height:100%;margin:0;border:0;background:#07111f}
     #previewBadge{position:fixed;z-index:999999;right:16px;top:12px;padding:8px 13px;border:1px solid #78ffe0;border-radius:999px;background:#082b2be8;color:#eafff8;font:700 13px/1 system-ui;box-shadow:0 6px 22px #0008;pointer-events:none}
+    @media(max-width:500px){#previewBadge{top:auto;right:8px;bottom:8px;padding:6px 9px;font-size:10px}}
   </style>
 </head>
 <body>
-  <div id="previewBadge">PREVIEW · v6.4.118</div>
-  <iframe id="gamePreview" src="index.html?v=6.4.118-tier3-study-arcade-r1" title="Language Miner updated preview"></iframe>
+  <div id="previewBadge">PREVIEW · v6.4.126</div>
+  <iframe id="gamePreview" src="index.html?v=6.4.126-parent-teacher-center" title="Language Miner updated preview"></iframe>
   <script>
     (() => {
       const frame = document.getElementById('gamePreview');
       frame.addEventListener('load', () => {
         const app = frame.contentWindow;
         const previewParameters = new URLSearchParams(location.search);
-        const previewAdmin = previewParameters.get('admin') !== '0';
+        const previewProfile = previewParameters.get('profile') || '';
+        const previewAdmin = previewParameters.get('admin') !== '0' && !previewProfile;
         const previewView = previewParameters.get('view') || 'admin';
         const previewTier = Math.max(0,Math.min(3,Number(previewParameters.get('tier'))||0));
         const previewAutoConfirm = previewParameters.get('autoconfirm') === '1';
-        const profile = previewAdmin
+        const profile = previewProfile === 'luna'
+          ? {id:'preview-player-luna',name:'Luna Preview',cloudUserId:null,email:null}
+          : previewProfile === 'kai'
+          ? {id:'preview-player-kai',name:'Kai Preview',cloudUserId:null,email:null}
+          : previewProfile === 'mina'
+          ? {id:'preview-player-mina',name:'Mina Preview',cloudUserId:'preview-cloud-mina',email:'mina.preview@example.test'}
+          : previewAdmin
           ? {id:'codex-preview',name:'Erendragneel',cloudUserId:'preview-admin',email:'preview-admin@local.test'}
           : {id:'codex-preview-player',name:'Preview Miner',cloudUserId:null,email:null};
         try {
           app.LANGUAGE_MINER_PREVIEW = true;
           app.LANGUAGE_MINER_PREVIEW_TIER = previewAdmin?3:previewTier;
-          document.getElementById('previewBadge').textContent = `PREVIEW · v6.4.118 · ${previewAdmin?'ADMIN':'PLAYER'}`;
+          document.getElementById('previewBadge').textContent = `PREVIEW · v6.4.126 · ${previewAdmin?'ADMIN':'PLAYER'}`;
           if(!previewAdmin&&previewTier)document.getElementById('previewBadge').textContent+=` · TIER ${previewTier}`;
           if (previewAutoConfirm) app.confirm = () => true;
           app.renderProfileList ||= () => {};
           const demoProfiles = [
             profile,
             {id:'preview-player-mina',name:'Mina Preview',email:'mina.preview@example.test',cloudUserId:'preview-cloud-mina',createdAt:Date.now()-86400000*12,lastPlayed:Date.now()-3600000},
-            {id:'preview-player-kai',name:'Kai Preview',createdAt:Date.now()-86400000*8,lastPlayed:Date.now()-7200000}
+            {id:'preview-player-kai',name:'Kai Preview',createdAt:Date.now()-86400000*8,lastPlayed:Date.now()-7200000},
+            {id:'preview-player-luna',name:'Luna Preview',createdAt:Date.now()-86400000*3,lastPlayed:Date.now()-10800000}
           ];
           let previewProfiles=[];try{previewProfiles=JSON.parse(app.localStorage.getItem('jm_profiles')||'[]')||[];}catch{}
           demoProfiles.forEach(item=>{const index=previewProfiles.findIndex(existing=>existing.id===item.id);if(index>=0)previewProfiles[index]={...previewProfiles[index],...item};else previewProfiles.push(item);});
           app.localStorage.setItem('jm_profiles',JSON.stringify(previewProfiles));
-          app.localStorage.setItem('jm_profile_preview-player-mina',JSON.stringify({onboardingComplete:true,placementTestCompleted:true,placementUnlockedThrough:2,selectedStage:2,level:18,xp:240,hearts:5,maxHearts:5,hints:7,shields:3,stageXp:[18240,24000,16000,0,0,0,0],clearedStages:[0,1]}));
-          app.localStorage.setItem('jm_profile_preview-player-kai',JSON.stringify({onboardingComplete:true,placementTestCompleted:true,placementUnlockedThrough:1,selectedStage:1,level:9,xp:90,hearts:3,maxHearts:4,hints:4,shields:2,stageXp:[18240,11000,0,0,0,0,0],clearedStages:[0]}));
-          app.localStorage.setItem('lm_multilingual_functional_preview_v1:cloud:preview-cloud-mina',JSON.stringify({known:'en',learning:'es',placements:{es:{status:'tested',score:6,total:10}},guides:{es:true},progress:{es:{answered:42,correct:35,xp:310,mineXpByMine:{0:250,1:60},courseMastery:{},bossBestByMine:{0:100},bossDefeatedByMine:{0:true},reviewCheckpoints:{},selectedMine:1}}}));
+          const previewDay=offset=>{const date=new Date();date.setDate(date.getDate()-offset);return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;};
+          const minaDays=[9,8,7,5,4,3,2,1,0].map(previewDay),kaiDays=[13,10,7,6,3].map(previewDay);
+          app.localStorage.setItem('jm_profile_preview-player-mina',JSON.stringify({onboardingComplete:true,placementTestCompleted:true,placementUnlockedThrough:2,selectedStage:2,level:18,xp:240,hearts:5,maxHearts:5,hints:7,shields:3,stageXp:[18240,24000,16000,0,0,0,0],clearedStages:[0,1],studyDates:minaDays,lastPracticeDate:previewDay(0),bestStreak:4,analytics:{answered:286,correct:241,wrong:45,reading:48,listening:36,grammar:62,vocabulary:118,kanji:22},studyTimeByDate:Object.fromEntries(minaDays.map((day,index)=>[day,(18+index*4)*60000])),v5:{srs:{uno:{dueAt:Date.now()-60000},dos:{dueAt:Date.now()-30000},tres:{dueAt:Date.now()+86400000}},reviewed:37,bossFastestTimes:{0:118000},bossDefeated:[0],bossWins:1}}));
+          app.localStorage.setItem('jm_profile_preview-player-kai',JSON.stringify({onboardingComplete:true,placementTestCompleted:true,placementUnlockedThrough:1,selectedStage:1,level:9,xp:90,hearts:3,maxHearts:4,hints:4,shields:2,stageXp:[18240,11000,0,0,0,0,0],clearedStages:[0],studyDates:kaiDays,lastPracticeDate:previewDay(3),bestStreak:3,analytics:{answered:128,correct:94,wrong:34,reading:12,listening:19,grammar:14,vocabulary:29,kanji:54},studyTimeByDate:Object.fromEntries(kaiDays.map((day,index)=>[day,(11+index*5)*60000])),placementResult:{score:7,total:10,completedAt:Date.now()-86400000*18,fastestTimeMs:93000},jlptReviewCheckpoints:{'2:vocabulary:2':{best:88,lastScore:88,attempts:2,passed:true,passedAt:Date.now()-86400000*3,fastestTimeMs:121000}},v5:{srs:{ichi:{dueAt:Date.now()-120000},ni:{dueAt:Date.now()+172800000}},reviewed:18,bossFastestTimes:{0:142000},bossDefeated:[0],bossWins:1}}));
+          app.localStorage.setItem('jm_profile_preview-player-luna',JSON.stringify({onboardingComplete:true,placementTestCompleted:true,selectedStage:0,level:4,xp:55,hearts:3,maxHearts:3,stageXp:[4800,0,0,0,0,0,0],studyDates:[previewDay(2)],lastPracticeDate:previewDay(2),analytics:{answered:38,correct:29,wrong:9,vocabulary:9,kanji:29},studyTimeByDate:{[previewDay(2)]:840000},v5:{srs:{go:{dueAt:Date.now()+86400000}},reviewed:3}}));
+          app.localStorage.setItem('lm_multilingual_functional_preview_v1:cloud:preview-cloud-mina',JSON.stringify({known:'en',learning:'es',placements:{es:{status:'tested',score:6,total:10,completedAt:Date.now()-86400000*20,fastestTimeMs:86000}},guides:{es:true},progress:{es:{answered:286,correct:241,xp:16100,mineXpByMine:{0:25000,1:12600},courseMastery:{},bossBestByMine:{0:100},bossDefeatedByMine:{0:true},bossFastestByMine:{0:118000},reviewCheckpoints:{'1:vocabulary:2':{best:92,lastScore:92,attempts:3,passed:true,passedAt:Date.now()-86400000*2,fastestTimeMs:104000}},selectedMine:1}}}));
           app.localStorage.setItem('lm_multilingual_functional_preview_v1:local:Kai Preview',JSON.stringify({known:'en',learning:'ja',placements:{ja:'beginner'},guides:{ja:true},progress:{}}));
+          app.localStorage.setItem('lm_multilingual_functional_preview_v1:local:Luna Preview',JSON.stringify({known:'en',learning:'fr',placements:{fr:'beginner'},guides:{fr:true},progress:{fr:{answered:38,correct:29,xp:4800,mineXpByMine:{0:4800},selectedMine:0}}}));
           let existingPreviewState={};try{existingPreviewState=JSON.parse(app.localStorage.getItem(`jm_profile_${profile.id}`)||'{}')||{};}catch{}
           app.localStorage.setItem(`jm_profile_${profile.id}`, JSON.stringify({...existingPreviewState,
             onboardingComplete:true,
@@ -72,6 +85,7 @@
           app.localStorage.setItem(`lm_multilingual_functional_preview_v1:local:${profile.name}`, previewCourseSettings);
           app.dispatchEvent(new app.CustomEvent('lm-cloud-session-changed'));
           if (previewView === 'map') app.setTimeout(() => app.openJapaneseMinerV5?.('map'), 1100);
+          else if (previewView === 'parent') app.setTimeout(() => app.openLanguageMinerParentTeacherCenter?.(), 1300);
           else if (previewView === 'admin' && previewAdmin) app.setTimeout(() => app.document.getElementById('developerBtn')?.click(), 1100);
         } catch (error) {
           console.error('Preview setup failed', error);

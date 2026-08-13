@@ -48,7 +48,7 @@ function connectionMarkup(){
 function renderLinkPanel(){
   const box=document.getElementById("v6FeedbackContent");if(!box)return;
   const note=box.querySelector(".supporter-link-note");if(note)note.textContent=ui("Your game account securely owns the Patreon tier reported by your active membership.");
-  box.querySelector("#patreonLinkAccount")?.remove();box.insertAdjacentHTML("afterbegin",connectionMarkup());
+  box.querySelector("#patreonLinkAccount")?.remove();const joinLink=box.querySelector(".supporter-join-link");if(joinLink)joinLink.insertAdjacentHTML("beforebegin",connectionMarkup());else box.insertAdjacentHTML("afterbegin",connectionMarkup());
   document.getElementById("openUnifiedSignInBtn")?.addEventListener("click",()=>window.languageMinerShowSignIn?.());
   document.getElementById("connectPatreonBtn")?.addEventListener("click",()=>runBusy(connectPatreon));
   document.getElementById("refreshPatreonBtn")?.addEventListener("click",()=>runBusy(()=>refreshEntitlement()));

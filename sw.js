@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.108-mine-colorways-r9';
+const CACHE_NAME='language-miner-v6.4.118-tier3-study-arcade-r1';
 const APP_SHELL=[
   './',
   './index.html',
@@ -10,9 +10,13 @@ const APP_SHELL=[
   './multilingual-course-data.js',
   './additional-language-packs.js',
   './mine-cosmetic-localization.js',
+  './full-interface-localization.js',
+  './generated-interface-localization.js',
   './game-6460.js',
   './v5-6400.js',
+  './qr-code.js',
   './v6.js',
+  './arcade-games.js',
   './recovery-6460.js',
   './patreon-config.js',
   './cloud-auth.js',

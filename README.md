@@ -1,4 +1,85 @@
-# Language Miner v6.4.108
+# Language Miner v6.4.118
+
+## v6.4.118 Tier 3 Study Arcade
+
+- A new Study Arcade collection is available in the Shop and appears in the player Bag after each game is claimed.
+- The Arcade is exclusive to verified Patreon Tier 3 ($5/month); Tier 1 and Tier 2 accounts stay locked, and an open game closes immediately if Tier 3 access is lost.
+- Memory Mine is a six-pair learning-word memorization game, while Crystal Match challenges players to connect eight words to meanings before its timer expires.
+- Star Word Defender is a 45-second, Galaga-inspired word shooter with movement, fire controls, falling answer targets, scoring, and persistent personal bests.
+- Mini-game ownership and best results persist in the player profile. Study words follow the selected learning language while instructions and meanings follow the selected known language.
+- The Patreon Tier 3 membership page now lists the complete Study Arcade benefit, and the new Arcade interface is included in all 17 known-language packs.
+
+## v6.4.117 manageable Notebook review queue
+
+- The Study Notebook now opens on a dedicated Review Queue tab beside compact Difficult and Notes tabs.
+- Every currently due review word or question is shown, including items beyond the normal 20-question Smart Review session limit.
+- Players can search the complete due list by word, answer, prompt, or mine and clear the filter with one tap.
+- Each row shows the review term, answer, mine, review count, and whether it is current, saved in the active queue, or due outside it.
+- Review this word starts with the exact selected item; choosing another item during an active session safely moves it to the current position.
+- The Notebook summary is shorter on phones, while Start/Continue Smart Review and the full Review Center remain available.
+- All new queue labels, search controls, statuses, and buttons are included in every known-language interface.
+
+## v6.4.116 Notebook Smart Review access
+
+- Smart Review now appears as a permanent status card near the top of the Study Notebook.
+- The card shows whether review is empty, how many questions are due, or the completed and total count for an active saved queue.
+- Start Smart Review and Continue Smart Review open the established review flow directly from the Notebook without creating a separate session.
+- Continuing resumes the exact unanswered item, while the Review Center shortcut opens the full queue and session controls.
+- The card is phone-responsive and its new controls and statuses are included in all 17 known-language interfaces.
+
+## v6.4.115 shareable game QR code
+
+- A clearly labeled Share Game button now appears in the Player menu.
+- The Share page generates a scannable QR code from the live hosted game address without contacting an external QR service.
+- Players can copy the game link, open the device's native sharing sheet, or download the QR code as a PNG.
+- Preview, administrator, and other query parameters are removed from the shared address, and the preview page resolves to the playable `index.html` page.
+- Localhost and file previews show a warning because those addresses cannot be opened from another device.
+- The complete sharing interface automatically follows the player's selected known language.
+
+## v6.4.114 complete known-language interface localization
+
+- The selected known language now controls the whole game interface, including every menu category and the pages opened from those buttons.
+- Patreon, Accessibility, Feedback, Shop, Expedition tabs, Smart Review, Word Book, Companions, Settlement, Missions, Events, Fashion, Character, Statistics, and Account now relocalize automatically.
+- All 17 known-language choices include bundled offline interface packs; newly rendered buttons, descriptions, status messages, placeholders, and accessibility labels are translated without calling an online service during play.
+- Changing the known language retranslates existing screens immediately while lesson questions, answer options, and pronunciation stay in the selected learning language.
+- The feature menu now refreshes after its late-loaded sections are created, so Character, Achievements, Statistics, and Account controls remain available and localized.
+- Non-Japanese courses no longer show stale Japanese Word Book wording or Japanese journey notifications.
+
+## v6.4.113 selected-language Expeditions and rewards
+
+- The Expedition Hub is now anchored to the active profile's selected learning language and repairs any late Japanese map render before it can replace that course.
+- Existing local course settings automatically migrate to the profile's stable cloud identity, preventing a language reset while sign-in finishes.
+- Multilingual lesson, review, and Guardian answers now update the shared answer counters, streak, missions, companion effects, and 25-correct treasure system.
+- Placement, first-pass review, and first Guardian rewards are saved as one-time claims, while assessment replays can still earn their normal answer-streak treasures without duplicating milestone payouts.
+
+## v6.4.112 companion display control
+
+- A permanent Companion button now sits beside the round Menu button.
+- The button clearly shows whether the equipped companion is Shown or Hidden and toggles the display with one tap.
+- Players without an equipped companion can use the same button to open the Companion selection area.
+- The floating companion was moved above its new control so it no longer covers the button row.
+
+## v6.4.111 fastest assessment records
+
+- Placement tests now save and display their completion time on the player profile.
+- Passing two-lesson review quizzes keep the fastest successful time for each checkpoint.
+- Perfect Guardian tests keep a fastest time for each mine and can be replayed to improve the record.
+- Records are shown on results, course/checkpoint cards, and the Japanese Tests tab, and are supported in every language course.
+
+## v6.4.110 persistent Smart Review sessions
+
+- Smart Review now creates a saved queue of up to 20 due questions instead of opening one review question and falling back into the active lesson.
+- Next Review, the mine rock, and the permanent quick-action button all continue the active review queue across stages and lessons.
+- Review progress, first-try recall, total attempts, and missed items remain saved across page refreshes and sign-ins on the same profile.
+- The Review Center shows the active queue, supports resuming or explicitly ending it, and returns to the original lesson route only after completion or an intentional exit.
+- Lesson and kana route validation now recognizes Smart Review questions instead of discarding them when they come from a different saved lesson.
+
+## v6.4.109 portrait lock and streak repairs
+
+- Portrait lock now uses the Screen Orientation API when Android permits it and blocks landscape play with a full-screen portrait guard when the browser refuses the lock.
+- The portrait guard can no longer be suppressed by its old CSS rule, and touch-device detection also supports browsers that do not report a coarse pointer.
+- The current practice streak is recalculated from consecutive calendar study dates, automatically repairing counters from older saves, imports, and cloud syncs.
+- A current streak remains protected through the day after the latest practice and resets once a full calendar day is missed.
 
 ## v6.4.108 consistent mine colorways
 

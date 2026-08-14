@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Language Miner v6.4.126 Preview</title>
+  <title>Language Miner v6.4.127 Preview</title>
   <style>
     html,body,iframe{width:100%;height:100%;margin:0;border:0;background:#07111f}
     #previewBadge{position:fixed;z-index:999999;right:16px;top:12px;padding:8px 13px;border:1px solid #78ffe0;border-radius:999px;background:#082b2be8;color:#eafff8;font:700 13px/1 system-ui;box-shadow:0 6px 22px #0008;pointer-events:none}
@@ -11,8 +11,8 @@
   </style>
 </head>
 <body>
-  <div id="previewBadge">PREVIEW · v6.4.126</div>
-  <iframe id="gamePreview" src="index.html?v=6.4.126-parent-teacher-center" title="Language Miner updated preview"></iframe>
+  <div id="previewBadge">PREVIEW · v6.4.127</div>
+  <iframe id="gamePreview" src="index.html?v=6.4.127-public-url" title="Language Miner updated preview"></iframe>
   <script>
     (() => {
       const frame = document.getElementById('gamePreview');
@@ -36,7 +36,7 @@
         try {
           app.LANGUAGE_MINER_PREVIEW = true;
           app.LANGUAGE_MINER_PREVIEW_TIER = previewAdmin?3:previewTier;
-          document.getElementById('previewBadge').textContent = `PREVIEW · v6.4.126 · ${previewAdmin?'ADMIN':'PLAYER'}`;
+          document.getElementById('previewBadge').textContent = `PREVIEW · v6.4.127 · ${previewAdmin?'ADMIN':'PLAYER'}`;
           if(!previewAdmin&&previewTier)document.getElementById('previewBadge').textContent+=` · TIER ${previewTier}`;
           if (previewAutoConfirm) app.confirm = () => true;
           app.renderProfileList ||= () => {};

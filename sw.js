@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.126-parent-teacher-center-r1';
+const CACHE_NAME='language-miner-v6.4.127-public-url-r1';
 const APP_SHELL=[
   './',
   './index.html',

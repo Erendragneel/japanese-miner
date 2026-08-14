@@ -30,7 +30,7 @@ Never place a Patreon Client Secret, Creator Access Token, webhook secret, datab
 For the instructions below, the live game address is assumed to be:
 
 ```text
-https://erendragneel.github.io/japanese-miner/
+https://erendragneel.github.io/language-miner/
 ```
 
 If the address in your browser is different, use the full address you actually see, including any repository folder and the final `/`.
@@ -64,13 +64,13 @@ The Project URL and publishable/anon key are safe for the browser. The database 
 3. Set **Site URL** to:
 
    ```text
-   https://erendragneel.github.io/japanese-miner/
+   https://erendragneel.github.io/language-miner/
    ```
 
 4. Under **Redirect URLs**, add:
 
    ```text
-   https://erendragneel.github.io/japanese-miner/**
+   https://erendragneel.github.io/language-miner/**
    ```
 
 5. Save the changes.
@@ -142,7 +142,7 @@ Save those four IDs in your private note.
 
 | Secret name | Value to enter |
 |---|---|
-| `APP_URL` | `https://erendragneel.github.io/japanese-miner/` |
+| `APP_URL` | `https://erendragneel.github.io/language-miner/` |
 | `ALLOWED_ORIGINS` | `https://erendragneel.github.io` |
 | `PATREON_CLIENT_ID` | Client ID from Patreon |
 | `PATREON_CLIENT_SECRET` | Client Secret from Patreon |
@@ -231,7 +231,7 @@ window.JAPANESE_MINER_PATREON_CONFIG = Object.freeze({
 
 Only the Project URL and public publishable/anon key go in this browser file. Never place the Client Secret, Creator Access Token, webhook secret, database password, or service-role key here.
 
-Upload the edited release files to the GitHub repository that publishes `https://erendragneel.github.io/japanese-miner/`.
+Upload the edited release files to the GitHub repository that publishes `https://erendragneel.github.io/language-miner/`.
 
 ## Part 10 — Test it safely
 

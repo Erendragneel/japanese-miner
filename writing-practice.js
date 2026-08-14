@@ -1,0 +1,148 @@
+(()=>{
+'use strict';
+
+const LESSON_SIZE=8;
+const VOICES={en:'en-US',es:'es-ES',ru:'ru-RU',ja:'ja-JP',ko:'ko-KR',zh:'zh-CN',it:'it-IT',fr:'fr-FR',de:'de-DE',pt:'pt-BR',vi:'vi-VN',th:'th-TH',tr:'tr-TR',id:'id-ID',pl:'pl-PL',el:'el-GR',uk:'uk-UA'};
+const COPY={
+ en:{menu:'Writing Practice',menuDesc:'Trace alphabets, scripts, and characters by lesson',title:'Writing Practice',subtitle:'Trace it, hide the guide, then write it from memory.',progress:'practiced',sets:'Writing sets',lesson:'Lesson',characters:'Characters',instructions:'Trace the faint character. Hide the guide when you are ready to write from memory.',listen:'Listen',hideGuide:'Hide guide',showGuide:'Show guide',undo:'Undo',clear:'Clear',complete:'Complete & Next',drawFirst:'Draw at least one stroke before completing this character.',saved:'Character saved. Moving to the next practice item.',back:'Menu',close:'Close writing practice',alphabet:'Alphabet & letters',hiragana:'Hiragana',katakana:'Katakana',kanji:'Course Kanji',hanzi:'Course Hanzi',hangul:'Hangul syllable blocks',done:'Complete'},
+ es:{menu:'Práctica de escritura',menuDesc:'Traza alfabetos, escrituras y caracteres por lección',title:'Práctica de escritura',subtitle:'Traza, oculta la guía y escribe de memoria.',progress:'practicados',sets:'Grupos de escritura',lesson:'Lección',characters:'Caracteres',instructions:'Traza el carácter tenue. Oculta la guía cuando puedas escribirlo de memoria.',listen:'Escuchar',hideGuide:'Ocultar guía',showGuide:'Mostrar guía',undo:'Deshacer',clear:'Borrar',complete:'Completar y seguir',drawFirst:'Dibuja al menos un trazo antes de completar.',saved:'Carácter guardado. Pasando al siguiente.',back:'Menú',close:'Cerrar práctica de escritura',alphabet:'Alfabeto y letras',hiragana:'Hiragana',katakana:'Katakana',kanji:'Kanji del curso',hanzi:'Hanzi del curso',hangul:'Bloques silábicos Hangul',done:'Completo'},
+ ru:{menu:'Практика письма',menuDesc:'Пишите алфавиты и символы по урокам',title:'Практика письма',subtitle:'Обведите, скройте подсказку и напишите по памяти.',progress:'изучено',sets:'Наборы письма',lesson:'Урок',characters:'Символы',instructions:'Обведите бледный символ. Затем скройте подсказку и напишите по памяти.',listen:'Слушать',hideGuide:'Скрыть подсказку',showGuide:'Показать подсказку',undo:'Отменить',clear:'Очистить',complete:'Готово и далее',drawFirst:'Нарисуйте хотя бы один штрих.',saved:'Символ сохранён. Переходим дальше.',back:'Меню',close:'Закрыть практику письма',alphabet:'Алфавит и буквы',hiragana:'Хирагана',katakana:'Катакана',kanji:'Кандзи курса',hanzi:'Иероглифы курса',hangul:'Слоги хангыля',done:'Готово'},
+ ja:{menu:'書き取り練習',menuDesc:'アルファベット・文字・漢字をレッスン別に練習',title:'書き取り練習',subtitle:'なぞってからガイドを隠し、見ないで書きましょう。',progress:'練習済み',sets:'文字セット',lesson:'レッスン',characters:'文字',instructions:'薄い文字をなぞります。慣れたらガイドを隠して書きましょう。',listen:'聞く',hideGuide:'ガイドを隠す',showGuide:'ガイドを表示',undo:'一画戻す',clear:'消す',complete:'完了して次へ',drawFirst:'完了する前に一画以上書いてください。',saved:'保存しました。次の文字へ進みます。',back:'メニュー',close:'書き取り練習を閉じる',alphabet:'アルファベットと文字',hiragana:'ひらがな',katakana:'カタカナ',kanji:'コース漢字',hanzi:'コース漢字',hangul:'ハングル音節',done:'完了'},
+ ko:{menu:'쓰기 연습',menuDesc:'알파벳과 문자를 레슨별로 따라 쓰기',title:'쓰기 연습',subtitle:'따라 쓴 뒤 안내를 숨기고 기억해서 써 보세요.',progress:'연습 완료',sets:'쓰기 세트',lesson:'레슨',characters:'문자',instructions:'희미한 문자를 따라 쓰세요. 준비되면 안내를 숨기고 기억해서 쓰세요.',listen:'듣기',hideGuide:'안내 숨기기',showGuide:'안내 보기',undo:'실행 취소',clear:'지우기',complete:'완료 및 다음',drawFirst:'완료하기 전에 한 획 이상 그리세요.',saved:'문자를 저장했습니다. 다음으로 이동합니다.',back:'메뉴',close:'쓰기 연습 닫기',alphabet:'알파벳과 문자',hiragana:'히라가나',katakana:'가타카나',kanji:'코스 한자',hanzi:'코스 한자',hangul:'한글 음절 블록',done:'완료'},
+ zh:{menu:'书写练习',menuDesc:'按课程描写字母、文字和汉字',title:'书写练习',subtitle:'先描写，再隐藏提示并默写。',progress:'已练习',sets:'书写分组',lesson:'课程',characters:'字符',instructions:'描写淡色字符。准备好后隐藏提示并凭记忆书写。',listen:'听发音',hideGuide:'隐藏提示',showGuide:'显示提示',undo:'撤销',clear:'清除',complete:'完成并继续',drawFirst:'完成前请至少写一笔。',saved:'字符已保存，进入下一项。',back:'菜单',close:'关闭书写练习',alphabet:'字母与拼音',hiragana:'平假名',katakana:'片假名',kanji:'课程汉字',hanzi:'课程汉字',hangul:'韩文音节块',done:'已完成'},
+ it:{menu:'Pratica di scrittura',menuDesc:'Traccia alfabeti e caratteri per lezione',title:'Pratica di scrittura',subtitle:'Traccia, nascondi la guida e scrivi a memoria.',progress:'praticati',sets:'Gruppi di scrittura',lesson:'Lezione',characters:'Caratteri',instructions:'Traccia il carattere tenue. Poi nascondi la guida e scrivilo a memoria.',listen:'Ascolta',hideGuide:'Nascondi guida',showGuide:'Mostra guida',undo:'Annulla',clear:'Cancella',complete:'Completa e avanti',drawFirst:'Disegna almeno un tratto prima di completare.',saved:'Carattere salvato. Passaggio al successivo.',back:'Menu',close:'Chiudi pratica di scrittura',alphabet:'Alfabeto e lettere',hiragana:'Hiragana',katakana:'Katakana',kanji:'Kanji del corso',hanzi:'Hanzi del corso',hangul:'Blocchi sillabici Hangul',done:'Completo'},
+ fr:{menu:'Écriture',menuDesc:'Tracer les alphabets et caractères par leçon',title:'Pratique de l’écriture',subtitle:'Tracez, masquez le guide, puis écrivez de mémoire.',progress:'pratiqués',sets:'Groupes d’écriture',lesson:'Leçon',characters:'Caractères',instructions:'Tracez le caractère pâle. Masquez ensuite le guide et écrivez de mémoire.',listen:'Écouter',hideGuide:'Masquer le guide',showGuide:'Afficher le guide',undo:'Annuler',clear:'Effacer',complete:'Terminer et continuer',drawFirst:'Tracez au moins un trait avant de terminer.',saved:'Caractère enregistré. Passage au suivant.',back:'Menu',close:'Fermer la pratique',alphabet:'Alphabet et lettres',hiragana:'Hiragana',katakana:'Katakana',kanji:'Kanji du cours',hanzi:'Hanzi du cours',hangul:'Blocs syllabiques hangul',done:'Terminé'},
+ de:{menu:'Schreibübung',menuDesc:'Alphabete und Zeichen in Lektionen nachzeichnen',title:'Schreibübung',subtitle:'Nachzeichnen, Vorlage ausblenden und aus dem Gedächtnis schreiben.',progress:'geübt',sets:'Schriftsätze',lesson:'Lektion',characters:'Zeichen',instructions:'Zeichne das blasse Zeichen nach. Blende dann die Vorlage aus und schreibe aus dem Gedächtnis.',listen:'Anhören',hideGuide:'Vorlage ausblenden',showGuide:'Vorlage anzeigen',undo:'Rückgängig',clear:'Löschen',complete:'Fertig & weiter',drawFirst:'Zeichne mindestens einen Strich.',saved:'Zeichen gespeichert. Weiter zum nächsten.',back:'Menü',close:'Schreibübung schließen',alphabet:'Alphabet und Buchstaben',hiragana:'Hiragana',katakana:'Katakana',kanji:'Kurs-Kanji',hanzi:'Kurs-Hanzi',hangul:'Hangul-Silbenblöcke',done:'Fertig'},
+ pt:{menu:'Prática de escrita',menuDesc:'Trace alfabetos e caracteres por lição',title:'Prática de escrita',subtitle:'Trace, oculte o guia e escreva de memória.',progress:'praticados',sets:'Conjuntos de escrita',lesson:'Lição',characters:'Caracteres',instructions:'Trace o caractere claro. Depois oculte o guia e escreva de memória.',listen:'Ouvir',hideGuide:'Ocultar guia',showGuide:'Mostrar guia',undo:'Desfazer',clear:'Limpar',complete:'Concluir e avançar',drawFirst:'Faça pelo menos um traço antes de concluir.',saved:'Caractere salvo. Avançando para o próximo.',back:'Menu',close:'Fechar prática de escrita',alphabet:'Alfabeto e letras',hiragana:'Hiragana',katakana:'Katakana',kanji:'Kanji do curso',hanzi:'Hanzi do curso',hangul:'Blocos silábicos Hangul',done:'Concluído'},
+ vi:{menu:'Luyện viết',menuDesc:'Tập viết bảng chữ cái và ký tự theo bài',title:'Luyện viết',subtitle:'Tô theo, ẩn hướng dẫn rồi viết lại từ trí nhớ.',progress:'đã luyện',sets:'Bộ chữ viết',lesson:'Bài',characters:'Ký tự',instructions:'Tô theo ký tự mờ. Khi sẵn sàng, hãy ẩn hướng dẫn và tự viết.',listen:'Nghe',hideGuide:'Ẩn hướng dẫn',showGuide:'Hiện hướng dẫn',undo:'Hoàn tác',clear:'Xóa',complete:'Hoàn thành & tiếp',drawFirst:'Hãy viết ít nhất một nét trước khi hoàn thành.',saved:'Đã lưu ký tự. Chuyển sang mục tiếp theo.',back:'Menu',close:'Đóng luyện viết',alphabet:'Bảng chữ cái',hiragana:'Hiragana',katakana:'Katakana',kanji:'Kanji trong khóa',hanzi:'Hán tự trong khóa',hangul:'Khối âm tiết Hangul',done:'Hoàn thành'},
+ th:{menu:'ฝึกเขียน',menuDesc:'ฝึกเขียนตัวอักษรและอักขระตามบทเรียน',title:'ฝึกเขียน',subtitle:'ลากตาม ซ่อนแบบ แล้วเขียนจากความจำ',progress:'ฝึกแล้ว',sets:'ชุดตัวเขียน',lesson:'บท',characters:'ตัวอักษร',instructions:'ลากตามตัวอักษรจาง เมื่อพร้อมให้ซ่อนแบบและเขียนจากความจำ',listen:'ฟัง',hideGuide:'ซ่อนแบบ',showGuide:'แสดงแบบ',undo:'ย้อนกลับ',clear:'ล้าง',complete:'เสร็จและถัดไป',drawFirst:'เขียนอย่างน้อยหนึ่งเส้นก่อนเสร็จสิ้น',saved:'บันทึกแล้ว กำลังไปตัวถัดไป',back:'เมนู',close:'ปิดการฝึกเขียน',alphabet:'พยัญชนะและตัวอักษร',hiragana:'ฮิรางานะ',katakana:'คาตาคานะ',kanji:'คันจิในหลักสูตร',hanzi:'อักษรจีนในหลักสูตร',hangul:'บล็อกพยางค์ฮันกึล',done:'เสร็จ'},
+ tr:{menu:'Yazma Alıştırması',menuDesc:'Alfabe ve karakterleri derslerle yazın',title:'Yazma Alıştırması',subtitle:'Üzerinden geçin, kılavuzu gizleyin ve ezberden yazın.',progress:'çalışıldı',sets:'Yazı setleri',lesson:'Ders',characters:'Karakterler',instructions:'Soluk karakterin üzerinden geçin. Sonra kılavuzu gizleyip ezberden yazın.',listen:'Dinle',hideGuide:'Kılavuzu gizle',showGuide:'Kılavuzu göster',undo:'Geri al',clear:'Temizle',complete:'Tamamla ve ilerle',drawFirst:'Tamamlamadan önce en az bir çizgi çizin.',saved:'Karakter kaydedildi. Sonrakine geçiliyor.',back:'Menü',close:'Yazma alıştırmasını kapat',alphabet:'Alfabe ve harfler',hiragana:'Hiragana',katakana:'Katakana',kanji:'Ders Kanji',hanzi:'Ders Hanzi',hangul:'Hangul hece blokları',done:'Tamam'},
+ id:{menu:'Latihan Menulis',menuDesc:'Jiplak alfabet dan karakter per pelajaran',title:'Latihan Menulis',subtitle:'Jiplak, sembunyikan panduan, lalu tulis dari ingatan.',progress:'dilatih',sets:'Set tulisan',lesson:'Pelajaran',characters:'Karakter',instructions:'Jiplak karakter samar. Lalu sembunyikan panduan dan tulis dari ingatan.',listen:'Dengarkan',hideGuide:'Sembunyikan panduan',showGuide:'Tampilkan panduan',undo:'Urungkan',clear:'Hapus',complete:'Selesai & lanjut',drawFirst:'Gambar setidaknya satu goresan sebelum selesai.',saved:'Karakter tersimpan. Lanjut ke berikutnya.',back:'Menu',close:'Tutup latihan menulis',alphabet:'Alfabet dan huruf',hiragana:'Hiragana',katakana:'Katakana',kanji:'Kanji kursus',hanzi:'Hanzi kursus',hangul:'Blok suku kata Hangul',done:'Selesai'},
+ pl:{menu:'Ćwiczenie pisania',menuDesc:'Pisz alfabety i znaki według lekcji',title:'Ćwiczenie pisania',subtitle:'Obrysuj, ukryj wzór i napisz z pamięci.',progress:'przećwiczono',sets:'Zestawy pisma',lesson:'Lekcja',characters:'Znaki',instructions:'Obrysuj blady znak. Następnie ukryj wzór i napisz z pamięci.',listen:'Posłuchaj',hideGuide:'Ukryj wzór',showGuide:'Pokaż wzór',undo:'Cofnij',clear:'Wyczyść',complete:'Ukończ i dalej',drawFirst:'Narysuj co najmniej jedną kreskę.',saved:'Znak zapisany. Przejście do następnego.',back:'Menu',close:'Zamknij ćwiczenie pisania',alphabet:'Alfabet i litery',hiragana:'Hiragana',katakana:'Katakana',kanji:'Kanji z kursu',hanzi:'Hanzi z kursu',hangul:'Bloki sylab Hangul',done:'Gotowe'},
+ el:{menu:'Εξάσκηση γραφής',menuDesc:'Γράψτε αλφάβητα και χαρακτήρες ανά μάθημα',title:'Εξάσκηση γραφής',subtitle:'Ιχνηλατήστε, κρύψτε τον οδηγό και γράψτε από μνήμης.',progress:'εξασκήθηκαν',sets:'Σύνολα γραφής',lesson:'Μάθημα',characters:'Χαρακτήρες',instructions:'Ιχνηλατήστε τον αχνό χαρακτήρα. Μετά κρύψτε τον οδηγό και γράψτε από μνήμης.',listen:'Ακρόαση',hideGuide:'Απόκρυψη οδηγού',showGuide:'Εμφάνιση οδηγού',undo:'Αναίρεση',clear:'Καθαρισμός',complete:'Ολοκλήρωση & επόμενο',drawFirst:'Σχεδιάστε τουλάχιστον μία γραμμή.',saved:'Ο χαρακτήρας αποθηκεύτηκε. Μετάβαση στον επόμενο.',back:'Μενού',close:'Κλείσιμο εξάσκησης γραφής',alphabet:'Αλφάβητο και γράμματα',hiragana:'Χιραγκάνα',katakana:'Κατακάνα',kanji:'Κάντζι μαθήματος',hanzi:'Χάνζι μαθήματος',hangul:'Συλλαβικά μπλοκ Hangul',done:'Ολοκληρώθηκε'},
+ uk:{menu:'Практика письма',menuDesc:'Пишіть абетки й символи за уроками',title:'Практика письма',subtitle:'Обведіть, сховайте підказку та напишіть з пам’яті.',progress:'опрацьовано',sets:'Набори письма',lesson:'Урок',characters:'Символи',instructions:'Обведіть блідий символ. Потім сховайте підказку й напишіть з пам’яті.',listen:'Слухати',hideGuide:'Сховати підказку',showGuide:'Показати підказку',undo:'Скасувати',clear:'Очистити',complete:'Готово й далі',drawFirst:'Намалюйте щонайменше один штрих.',saved:'Символ збережено. Переходимо далі.',back:'Меню',close:'Закрити практику письма',alphabet:'Абетка й літери',hiragana:'Хіраґана',katakana:'Катакана',kanji:'Кандзі курсу',hanzi:'Ієрогліфи курсу',hangul:'Склади хангиля',done:'Готово'}
+};
+
+const HIRAGANA='あ:a|い:i|う:u|え:e|お:o|か:ka|き:ki|く:ku|け:ke|こ:ko|さ:sa|し:shi|す:su|せ:se|そ:so|た:ta|ち:chi|つ:tsu|て:te|と:to|な:na|に:ni|ぬ:nu|ね:ne|の:no|は:ha|ひ:hi|ふ:fu|へ:he|ほ:ho|ま:ma|み:mi|む:mu|め:me|も:mo|や:ya|ゆ:yu|よ:yo|ら:ra|り:ri|る:ru|れ:re|ろ:ro|わ:wa|を:wo|ん:n';
+const KATAKANA='ア:a|イ:i|ウ:u|エ:e|オ:o|カ:ka|キ:ki|ク:ku|ケ:ke|コ:ko|サ:sa|シ:shi|ス:su|セ:se|ソ:so|タ:ta|チ:chi|ツ:tsu|テ:te|ト:to|ナ:na|ニ:ni|ヌ:nu|ネ:ne|ノ:no|ハ:ha|ヒ:hi|フ:fu|ヘ:he|ホ:ho|マ:ma|ミ:mi|ム:mu|メ:me|モ:mo|ヤ:ya|ユ:yu|ヨ:yo|ラ:ra|リ:ri|ル:ru|レ:re|ロ:ro|ワ:wa|ヲ:wo|ン:n';
+const FALLBACK_HAN='一:one|二:two|三:three|人:person|日:sun / day|月:moon / month|火:fire|水:water|木:tree|金:gold|土:earth|山:mountain|川:river|口:mouth|目:eye|耳:ear|手:hand|上:above|下:below|中:middle|大:big|小:small|学:study|生:life|先:ahead|時:time|本:book|語:language|年:year|今:now|天:sky|気:spirit';
+const HANGUL_BLOCKS='가:ga|나:na|다:da|라:ra|마:ma|바:ba|사:sa|아:a|자:ja|차:cha|카:ka|타:ta|파:pa|하:ha';
+
+let overlay=null,activeLanguage='ja',tracks=[],trackIndex=0,lessonIndex=0,itemIndex=0,guideVisible=true,strokes=[],drawing=null,statusMessage='';
+const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+function locale(){const context=window.LanguageMinerI18n?.getContext?.();return context?.known||window.LanguageMinerI18n?.getLocale?.()||'en';}
+function c(key){const table=COPY[locale()]||COPY.en;return table[key]||COPY.en[key]||key;}
+function languageId(){return window.LanguageMinerCourseWriting?.currentLanguage?.()||document.documentElement.dataset.lmLearningLanguage||'ja';}
+function languageInfo(id=activeLanguage){return window.LanguageMinerCourseWriting?.languageInfo?.(id)||{name:id,native:id,flag:'🌐'};}
+function entries(source){return source.split('|').map((part,index)=>{const [symbol,name]=part.split(':');return {id:String(index),symbol,name:name||symbol,spoken:symbol};});}
+function alphabetEntries(system){return (system?.units||[]).map((unit,index)=>({id:String(index),symbol:String(unit.symbol||''),name:String(unit.name||unit.symbol||''),spoken:String(unit.spoken||unit.name||unit.symbol||'')})).filter(item=>item.symbol);}
+function hanEntries(target){
+ const rows=window.LANGUAGE_MINER_MULTILINGUAL_COURSE_DATA?.vocabulary||[],known=locale(),seen=new Set(),result=[];
+ for(const row of rows){const value=String(row?.forms?.[target]||'');for(const symbol of Array.from(value)){if(!/\p{Script=Han}/u.test(symbol)||seen.has(symbol))continue;seen.add(symbol);result.push({id:String(result.length),symbol,name:String(row.forms?.[known]||row.forms?.en||symbol),spoken:symbol});if(result.length>=96)return result;}}
+ return result.length?result:entries(FALLBACK_HAN);
+}
+function buildTracks(language){
+ const result=[],system=window.LanguageMinerCourseWriting?.alphabetSystem?.(language),alphabet=alphabetEntries(system);
+ if(alphabet.length)result.push({id:'alphabet',name:c('alphabet'),entries:alphabet});
+ if(language==='ja')result.splice(0,result.length,{id:'hiragana',name:c('hiragana'),entries:entries(HIRAGANA)},{id:'katakana',name:c('katakana'),entries:entries(KATAKANA)},{id:'kanji',name:c('kanji'),entries:hanEntries('ja')});
+ if(language==='zh')result.push({id:'hanzi',name:c('hanzi'),entries:hanEntries('zh')});
+ if(language==='ko')result.push({id:'hangul',name:c('hangul'),entries:entries(HANGUL_BLOCKS)});
+ if(!result.length)result.push({id:'alphabet',name:c('alphabet'),entries:entries('A:A|B:B|C:C|D:D|E:E|F:F|G:G|H:H')});
+ return result;
+}
+function profilePractice(){
+ try{if(typeof state!=='undefined'){state.v6=state.v6||{};state.v6.writingPractice=state.v6.writingPractice||{};state.v6.writingPractice[activeLanguage]=state.v6.writingPractice[activeLanguage]||{completed:{},last:{}};return state.v6.writingPractice[activeLanguage];}}catch{}
+ return {completed:{},last:{}};
+}
+function persist(){try{if(typeof save==='function')save();}catch{}window.dispatchEvent(new CustomEvent('lm-writing-practice-saved',{detail:{language:activeLanguage}}));}
+function itemKey(track,item){return `${track.id}:${item.id}`;}
+function currentTrack(){return tracks[trackIndex]||tracks[0];}
+function lessonEntries(track=currentTrack(),lesson=lessonIndex){return track.entries.slice(lesson*LESSON_SIZE,(lesson+1)*LESSON_SIZE);}
+function currentItem(){const lesson=lessonEntries();return lesson[itemIndex]||lesson[0]||currentTrack()?.entries?.[0];}
+function lessonCount(track){return Math.max(1,Math.ceil(track.entries.length/LESSON_SIZE));}
+function completedCount(track=null){const completed=profilePractice().completed||{},source=track?[track]:tracks;return source.reduce((sum,set)=>sum+set.entries.filter(item=>completed[itemKey(set,item)]).length,0);}
+function totalCount(){return tracks.reduce((sum,track)=>sum+track.entries.length,0);}
+function restoreSelection(){
+ const last=profilePractice().last||{},found=tracks.findIndex(track=>track.id===last.track);trackIndex=found>=0?found:0;
+ const track=currentTrack();lessonIndex=Math.min(Math.max(0,Number(last.lesson)||0),lessonCount(track)-1);itemIndex=Math.min(Math.max(0,Number(last.item)||0),lessonEntries(track,lessonIndex).length-1);
+}
+function savePosition(){const practice=profilePractice();practice.last={track:currentTrack()?.id||'',lesson:lessonIndex,item:itemIndex};persist();}
+function makeShell(){
+ if(overlay)return;
+ overlay=document.createElement('div');overlay.id='languageMinerWritingPractice';overlay.className='writing-practice-overlay';overlay.setAttribute('aria-hidden','true');overlay.innerHTML='<section class="writing-practice-panel" role="dialog" aria-modal="true" aria-labelledby="writingPracticeTitle"><div id="writingPracticeContent"></div></section>';
+ document.body.appendChild(overlay);overlay.addEventListener('click',event=>{if(event.target===overlay)close();});
+}
+function addMenuButton(){
+ const wheel=document.querySelector('.menu-wheel');if(!wheel)return;
+ let button=wheel.querySelector('[data-writing-practice-open]');
+ if(!button){button=document.createElement('button');button.type='button';button.dataset.writingPracticeOpen='';button.dataset.menuCategoryName='adventure';const course=wheel.querySelector('[data-menu-action="course"]');course?.after(button);if(!button.isConnected)wheel.prepend(button);}
+ button.innerHTML=`<span>✍️</span><strong>${escapeHtml(c('menu'))}</strong><small>${escapeHtml(c('menuDesc'))}</small>`;button.onclick=open;
+}
+function render(){
+ makeShell();const content=document.getElementById('writingPracticeContent'),info=languageInfo(),track=currentTrack(),lesson=lessonEntries(),item=currentItem(),practice=profilePractice(),total=totalCount(),done=completedCount();
+ const percent=total?Math.round(done/total*100):0;
+ content.innerHTML=`
+  <header class="writing-practice-head"><button type="button" data-writing-close="menu">← ${escapeHtml(c('back'))}</button><div><span>✍️ ${escapeHtml(info.flag||'')} ${escapeHtml(info.native||info.name)}</span><h2 id="writingPracticeTitle">${escapeHtml(c('title'))}</h2><p>${escapeHtml(c('subtitle'))}</p></div><button class="writing-practice-x" type="button" data-writing-close aria-label="${escapeHtml(c('close'))}">×</button></header>
+  <div class="writing-practice-progress"><div><span>${done}/${total} ${escapeHtml(c('progress'))}</span><strong>${percent}%</strong></div><i><b style="width:${percent}%"></b></i></div>
+  <div class="writing-practice-layout">
+   <aside class="writing-practice-nav">
+    <section><h3>${escapeHtml(c('sets'))}</h3><div class="writing-track-list">${tracks.map((set,index)=>`<button type="button" data-writing-track="${index}" class="${index===trackIndex?'active':''}"><span>${escapeHtml(set.name)}</span><small>${completedCount(set)}/${set.entries.length}</small></button>`).join('')}</div></section>
+    <section><h3>${escapeHtml(c('lesson'))}</h3><div class="writing-lesson-list">${Array.from({length:lessonCount(track)},(_,index)=>{const units=lessonEntries(track,index),lessonDone=units.filter(unit=>practice.completed?.[itemKey(track,unit)]).length;return `<button type="button" data-writing-lesson="${index}" class="${index===lessonIndex?'active':''}"><span>${index+1}</span><small>${lessonDone}/${units.length}</small></button>`;}).join('')}</div></section>
+    <section><h3>${escapeHtml(c('characters'))}</h3><div class="writing-character-list">${lesson.map((unit,index)=>`<button type="button" data-writing-item="${index}" class="${index===itemIndex?'active':''} ${practice.completed?.[itemKey(track,unit)]?'complete':''}"><b>${escapeHtml(unit.symbol)}</b><span>${practice.completed?.[itemKey(track,unit)]?'✓':''}</span></button>`).join('')}</div></section>
+   </aside>
+   <main class="writing-practice-workspace">
+    <div class="writing-current-character"><div><small>${escapeHtml(track.name)} · ${escapeHtml(c('lesson'))} ${lessonIndex+1}</small><h3>${escapeHtml(item?.symbol||'')}</h3><p>${escapeHtml(item?.name||'')}</p></div><button type="button" data-writing-listen>🔊 ${escapeHtml(c('listen'))}</button></div>
+    <p class="writing-instructions">${escapeHtml(c('instructions'))}</p>
+    <div class="writing-pad ${guideVisible?'guide-visible':'guide-hidden'}"><div class="writing-grid-lines"></div><div class="writing-guide-glyph" aria-hidden="true">${escapeHtml(item?.symbol||'')}</div><canvas id="writingPracticeCanvas" aria-label="${escapeHtml(c('title'))}"></canvas></div>
+    <div class="writing-practice-actions"><button type="button" data-writing-guide>${escapeHtml(guideVisible?c('hideGuide'):c('showGuide'))}</button><button type="button" data-writing-undo ${strokes.length?'':'disabled'}>↶ ${escapeHtml(c('undo'))}</button><button type="button" data-writing-clear ${strokes.length?'':'disabled'}>✕ ${escapeHtml(c('clear'))}</button><button class="primary" type="button" data-writing-complete>✓ ${escapeHtml(c('complete'))}</button></div>
+    <div class="writing-practice-status ${statusMessage?'show':''}" aria-live="polite">${escapeHtml(statusMessage)}</div>
+   </main>
+  </div>`;
+ content.querySelectorAll('[data-writing-close]').forEach(button=>button.onclick=close);
+ content.querySelectorAll('[data-writing-track]').forEach(button=>button.onclick=()=>{trackIndex=Number(button.dataset.writingTrack);lessonIndex=0;itemIndex=0;strokes=[];statusMessage='';savePosition();render();});
+ content.querySelectorAll('[data-writing-lesson]').forEach(button=>button.onclick=()=>{lessonIndex=Number(button.dataset.writingLesson);itemIndex=0;strokes=[];statusMessage='';savePosition();render();});
+ content.querySelectorAll('[data-writing-item]').forEach(button=>button.onclick=()=>{itemIndex=Number(button.dataset.writingItem);strokes=[];statusMessage='';savePosition();render();});
+ content.querySelector('[data-writing-listen]').onclick=listen;
+ content.querySelector('[data-writing-guide]').onclick=()=>{guideVisible=!guideVisible;statusMessage='';render();};
+ content.querySelector('[data-writing-undo]').onclick=()=>{strokes.pop();statusMessage='';drawCanvas();syncActionButtons();};
+ content.querySelector('[data-writing-clear]').onclick=()=>{strokes=[];statusMessage='';drawCanvas();syncActionButtons();};
+ content.querySelector('[data-writing-complete]').onclick=completeCurrent;
+ setupCanvas();
+}
+function canvas(){return document.getElementById('writingPracticeCanvas');}
+function setupCanvas(){
+ const element=canvas();if(!element)return;resizeCanvas();
+ const point=event=>{const rect=element.getBoundingClientRect();return {x:(event.clientX-rect.left)/rect.width,y:(event.clientY-rect.top)/rect.height};};
+ element.onpointerdown=event=>{event.preventDefault();element.setPointerCapture?.(event.pointerId);drawing=[point(event)];strokes.push(drawing);statusMessage='';syncStatus();drawCanvas();};
+ element.onpointermove=event=>{if(!drawing)return;event.preventDefault();drawing.push(point(event));drawCanvas();};
+ const finish=()=>{drawing=null;syncActionButtons();};element.onpointerup=finish;element.onpointercancel=finish;element.onpointerleave=event=>{if(event.buttons===0)finish();};
+}
+function resizeCanvas(){const element=canvas();if(!element)return;const rect=element.getBoundingClientRect(),ratio=Math.min(3,window.devicePixelRatio||1);element.width=Math.max(1,Math.round(rect.width*ratio));element.height=Math.max(1,Math.round(rect.height*ratio));element.dataset.ratio=ratio;drawCanvas();}
+function drawCanvas(){
+ const element=canvas();if(!element)return;const rect=element.getBoundingClientRect(),ratio=Number(element.dataset.ratio)||1,context=element.getContext('2d');context.setTransform(ratio,0,0,ratio,0,0);context.clearRect(0,0,rect.width,rect.height);context.strokeStyle='#f8fafc';context.lineWidth=Math.max(5,rect.width*.018);context.lineCap='round';context.lineJoin='round';context.shadowColor='rgba(91,227,204,.28)';context.shadowBlur=8;
+ for(const stroke of strokes){if(!stroke.length)continue;context.beginPath();context.moveTo(stroke[0].x*rect.width,stroke[0].y*rect.height);if(stroke.length===1)context.lineTo(stroke[0].x*rect.width+.01,stroke[0].y*rect.height+.01);else for(let index=1;index<stroke.length;index++)context.lineTo(stroke[index].x*rect.width,stroke[index].y*rect.height);context.stroke();}
+}
+function syncActionButtons(){const undo=overlay?.querySelector('[data-writing-undo]'),clear=overlay?.querySelector('[data-writing-clear]');if(undo)undo.disabled=!strokes.length;if(clear)clear.disabled=!strokes.length;syncStatus();}
+function syncStatus(){const element=overlay?.querySelector('.writing-practice-status');if(!element)return;element.textContent=statusMessage;element.classList.toggle('show',!!statusMessage);}
+function completeCurrent(){
+ if(!strokes.some(stroke=>stroke.length)){statusMessage=c('drawFirst');syncStatus();return;}
+ const track=currentTrack(),item=currentItem(),practice=profilePractice();practice.completed=practice.completed||{};practice.completed[itemKey(track,item)]=Date.now();
+ const lesson=lessonEntries();if(itemIndex<lesson.length-1)itemIndex++;else if(lessonIndex<lessonCount(track)-1){lessonIndex++;itemIndex=0;}else if(trackIndex<tracks.length-1){trackIndex++;lessonIndex=0;itemIndex=0;}
+ strokes=[];statusMessage=c('saved');practice.last={track:currentTrack().id,lesson:lessonIndex,item:itemIndex};persist();render();
+}
+function listen(){const item=currentItem();if(!item||!('speechSynthesis' in window))return;window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(item.spoken||item.symbol);utterance.lang=VOICES[activeLanguage]||activeLanguage;utterance.rate=.78;const voices=window.speechSynthesis.getVoices();utterance.voice=voices.find(voice=>voice.lang?.toLowerCase().startsWith(utterance.lang.toLowerCase().split('-')[0]))||null;window.speechSynthesis.speak(utterance);}
+function open(){
+ makeShell();document.getElementById('gameMenuOverlay')?.classList.remove('open');document.getElementById('gameMenuOverlay')?.setAttribute('aria-hidden','true');
+ activeLanguage=languageId();tracks=buildTracks(activeLanguage);guideVisible=true;strokes=[];statusMessage='';restoreSelection();overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');render();window.syncJapaneseMinerPageScroll?.();setTimeout(resizeCanvas,30);
+}
+function close(){if(!overlay)return;window.speechSynthesis?.cancel?.();overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');strokes=[];window.syncJapaneseMinerPageScroll?.();}
+function refresh(){addMenuButton();if(overlay?.classList.contains('open')){const next=languageId();if(next!==activeLanguage){activeLanguage=next;tracks=buildTracks(activeLanguage);restoreSelection();}render();}}
+function install(){makeShell();addMenuButton();setTimeout(addMenuButton,300);setTimeout(addMenuButton,1200);}
+document.addEventListener('DOMContentLoaded',install,{once:true});
+window.addEventListener('resize',()=>{if(overlay?.classList.contains('open'))resizeCanvas();});
+window.addEventListener('lm-interface-language-changed',refresh);
+window.addEventListener('lm-course-settings-saved',refresh);
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&overlay?.classList.contains('open'))close();});
+window.openLanguageMinerWritingPractice=open;
+window.LanguageMinerWritingPractice=Object.freeze({open,close,tracksForLanguage:id=>buildTracks(id).map(track=>({id:track.id,name:track.name,count:track.entries.length,lessons:lessonCount(track)})),status:()=>({language:activeLanguage,track:currentTrack()?.id,lesson:lessonIndex,item:itemIndex,completed:completedCount(),total:totalCount()})});
+})();

@@ -34,7 +34,7 @@ function ensureV6(){
  if(!Array.isArray(state.v6.storySeen))state.v6.storySeen=[];
 }
 function companionDisplayInfo(){
- ensureV6();const companionId=String(state.v5?.companion||'none'),equipped=companionId!=='none',available=equipped&&supporterTier()>=2,shown=available&&state.v6.showFloatingCompanion!==false,icon=document.getElementById('v5CompanionFloat')?.textContent||'🐾';
+ ensureV6();const companionId=String(state.v5?.companion||'none'),equipped=companionId!=='none',available=equipped&&supporterTier()>=2,shown=available&&state.v6.showFloatingCompanion!==false,selected=window.getJapaneseMinerActiveCompanion?.(),icon=selected?.icon||'🐾';
  return {companionId,equipped,available,shown,icon};
 }
 function syncCompanionDisplayButton(){
@@ -199,7 +199,7 @@ function openSettings(){
  ensureV6();
  openOverlay('settings');
  const box=document.getElementById('v6SettingsContent');
- box.innerHTML=`<div class="v6-settings-grid"><label>Text size<select id="v6TextSize"><option value="normal">Normal</option><option value="large">Large</option><option value="xlarge">Extra large</option></select></label><label class="v6-switch"><input id="v6ReducedMotion" type="checkbox"><span>Reduce animations</span></label><label class="v6-switch"><input id="v6HighContrast" type="checkbox"><span>High contrast</span></label><label class="v6-switch"><input id="v6ColorAssist" type="checkbox"><span>Color-blind indicators</span></label><label class="v6-switch"><input id="v6Explanations" type="checkbox"><span>Answer explanations</span></label><label class="v6-switch"><input id="v6FloatingCompanion" type="checkbox"><span>Show equipped pet beside Menu</span></label><label>Sound effects <output id="v6SfxOut"></output><input id="v6Sfx" type="range" min="0" max="100"></label><label>Music <output id="v6MusicOut"></output><input id="v6Music" type="range" min="0" max="100"></label></div><section class="v6-install-app"><div><span>DEVICE APP</span><h3>ðŸ“² Install Language Miner</h3><p id="v6InstallStatus">Checking whether installation is available on this deviceâ€¦</p><small>If your home screen still shows the old app name, remove that shortcut once, reopen Language Miner in your browser, then install it again from this menu.</small></div><button id="installAppBtn" class="install-app-btn" type="button" disabled>Install App</button></section><section class="v6-save-recovery"><h3>ðŸ›Ÿ Save recovery</h3><p>Language Miner keeps rolling safety snapshots on this device.</p><div id="v6SnapshotList"></div><button id="v6SnapshotNow">Create safety snapshot</button></section><section class="v6-save-management"><h3>ðŸ—‘ï¸ Save management</h3><p>Reset only the currently signed-in playerâ€™s progress. You will be asked to confirm before anything is erased.</p><button id="v6ResetSave" class="danger" type="button">Reset Save</button></section>`;
+ box.innerHTML=`<div class="v6-settings-grid"><label>Text size<select id="v6TextSize"><option value="normal">Normal</option><option value="large">Large</option><option value="xlarge">Extra large</option></select></label><label class="v6-switch"><input id="v6ReducedMotion" type="checkbox"><span>Reduce animations</span></label><label class="v6-switch"><input id="v6HighContrast" type="checkbox"><span>High contrast</span></label><label class="v6-switch"><input id="v6ColorAssist" type="checkbox"><span>Color-blind indicators</span></label><label class="v6-switch"><input id="v6Explanations" type="checkbox"><span>Answer explanations</span></label><label class="v6-switch"><input id="v6FloatingCompanion" type="checkbox"><span>Show equipped pet beside Menu</span></label><label>Sound effects <output id="v6SfxOut"></output><input id="v6Sfx" type="range" min="0" max="100"></label><label>Music <output id="v6MusicOut"></output><input id="v6Music" type="range" min="0" max="100"></label></div><section class="v6-install-app"><div><span>DEVICE APP</span><h3>ðŸ“² Install Language Miner</h3><p id="v6InstallStatus">Checking whether installation is available on this deviceâ€¦</p><small>The installer now follows the renamed Language Miner address. Remove an older home-screen shortcut once, open the current website, and install again.</small><div id="v6InstallInstructions" class="v6-install-instructions" hidden><strong>Install from the current Language Miner link</strong><p></p><a href="https://erendragneel.github.io/language-miner/" target="_blank" rel="noopener">Open current website</a></div></div><button id="installAppBtn" class="install-app-btn" type="button" data-language-miner-install>📲 Install App</button></section><section class="v6-save-recovery"><h3>ðŸ›Ÿ Save recovery</h3><p>Language Miner keeps rolling safety snapshots on this device.</p><div id="v6SnapshotList"></div><button id="v6SnapshotNow">Create safety snapshot</button></section><section class="v6-save-management"><h3>ðŸ—‘ï¸ Save management</h3><p>Reset only the currently signed-in playerâ€™s progress. You will be asked to confirm before anything is erased.</p><button id="v6ResetSave" class="danger" type="button">Reset Save</button></section>`;
  box.querySelector('.v6-settings-grid')?.insertAdjacentHTML('afterend',`<section class="v6-orientation-setting"><div><span>SCREEN ROTATION</span><h3>📱 Portrait lock</h3><p id="v6PortraitLockStatus"></p></div><button id="v6PortraitLockToggle" type="button"></button></section>`);
  const bind=(id,key,type='checked',afterChange)=>{const el=document.getElementById(id);el[type]=state.v6[key];el.onchange=()=>{state.v6[key]=el[type];applySettings();save();afterChange?.();};};
  document.getElementById('v6TextSize').value=state.v6.textSize;
@@ -293,6 +293,7 @@ function advertiseGuideAfterOnboarding(){
 function isStandaloneApp(){return window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone===true;}
 function isAppleMobileDevice(){return /iphone|ipad|ipod/i.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;}
 function syncInstallAppControl(){
+ if(window.LanguageMinerInstall){window.LanguageMinerInstall.sync();return;}
  const button=document.getElementById('installAppBtn'),status=document.getElementById('v6InstallStatus');
  if(!button)return;
  const installed=isStandaloneApp(),appleMobile=isAppleMobileDevice(),ready=!!deferredInstallPrompt;
@@ -302,10 +303,12 @@ function syncInstallAppControl(){
  if(status)status.textContent=installed?'Language Miner is installed. Remove the old home-screen app once and reinstall it to refresh its name and launcher icon.':appleMobile?'Tap Install App for iPhone or iPad Add to Home Screen instructions.':ready?'Language Miner is ready to install with the advanced pickaxe icon.':'Your browser will enable this button when Language Miner is ready to install.';
 }
 async function requestInstallApp(){
+ if(window.LanguageMinerInstall){await window.LanguageMinerInstall.request();return;}
  if(deferredInstallPrompt){const prompt=deferredInstallPrompt;deferredInstallPrompt=null;await prompt.prompt();const result=await prompt.userChoice;if(result.outcome==='accepted')setMessage('Language Miner is installed and ready to play.','correct');syncInstallAppControl();return;}
  if(isAppleMobileDevice())alert('To install Language Miner: tap the Share button in Safari, then choose Add to Home Screen.');
 }
 function initInstallApp(){
+ if(window.LanguageMinerInstall){window.LanguageMinerInstall.bind(document);return;}
  if(!installEventsBound){
   installEventsBound=true;
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;syncInstallAppControl();});

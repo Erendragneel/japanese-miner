@@ -48,6 +48,12 @@ const TOPICS=[
   'Vocabulary, grammar, reading, listening, and sentence lessons show their own mastery and checkpoint requirements.',
   'Complete the requirement printed on the lesson or checkpoint to unlock the next part of the course.'
  ],note:'Lesson progress is saved after answered questions, not merely by opening a lesson.',actions:[['course','Open Course'],['mine','Go to the Mine']]},
+ {id:'writing-practice',category:'learning',icon:'✍️',title:'Alphabet and character writing practice',summary:'Trace and write the selected course’s alphabet, script, Kana, Kanji, Hangul, Hanzi, or other characters in short saved lessons.',path:'Menu → Explore → Writing Practice',steps:[
+  'Writing Practice automatically follows the learning language shown at the top of the game.',
+  'Choose a writing set and lesson, select a character, then trace the faint guide on the writing pad.',
+  'Hide the guide and write the character again from memory. Clear removes the page, while Undo removes only the most recent stroke.',
+  'Complete & Next saves that character to the current player and advances through the lesson. Every language keeps its own writing record.'
+ ],note:'Writing completion is practice progress; it does not spend hearts, supplies, or Nuggets.',actions:[['writing','Open Writing Practice']]},
  {id:'question-controls',category:'learning',icon:'⛏️',title:'Answering questions and using study controls',summary:'Understand the normal question loop, optional help, and correction controls.',path:'Menu → Explore → Mine · Home screen → mine rock',steps:[
   'Tap the rock or New Question to load a question from the active course route.',
   'Use the optional audio control when you want pronunciation. Reading support and furigana can be adjusted without changing the language course.',
@@ -108,12 +114,12 @@ const TOPICS=[
   'Inventory or Bag groups everything owned, marks equipped items, shows supply counts, and contains claimed Study Arcade games.',
   'Character changes skin tone, hair, clothing, and accessories for the active player profile.'
  ],note:'If an item is missing from the Bag, first claim or purchase it in its Shop tab.',actions:[['shop','Open Shop'],['inventory','Open Inventory or Bag'],['character','Open Character']]},
- {id:'companions',category:'collection',icon:'🐾',title:'Companions and the display button',summary:'Choose one active companion and control its visibility from the Companions Shop.',path:'Menu, then Gear, then Shop, then Companions',steps:[
-  'Companions require verified Patreon Tier 2 or higher. Each companion has an unlock condition, adoption cost, and a small specialized bonus.',
-  'Only one equipped companion is active at a time. The equipped companion and display choice save to the current player.',
-  'Use the Companion display button at the top of the Companions Shop to show or hide the equipped companion.',
-  'When visible, tapping the floating companion opens the Companions area.'
- ],note:'Hiding the companion changes only its display; the equipped companion and its active bonus remain selected.',actions:[['companions','Open Companions']]},
+ {id:'companions',category:'collection',icon:'🐾',title:'3D companions, wardrobes, and display',summary:'Adopt one active companion, dress it in saved outfits, and control where it appears.',path:'Menu, then Gear, then Shop, then Companions',steps:[
+  'Companions require verified Patreon Tier 2 or higher. Each companion has a dimensional character portrait, an unlock condition, an adoption cost, and a specialized gameplay bonus.',
+  'Equip an adopted companion to open its wardrobe. Explorer Gear is included; Academy, Festival, and Crystal Guardian outfits are global unlocks that work with every adopted companion.',
+  'Each companion remembers its own equipped outfit. Switching companions restores the clothing previously selected for that companion.',
+  'Use the Companion display button at the top of the Companions Shop to show or hide the dressed companion. Tapping the floating portrait opens this area.'
+ ],note:'Clothing is cosmetic. Hiding a companion or changing its outfit never disables the equipped companion’s gameplay bonus.',actions:[['companions','Open Companions']]},
  {id:'settlement',category:'collection',icon:'🏘️',title:'Settlement and permanent upgrades',summary:'Settlement gives Player Levels and Nuggets a long-term upgrade purpose.',path:'Menu → Explore → Expedition Hub → Settlement · Shop → Settlement',steps:[
   'Settlement is a Patreon Tier 3 benefit. Buildings require both the displayed Player Level and Nugget price.',
   'Building levels are permanent. Existing purchased levels stay owned even if later requirements change.',
@@ -129,7 +135,7 @@ const TOPICS=[
  {id:'settings-install',category:'help',icon:'⚙️',title:'Accessibility, portrait lock, installation, and recovery',summary:'Adjust comfort, display, sound, rotation, installation, and local safety tools.',path:'Menu → Player → Accessibility',steps:[
   'Text size, reduced motion, high contrast, color indicators, explanations, sound effects, music, and companion display can be changed here.',
   'Portrait lock asks the device to stay upright and also blocks landscape play inside the game. Some phones still require system auto-rotate to be turned off.',
-  'Install App becomes available when the browser supports installation. Remove an old home-screen shortcut once before reinstalling a renamed build.',
+  'Install App now follows https://erendragneel.github.io/language-miner/. If a system prompt is unavailable, the button shows browser-specific Add to Home Screen instructions. Remove an old shortcut once before reinstalling from the renamed address.',
   'Safety snapshots create local recovery points. Restoring a snapshot replaces the current saved state, so inspect its date first.'
  ],note:'Settings save to this browser and active player unless the control says it is device-wide.',actions:[['settings','Open Accessibility']]},
  {id:'sharing-and-backups',category:'help',icon:'📱',title:'Share the game and protect a save',summary:'Use a QR code for the game link and a backup file for player progress.',path:'Menu → Player → Share Game · Menu → Player → Account',steps:[
@@ -207,6 +213,7 @@ function openArea(action){
   else if(action==='missions')window.openJapaneseMinerV5?.('missions');
   else if(action==='settlement')window.openJapaneseMinerV5?.('settlement');
   else if(action==='course')click('[data-menu-action="course"]');
+  else if(action==='writing')window.openLanguageMinerWritingPractice?.();
   else if(action==='notebook')window.openJapaneseMinerNotebook?.();
   else if(action==='quests')window.openJapaneseMinerQuests?.();
   else if(action==='calendar')document.getElementById('studyCalendarBtn')?.click();

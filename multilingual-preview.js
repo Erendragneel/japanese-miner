@@ -829,6 +829,11 @@
   window.LanguageMinerCourseAdmin=Object.freeze({unlockAll:adminUnlockAllLanguages,resetLanguage:adminResetLanguage,resetAll:adminResetAllLanguages,resetBossesAndReviews:adminResetBossesAndReviews,resetPlacement:adminResetPlacement,resetAllPlacements:adminResetAllPlacements,resetForAccount:adminResetForAccount,currentLanguage:()=>multilingualAdminAllowed()?learning:null,status:adminCourseStatus});
   window.LanguageMinerCourseCloud=Object.freeze({exportCurrent:()=>cloneSettings(currentSettings()),importCurrent:value=>{const settings=normalizeSettings(cloneSettings(value));saveSettings(settings);refreshAfterAdmin(settings);return settings;},resetSnapshot:(value,target)=>resetSettingsSnapshot(value,target)});
   window.LanguageMinerCourseLesson=Object.freeze({current:()=>courseArcadeLesson(),options:courseArcadeLessonOptions,select:selectCourseArcadeLesson});
+  window.LanguageMinerCourseWriting=Object.freeze({
+    currentLanguage:()=>learning,
+    languageInfo:(languageId=learning)=>cloneSettings(LANGUAGES[languageId]||LANGUAGES.en),
+    alphabetSystem:(languageId=learning)=>cloneSettings(ALPHABET_SYSTEMS[languageId]||null)
+  });
   function build(){
     overlay=document.createElement('div');overlay.id='lmMultilingualOverlay';overlay.className='lm-multilingual-overlay';overlay.setAttribute('aria-hidden','true');overlay.innerHTML=`<section class="lm-multilingual-card" role="dialog" aria-modal="true" aria-labelledby="lmFlowTitle"><header class="lm-flow-head"><div id="lmFlowIcon" class="lm-flow-icon">🌐</div><div class="lm-flow-copy"><h2 id="lmFlowTitle">Choose your Language Miner course</h2><p id="lmFlowCopy"></p></div><button id="lmFlowClose" class="lm-flow-close" type="button" aria-label="Close language setup">×</button></header><div class="lm-flow-progress" aria-label="Language setup progress"><i class="active"></i><i></i><i></i></div><div id="lmFlowContent"></div></section>`;document.body.appendChild(overlay);
     toast=document.createElement('div');toast.className='lm-preview-toast';toast.setAttribute('role','status');document.body.appendChild(toast);

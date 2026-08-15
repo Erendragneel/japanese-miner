@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.132-install-repair-r2';
+const CACHE_NAME='language-miner-v6.4.137-settlement-village-map-r1';
 const APP_SHELL=[
   './',
   './index.html',
@@ -9,6 +9,8 @@ const APP_SHELL=[
   './parent-teacher-center.css',
   './writing-practice.css',
   './companion-wardrobe.css',
+  './avatar-holiday-specials.css',
+  './settlement-village.css',
   './n5-vocabulary-1000.js',
   './multilingual-course-data.js',
   './additional-language-packs.js',
@@ -34,6 +36,11 @@ const APP_SHELL=[
   './writing-practice.js',
   './manifest.webmanifest',
   './anime-miner-v1.png',
+  './avatar-holiday-lantern-yukata-layer-v1.png',
+  './avatar-holiday-cozy-christmas-layer-v1.png',
+  './avatar-holiday-santa-celebration-layer-v1.png',
+  './avatar-holiday-summer-matsuri-layer-v1.png',
+  './settlement-village-map-v1.png',
   './language-miner-logo.png',
   './patreon-tier-1-supporter.png',
   './patreon-tier-2-companion-keeper.png',

@@ -705,7 +705,7 @@
   let syncingExpeditionHub=false,expeditionHubObserver=null,expeditionHubObservedContent=null;
   function ensureExpeditionHubObserver(){
     const content=document.getElementById('v5Content');if(!content||content===expeditionHubObservedContent)return;
-    expeditionHubObserver?.disconnect();expeditionHubObservedContent=content;expeditionHubObserver=new MutationObserver(()=>{if(syncingExpeditionHub||learning==='ja')return;const hub=document.getElementById('v5Overlay'),mapTab=hub?.querySelector('[data-v5tab="map"]');if(!hub?.classList.contains('open')||!mapTab?.classList.contains('active'))return;if(content.dataset.lmLearning!==learning||content.querySelector('.lm-course-world-map')?.dataset.lmCourseLanguage!==learning)syncExpeditionHub();});expeditionHubObserver.observe(content,{childList:true});
+    expeditionHubObserver?.disconnect();expeditionHubObservedContent=content;expeditionHubObserver=new MutationObserver(()=>{if(syncingExpeditionHub||learning==='ja')return;const hub=document.getElementById('v5Overlay'),mapTab=hub?.querySelector('[data-v5tab="map"]');if(!hub?.classList.contains('open')||!mapTab?.classList.contains('active'))return;if(content.dataset.lmLearning!==learning||content.querySelector('.lm-course-world-map')?.dataset.lmCourseLanguage!==learning)syncExpeditionHub();});try{if(content?.nodeType===Node.ELEMENT_NODE)expeditionHubObserver.observe(content,{childList:true});}catch{}
   }
   function syncExpeditionHub(){
     const hub=document.getElementById('v5Overlay'),content=document.getElementById('v5Content'),mapTab=hub?.querySelector('[data-v5tab="map"]');

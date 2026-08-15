@@ -39,7 +39,7 @@ const TOPICS=[
  {id:'expedition-hub',category:'learning',icon:'🗺️',title:'Expedition Hub and course map',summary:'Use the Expedition Hub to choose a mine, lesson, guardian, or related study tool.',path:'Menu → Explore → Expedition Hub',steps:[
   'The Hub always follows the selected learning language. Available or highlighted mines can be opened; a lock explains the requirement for a later mine.',
   'Open a mine card, then choose an available family, section, lesson, checkpoint, or guardian.',
-  'The Hub tabs also lead to Bosses, Review, Word Book, Companions, Settlement, Missions, Events, and Fashion.',
+  'The Hub tabs also lead to Bosses, Review, Word Book, Companions, Settlement, Missions, and Events.',
   'Expedition Hub, Course, and Learning Path are different views of the same saved course progress.'
  ],note:'Selecting a lesson makes it the active route used by the mine on the home screen.',actions:[['expedition','Open Expedition Hub'],['course','Open Course']]},
  {id:'lessons-and-mastery',category:'learning',icon:'📘',title:'Lessons, preview cards, and mastery',summary:'Lessons organize the course into manageable groups and unlock later checkpoints.',path:'Menu → Explore → Course · Expedition Hub → open a mine',steps:[
@@ -109,10 +109,11 @@ const TOPICS=[
   'Events contain seasonal activities and rewards with their own availability or claim rules.'
  ],note:'A completed goal is not always paid automatically; look for a visible Claim button.',actions:[['quests','Open Quests'],['missions','Open Missions']]},
  {id:'shop-bag-character',category:'collection',icon:'🛍️',title:'Shop, Inventory or Bag, and Character',summary:'Buy, find, equip, and manage permanent collection items.',path:'Menu → Gear → Shop, Inventory, or Character',steps:[
-  'Shop tabs separate mine cosmetics, pickaxes, character options, fashion, companions, settlement, Arcade, wallpapers, and supplies.',
+  'Shop tabs separate mine cosmetics, character customization, companions, settlement, Arcade, wallpapers, and supplies. The former Fashion tab has been merged into Character.',
   'Previewable permanent items show their appearance and price before purchase. Owned items can be equipped again without another charge.',
   'Inventory or Bag groups everything owned, marks equipped items, shows supply counts, and contains claimed Study Arcade games.',
-  'Character changes skin tone, hair, clothing, and accessories for the active player profile.'
+  'Character changes skin tone, hair, clothing, accessories, gloves, and shoes for the active player profile.',
+  'Holiday Specials appear below gloves and shoes. They are seasonal avatar sets reserved for verified Patreon Tier 2 members and higher.'
  ],note:'If an item is missing from the Bag, first claim or purchase it in its Shop tab.',actions:[['shop','Open Shop'],['inventory','Open Inventory or Bag'],['character','Open Character']]},
  {id:'companions',category:'collection',icon:'🐾',title:'3D companions, wardrobes, and display',summary:'Adopt one active companion, dress it in saved outfits, and control where it appears.',path:'Menu, then Gear, then Shop, then Companions',steps:[
   'Companions require verified Patreon Tier 2 or higher. Each companion has a dimensional character portrait, an unlock condition, an adoption cost, and a specialized gameplay bonus.',

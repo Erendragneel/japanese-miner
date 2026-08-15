@@ -1,29 +1,32 @@
-import { requiredEnv, patreonCallbackUrl } from "../_shared/config.ts";
-import { randomState, sha256 } from "../_shared/crypto.ts";
-import { json, options } from "../_shared/http.ts";
-import { requireUser, serviceClient } from "../_shared/supabase.ts";
+import { sha256 } from "../_shared/crypto.ts";
+import { publicErrorMessage, redirectToGame } from "../_shared/http.ts";
+import { connectionRow, exchangeAuthorizationCode, fetchIdentityMembership } from "../_shared/patreon.ts";
+import { serviceClient } from "../_shared/supabase.ts";
 
 Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") return options(request);
-  if (request.method !== "POST") return json(request, { error: "Method not allowed" }, 405);
   try {
-    const user = await requireUser(request);
-    const state = randomState();
+    const url = new URL(request.url);
+    const providerError = url.searchParams.get("error");
+    if (providerError) throw new Error("Patreon authorization was cancelled");
+    const code = url.searchParams.get("code") || "";
+    const state = url.searchParams.get("state") || "";
+    if (!code || !state) throw new Error("Invalid Patreon callback");
     const digest = await sha256(state);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
     const db = serviceClient();
-    await db.from("patreon_oauth_states").delete().eq("user_id", user.id);
-    const { error } = await db.from("patreon_oauth_states").insert({ state_digest: digest, user_id: user.id, expires_at: expiresAt });
-    if (error) throw error;
-    const authorize = new URL("https://www.patreon.com/oauth2/authorize");
-    authorize.searchParams.set("response_type", "code");
-    authorize.searchParams.set("client_id", requiredEnv("PATREON_CLIENT_ID"));
-    authorize.searchParams.set("redirect_uri", patreonCallbackUrl());
-    authorize.searchParams.set("scope", "identity identity.memberships");
-    authorize.searchParams.set("state", state);
-    return json(request, { authorization_url: authorize.toString(), expires_at: expiresAt });
+    const { data: stored, error: stateError } = await db.from("patreon_oauth_states").select("user_id,expires_at").eq("state_digest", digest).maybeSingle();
+    if (stateError || !stored) throw new Error("Invalid or already used connection state");
+    await db.from("patreon_oauth_states").delete().eq("state_digest", digest);
+    if (Date.parse(stored.expires_at) <= Date.now()) throw new Error("The Patreon connection state expired");
+    const accessToken = await exchangeAuthorizationCode(code);
+    const snapshot = await fetchIdentityMembership(accessToken);
+    const { error: upsertError } = await db.from("patreon_connections").upsert(connectionRow(stored.user_id, snapshot), { onConflict: "user_id" });
+    if (upsertError) {
+      if (upsertError.code === "23505") throw new Error("This Patreon account is already linked to another supporter account");
+      throw upsertError;
+    }
+    return redirectToGame("linked");
   } catch (error) {
-    const unauthorized = error instanceof Error && error.message === "Unauthorized";
-    return json(request, { error: unauthorized ? "Unauthorized" : "Could not start Patreon linking" }, unauthorized ? 401 : 500);
+    console.error("Patreon callback failed", error);
+    return redirectToGame("error", publicErrorMessage(error));
   }
 });

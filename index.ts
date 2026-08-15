@@ -1,32 +1,23 @@
-import { sha256 } from "../_shared/crypto.ts";
-import { publicErrorMessage, redirectToGame } from "../_shared/http.ts";
-import { connectionRow, exchangeAuthorizationCode, fetchIdentityMembership } from "../_shared/patreon.ts";
-import { serviceClient } from "../_shared/supabase.ts";
+import { json, options } from "../_shared/http.ts";
+import { requireUser, serviceClient } from "../_shared/supabase.ts";
 
 Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return options(request);
+  if (request.method !== "POST") return json(request, { error: "Method not allowed" }, 405);
   try {
-    const url = new URL(request.url);
-    const providerError = url.searchParams.get("error");
-    if (providerError) throw new Error("Patreon authorization was cancelled");
-    const code = url.searchParams.get("code") || "";
-    const state = url.searchParams.get("state") || "";
-    if (!code || !state) throw new Error("Invalid Patreon callback");
-    const digest = await sha256(state);
+    const user = await requireUser(request);
+    const body = await request.json().catch(() => ({}));
+    if (body?.confirm !== "DELETE") return json(request, { error: "Deletion confirmation is required" }, 400);
     const db = serviceClient();
-    const { data: stored, error: stateError } = await db.from("patreon_oauth_states").select("user_id,expires_at").eq("state_digest", digest).maybeSingle();
-    if (stateError || !stored) throw new Error("Invalid or already used connection state");
-    await db.from("patreon_oauth_states").delete().eq("state_digest", digest);
-    if (Date.parse(stored.expires_at) <= Date.now()) throw new Error("The Patreon connection state expired");
-    const accessToken = await exchangeAuthorizationCode(code);
-    const snapshot = await fetchIdentityMembership(accessToken);
-    const { error: upsertError } = await db.from("patreon_connections").upsert(connectionRow(stored.user_id, snapshot), { onConflict: "user_id" });
-    if (upsertError) {
-      if (upsertError.code === "23505") throw new Error("This Patreon account is already linked to another supporter account");
-      throw upsertError;
-    }
-    return redirectToGame("linked");
+    // Foreign keys use ON DELETE CASCADE for saves, Patreon links, legal
+    // consent, OAuth states, and privacy requests. Deleting the Auth user is
+    // therefore the single authoritative account-erasure operation.
+    const { error } = await db.auth.admin.deleteUser(user.id, false);
+    if (error) throw error;
+    return json(request, { deleted: true });
   } catch (error) {
-    console.error("Patreon callback failed", error);
-    return redirectToGame("error", publicErrorMessage(error));
+    const message = error instanceof Error ? error.message : "Account deletion failed";
+    const unauthorized = /authorization|auth|token|session/i.test(message);
+    return json(request, { error: unauthorized ? "Sign in again before deleting the account" : "The account could not be deleted" }, unauthorized ? 401 : 500);
   }
 });

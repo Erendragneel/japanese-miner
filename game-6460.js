@@ -28,7 +28,7 @@ const stages = [
   {name:"JLPT N4 Tunnel", label:"N4", unlock:8},
   {name:"JLPT N3 Depths", label:"N3", unlock:12},
   {name:"JLPT N2 Crystal Core", label:"N2", unlock:17},
-  {name:"JLPT N1 Master Mine", label:"N1", unlock:23}
+  {name:"JLPT N1 Practice Mine", label:"N1", unlock:23}
 ];
 
 const STAGE_XP_REQUIREMENTS=[18240,18240,25000,35000,50000,75000,100000];
@@ -1891,6 +1891,7 @@ function showAuthMode(mode){
   document.getElementById("createTabBtn").className=create?"primary":"";
   document.getElementById("displayNameWrap").style.display=create?"grid":"none";
   document.getElementById("migrateWrap").style.display=create&&localStorage.getItem("jm_save")?"flex":"none";
+  window.LanguageMinerLegal?.setCreateVisible?.(create);
   document.getElementById("authSubmitBtn").textContent=create?"Create account":"Sign in";
   const password=document.getElementById("authPassword"),passwordToggle=document.getElementById("authPasswordToggle");
   password.setAttribute("autocomplete",create?"new-password":"current-password");password.type="password";
@@ -1944,8 +1945,10 @@ async function submitAuth(){
   if(!/^\S+@\S+\.\S+$/.test(email)){setAuthMessage("Enter a valid email address.");return;}
   if(password.length<8){setAuthMessage("Password must contain at least 8 characters.");return;}
   if(authMode==="create"&&(name.length<2||name.length>20)){setAuthMessage("Player name must contain 2–20 characters.");return;}
+  const legalCheck=authMode==="create"?window.LanguageMinerLegal?.validateSignup?.():{ok:true,legal:null};
+  if(authMode==="create"&&(!legalCheck||legalCheck.ok!==true)){setAuthMessage(legalCheck?.message||"Complete the age and policy choices before creating an account.");return;}
   const button=document.getElementById("authSubmitBtn");button.disabled=true;button.textContent=authMode==="create"?"Creating account…":"Signing in…";
-  try{const session=authMode==="create"?await cloud.signUp(name,email,password):await cloud.signIn(email,password);await loadCloudProfile(session,authMode==="create"?name:"");document.getElementById("authPassword").value="";}
+  try{const session=authMode==="create"?await cloud.signUp(name,email,password,legalCheck.legal):await cloud.signIn(email,password);await loadCloudProfile(session,authMode==="create"?name:"");document.getElementById("authPassword").value="";}
   catch(error){const message=String(error?.message||"Account access failed.");setAuthMessage(/invalid login credentials/i.test(message)?"Email or password is incorrect.":message);}
   finally{button.disabled=false;button.textContent=authMode==="create"?"Create account":"Sign in";}
 }
@@ -2552,6 +2555,7 @@ function shopText(key,values={}){return window.LanguageMinerI18n?.t?.(key,values
 function applyWallpaper(){const supporter=(window.japaneseMinerSupporterTier?.()||0)>=1;document.body.dataset.wallpaper=supporter?(state.equippedWallpaper||'midnight'):'midnight';document.body.dataset.theme=supporter?(state.colorTheme||'midnight'):'midnight';}
 function openGameMenu(){setStatsDrawer(false);document.getElementById('gameMenuOverlay')?.classList.add('open');document.getElementById('gameMenuOverlay')?.setAttribute('aria-hidden','false');document.getElementById('gameMenuBtn')?.setAttribute('aria-expanded','true');syncPageScrollLock();}
 function closeGameMenu(){document.getElementById('gameMenuOverlay')?.classList.remove('open');document.getElementById('gameMenuOverlay')?.setAttribute('aria-hidden','true');document.getElementById('gameMenuBtn')?.setAttribute('aria-expanded','false');syncPageScrollLock();}
+window.closeGameMenu=closeGameMenu;
 function returnToGameMenu(closeCurrent){if(typeof closeCurrent==='function')closeCurrent();openGameMenu();}
 function openShop(tab='mine-cosmetics'){activeShopTab=tab==='fashion'?'character':['pickaxes','wallpapers'].includes(tab)?'mine-cosmetics':tab;closeGameMenu();document.getElementById('shopOverlay')?.classList.add('open');document.getElementById('shopOverlay')?.setAttribute('aria-hidden','false');syncPageScrollLock();renderShop();}
 function closeShop(){document.getElementById('shopOverlay')?.classList.remove('open');document.getElementById('shopOverlay')?.setAttribute('aria-hidden','true');syncPageScrollLock();}
@@ -2955,7 +2959,7 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
   function backupPayload(){const profiles=readProfiles();const profile=profiles.find(p=>p.id===activeProfileId);return {format:'JapaneseMinerBackup',version:'4.0',exportedAt:new Date().toISOString(),profile:{name:profile?.name||'Player',id:activeProfileId},state};}
   function downloadBackup(){const blob=new Blob([JSON.stringify(backupPayload(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`language-miner-${(document.getElementById('activePlayerName')?.textContent||'player').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-backup.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
   function importBackup(file){const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);if(data.format!=='JapaneseMinerBackup'||!data.state)throw new Error('Invalid Language Miner backup.');if(!confirm('Replace this profile’s current progress with the imported backup?'))return;state=normalizeState(data.state);repairTutorAccessState();ensureV38();save();render();closeFeatureCenter();setMessage('Account backup imported successfully.','correct');}catch(e){alert(e.message||'The backup could not be imported.');}};reader.readAsText(file);}
-  function renderAccount(){const supporter=window.japaneseMinerSupporterEntitlement?.()||{tier:0,connected:false};return `<div class="feature-section"><div class="viz-callout"><strong>Portable account backup</strong><br>This build stores gameplay profiles in the browser. Exporting a backup lets you move progress to another phone or browser safely.</div><button id="exportBackupBtn" class="primary" type="button">⬇️ Export account backup</button><label class="backup-upload">⬆️ Import account backup<input id="importBackupInput" type="file" accept="application/json"></label><h3>Cloud supporter status</h3><p>Patreon verification uses a secure cloud account when configured. Gameplay progress remains local unless you export and import a backup.</p><div class="stat-row"><span>Patreon connection</span><strong>${supporter.tier>0?`Tier ${supporter.tier} · ${supporter.tier_name||'Verified supporter'}`:supporter.connected?'Connected · no paid tier':'Not connected'}</strong></div><div class="stat-row"><span>Active profile ID</span><strong>${activeProfileId||'Not signed in'}</strong></div><div class="stat-row"><span>Selected title</span><strong>${state.selectedTitle||'None'}</strong></div></div>`;}
+  function renderAccount(){const supporter=window.japaneseMinerSupporterEntitlement?.()||{tier:0,connected:false};return `<div class="feature-section"><div class="viz-callout"><strong>Cloud save and portable backup</strong><br>Signed-in progress is saved to the connected Language Miner account. Export a separate backup before changing devices or clearing browser data.</div><button id="exportBackupBtn" class="primary" type="button">⬇️ Export gameplay backup</button><label class="backup-upload">⬆️ Import gameplay backup<input id="importBackupInput" type="file" accept="application/json"></label><h3>Privacy and account data</h3><p>Review the policies, see what is stored, export a full account-data copy, submit a private request, or permanently delete this account.</p><button id="openPrivacySafetyBtn" type="button">🛡️ Open Privacy &amp; Safety</button><p><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a></p><h3>Cloud supporter status</h3><p>Patreon verification uses the signed-in cloud account. Patreon passwords and payment details stay with Patreon.</p><div class="stat-row"><span>Patreon connection</span><strong>${supporter.tier>0?`Tier ${supporter.tier} · ${supporter.tier_name||'Verified supporter'}`:supporter.connected?'Connected · no paid tier':'Not connected'}</strong></div><div class="stat-row"><span>Active profile ID</span><strong>${activeProfileId||'Not signed in'}</strong></div><div class="stat-row"><span>Selected title</span><strong>${state.selectedTitle||'None'}</strong></div></div>`;}
   function renderFeatureCenter(tab){
     ensureV38();tab=tab==='mistakes'?'notebook':tab;featureTab=tab;featureShell();
     document.querySelectorAll('[data-feature-tab]').forEach(b=>b.classList.toggle('primary',b.dataset.featureTab===tab));
@@ -2976,6 +2980,7 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
     content.querySelectorAll('[data-delete-sticky]').forEach(b=>b.addEventListener('click',()=>{if(removeNotebookSticky(b.dataset.deleteSticky)){setMessage('Sticky note removed.','correct');renderFeatureCenter('notebook');}}));
     document.getElementById('exportBackupBtn')?.addEventListener('click',downloadBackup);
     document.getElementById('importBackupInput')?.addEventListener('change',e=>{if(e.target.files[0])importBackup(e.target.files[0]);});
+    document.getElementById('openPrivacySafetyBtn')?.addEventListener('click',()=>window.LanguageMinerLegal?.open?.());
     if(tab==='profile')window.refreshJapaneseMinerCompanionDisplays?.();
   }
 

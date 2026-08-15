@@ -1,7 +1,7 @@
 {
   "name": "Language Miner",
   "short_name": "L-Miner",
-  "description": "Learn languages through mining, mastery, pronunciation, and smart review.",
+  "description": "Practice languages through mining, pronunciation, review, and independently tracked progress.",
   "id": "/language-miner/",
   "start_url": "/language-miner/",
   "scope": "/language-miner/",

@@ -16,17 +16,18 @@
 <link rel="icon" href="language-miner-icon-192.png" sizes="192x192" type="image/png" />
 <link rel="apple-touch-icon" sizes="180x180" href="language-miner-icon-180.png" />
 <link rel="canonical" href="https://erendragneel.github.io/language-miner/" />
-<link rel="manifest" href="manifest.webmanifest?v=6.4.137-settlement-village-map" />
+<link rel="manifest" href="manifest.webmanifest?v=6.4.138-legal-readiness" />
 <link rel="preload" href="language-miner-logo.png" as="image" type="image/png" />
 <link rel="stylesheet" href="styles.css?v=6.4.131-companion-wardrobe" />
 <link rel="stylesheet" href="v5.css?v=6.4.131-companion-wardrobe" />
-<link rel="stylesheet" href="v6-6460.css?v=6.4.136-holiday-outfit-collection" />
+<link rel="stylesheet" href="v6-6460.css?v=6.4.138-legal-readiness" />
 <link rel="stylesheet" href="multilingual-preview.css?v=6.4.131-companion-wardrobe" />
 <link rel="stylesheet" href="parent-teacher-center.css?v=6.4.131-companion-wardrobe" />
 <link rel="stylesheet" href="writing-practice.css?v=6.4.131-companion-wardrobe" />
 <link rel="stylesheet" href="companion-wardrobe.css?v=6.4.131-companion-wardrobe" />
 <link rel="stylesheet" href="avatar-holiday-specials.css?v=6.4.136-holiday-outfit-collection" />
 <link rel="stylesheet" href="settlement-village.css?v=6.4.137-settlement-village-map" />
+<link rel="stylesheet" href="legal-compliance.css?v=6.4.138-legal-readiness" />
 
 </head>
 <body>
@@ -35,12 +36,26 @@
   <section class="auth-card" aria-labelledby="authTitle">
     <h2 id="authTitle">Language Miner Account</h2>
     <section id="authRecoveryPanel" class="auth-recovery-panel" hidden aria-labelledby="authRecoveryTitle"><h3 id="authRecoveryTitle">Choose a new password</h3><p>Enter a new password for your Language Miner account.</p><div class="auth-field"><label for="authRecoveryPassword">New password</label><input id="authRecoveryPassword" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="At least 8 characters"></div><div class="auth-field"><label for="authRecoveryConfirm">Confirm new password</label><input id="authRecoveryConfirm" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Type the new password again"></div><button id="authRecoverySubmit" class="primary" type="button">Save New Password</button></section>
-    <p>One account signs you into the game and connects your Patreon membership. Progress is still saved on this device, so export a backup before clearing browser data or moving devices.</p>
+    <p>One account signs you into the game and can connect Patreon. Signed-in progress is stored both on this device and in the connected cloud save; you can export or delete it from Privacy &amp; Safety.</p>
     <div class="auth-tabs">
       <button id="loginTabBtn" class="primary" type="button">Sign in</button>
       <button id="createTabBtn" type="button">Create account</button>
     </div>
     <div id="displayNameWrap" class="auth-field" style="display:none"><label for="authUsername">Player name</label><input id="authUsername" maxlength="20" autocomplete="nickname" placeholder="Name shown inside the game"></div>
+    <section id="legalAccountWrap" class="auth-legal-account" hidden aria-labelledby="legalAccountTitle">
+      <h3 id="legalAccountTitle">Age and account type</h3>
+      <p>Choose a category without entering a birth date. Language Miner does not currently create direct accounts for children under 13.</p>
+      <div class="auth-field"><label for="authAccountRole">This account is for</label><select id="authAccountRole">
+        <option value="">Choose one</option>
+        <option value="learner_13_plus">A learner age 13 or older</option>
+        <option value="adult_guardian">An adult, parent, or guardian</option>
+        <option value="educator">A teacher or education professional</option>
+        <option value="under_13">A child under 13</option>
+      </select></div>
+      <div id="authUnder13Notice" class="auth-under-13" hidden role="status"><strong>Direct child accounts are not available.</strong><p>No account information has been sent. A verified parental-consent service must be added before Language Miner can create accounts for children under 13.</p></div>
+      <label class="form-check legal-consent-check"><input id="authAcceptTerms" class="form-check-input" type="checkbox"><span class="form-check-label">I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a>.</span></label>
+      <label class="form-check legal-consent-check"><input id="authAcceptPrivacy" class="form-check-input" type="checkbox"><span class="form-check-label">I have read the <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
+    </section>
     <div class="auth-field"><label for="authEmail">Email</label><input id="authEmail" type="email" maxlength="254" autocomplete="email" placeholder="you@example.com"></div>
     <div class="auth-field"><label for="authPassword">Password</label><div class="auth-password-control"><input id="authPassword" type="password" minlength="8" maxlength="72" autocomplete="current-password" placeholder="At least 8 characters"><button id="authPasswordToggle" class="auth-password-toggle" type="button" aria-label="Show password" aria-controls="authPassword" aria-pressed="false">👁️</button></div></div>
     <label id="migrateWrap" class="form-check" style="display:none;margin-top:10px"><input id="migrateOldSave" class="form-check-input" type="checkbox" checked><span class="form-check-label">Import the existing prototype save into this new profile</span></label>
@@ -48,6 +63,7 @@
     <div class="auth-support-actions"><button id="forgotPasswordBtn" type="button">Forgot password?</button><button id="authInstallAppBtn" type="button" data-language-miner-install>📲 Install App</button></div>
     <div id="authMessage" class="auth-message" aria-live="polite"></div>
     <div class="small">This same account is used in Menu &rarr; Patreon. Patreon passwords are entered only on Patreon.</div>
+    <nav class="auth-policy-links" aria-label="Legal information"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a><a href="terms.html" target="_blank" rel="noopener">Terms</a><button type="button" data-open-legal-center>Privacy &amp; Safety</button></nav>
   </section>
 </div>
 
@@ -66,7 +82,7 @@
   <div>
     <div class="lm-title-row"><h1 class="lm-visually-hidden">Language Miner</h1><span id="lmCourseIndicator" class="lm-course-indicator">🇺🇸 English <b>→</b> 🇯🇵 Japanese</span><button id="lmChangeLanguageBtn" class="lm-change-language" type="button">🌐 Change Language</button></div>
   </div>
-    <div class="account-chip"><span class="build-badge">v6.4.137 · Language Miner</span><span>👤 <b id="activePlayerName">Not signed in</b></span><button id="headerStatsBtn" type="button" title="Open quick stats">📊 Stats</button><button id="studyCalendarBtn" type="button" title="Open the study calendar">📅 Calendar</button><button id="developerBtn" class="developer-only" type="button" hidden>👑 Admin</button><button id="logoutBtn" type="button">Log out</button></div>
+    <div class="account-chip"><span class="build-badge">v6.4.138 · Language Miner</span><span>👤 <b id="activePlayerName">Not signed in</b></span><button id="headerStatsBtn" type="button" title="Open quick stats">📊 Stats</button><button id="studyCalendarBtn" type="button" title="Open the study calendar">📅 Calendar</button><button id="developerBtn" class="developer-only" type="button" hidden>👑 Admin</button><button id="logoutBtn" type="button">Log out</button></div>
 </header>
 
 <button id="quickMineBtn" class="quick-mine-btn" type="button" aria-label="Start or return to the current question">â›ï¸ <span id="quickMineLabel">New Question</span></button>
@@ -398,18 +414,19 @@
   </section>
 </div>
 
-<div class="footer">Language Miner v6.4.137 <a href="THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a></div>
+<div class="footer">Language Miner v6.4.138 <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> <a href="terms.html" target="_blank" rel="noopener">Terms</a> <a href="THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a></div>
 </div>
 
 <script src="patreon-config.js?v=6.4.131-companion-wardrobe" defer></script>
-<script src="cloud-auth.js?v=6.4.101-admin-header-portrait-lock" defer></script>
+<script src="cloud-auth.js?v=6.4.138-legal-readiness" defer></script>
 <script src="auth-utilities.js?v=6.4.137-settlement-village-map" defer></script>
+<script src="legal-compliance.js?v=6.4.138-legal-readiness" defer></script>
 <script src="n5-vocabulary-1000.js?v=6.4.131-companion-wardrobe" defer></script>
 <script src="multilingual-course-data.js?v=6.4.102-eight-new-languages" defer></script>
-<script src="game-6460.js?v=6.4.137-settlement-village-map" defer></script>
-<script src="v5-6400.js?v=6.4.137-settlement-village-map" defer></script>
+<script src="game-6460.js?v=6.4.138-legal-readiness" defer></script>
+<script src="v5-6400.js?v=6.4.138-legal-readiness" defer></script>
 <script src="qr-code.js?v=6.4.131-companion-wardrobe" defer></script>
-<script src="v6.js?v=6.4.137-settlement-village-map" defer></script>
+<script src="v6.js?v=6.4.138-legal-readiness" defer></script>
 <script src="arcade-games.js?v=6.4.131-companion-wardrobe" defer></script>
 <script src="recovery-6460.js?v=6.4.101-admin-header-portrait-lock" defer></script>
 <script src="patreon-linking.js?v=6.4.131-companion-wardrobe" defer></script>
@@ -419,8 +436,8 @@
 <script src="patreon-copy-localization.js?v=6.4.131-companion-wardrobe" defer></script>
 <script src="parent-teacher-localization.js?v=6.4.131-companion-wardrobe" defer></script>
 <script src="generated-interface-localization.js?v=6.4.131-companion-wardrobe" defer></script>
-<script src="interface-localization.js?v=6.4.131-companion-wardrobe" defer></script>
-<script src="multilingual-preview.js?v=6.4.137-settlement-village-map" defer></script>
+<script src="interface-localization.js?v=6.4.138-legal-readiness" defer></script>
+<script src="multilingual-preview.js?v=6.4.138-legal-readiness" defer></script>
 <script src="parent-teacher-center.js?v=6.4.131-companion-wardrobe" defer></script>
 <script src="game-guide.js?v=6.4.137-settlement-village-map" defer></script>
 <script src="writing-practice.js?v=6.4.131-companion-wardrobe" defer></script>

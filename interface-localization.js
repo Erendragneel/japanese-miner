@@ -165,6 +165,12 @@
   Object.entries(window.LANGUAGE_MINER_PARENT_TEACHER_TRANSLATIONS||{}).forEach(([languageId,translations])=>{
     if(languageId==='en')Object.assign(EN,translations||{});else if(T[languageId])Object.assign(T[languageId],translations||{});
   });
+  const PRACTICE_PATH_SUFFIX={en:'practice',es:'práctica',ru:'практика',ja:'練習',ko:'연습',zh:'练习',it:'pratica',fr:'entraînement',de:'Übung',pt:'prática',vi:'luyện tập',th:'แบบฝึกหัด',tr:'alıştırma',id:'latihan',pl:'ćwiczenia',el:'εξάσκηση',uk:'практика'};
+  const FRAMEWORK_PATH_KEYS=['alphabetMine','cyrillicPath','hiraganaPath','hangulPath','pinyinPath','frenchPath'];
+  Object.entries(T).forEach(([languageId,pack])=>FRAMEWORK_PATH_KEYS.forEach(key=>{
+    if(!pack?.[key])return;
+    pack[key]=String(pack[key]).replace(/\s*\((practice|práctica|практика|練習|연습|练习|pratica|entraînement|Übung|prática|luyện tập|แบบฝึกหัด|alıştırma|latihan|ćwiczenia|εξάσκηση)\)\s*$/i,'')+` (${PRACTICE_PATH_SUFFIX[languageId]||PRACTICE_PATH_SUFFIX.en})`;
+  }));
   const activePatreonTierKey=Object.keys(EN).find(key=>EN[key]==='ACTIVE PATREON TIER {tier}');
   if(activePatreonTierKey&&T.el)T.el[activePatreonTierKey]='ΕΝΕΡΓΟ ΕΠΙΠΕΔΟ PATREON {tier}';
   const shareLanguageMinerKey=Object.keys(EN).find(key=>EN[key]==='Share Language Miner');

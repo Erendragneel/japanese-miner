@@ -1,4 +1,15 @@
-# Language Miner v6.4.126
+# Language Miner v6.4.138
+
+## v6.4.138 legal-readiness controls
+
+- Adds age-category assurance without collecting an exact birth date and blocks direct under-13 account creation before signup data is sent.
+- Versions Terms and Privacy acknowledgement in Supabase account metadata and the new `legal_consents` table.
+- Adds Player → Privacy & Safety with a data inventory, JSON export, authenticated privacy requests, and permanent self-service account deletion.
+- Adds a Privacy Policy, Terms of Service, expanded third-party notices, release asset register, educational-claims register, and preliminary trademark screen.
+- Adds clear independent/non-certification wording to CEFR-, JLPT-, TOPIK-, HSK-, and DALF-oriented pathways.
+- Adds `scripts/legal-readiness-check.ps1` and a deployment checklist for the required Supabase migration and account-deletion Edge Function.
+
+Before commercial launch, complete every `HOLD` item in [ASSET-PROVENANCE.md](ASSET-PROVENANCE.md), add the operator's verified public contact details to the policies, deploy the new Supabase migration/function, and obtain final review from qualified privacy and trademark counsel.
 
 ## v6.4.126 Parent/Teacher Center
 

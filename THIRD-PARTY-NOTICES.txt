@@ -1,5 +1,19 @@
 THIRD-PARTY NOTICES
 
+Language Miner is an independent product. CEFR, JLPT, TOPIK, HSK, DALF,
+Patreon, Supabase, GitHub, Android, iOS, and other names or marks referenced
+by the application belong to their respective owners. Their appearance is
+descriptive and does not imply sponsorship, endorsement, certification, or
+affiliation.
+
+No third-party voice recording or voice model is redistributed with the app.
+Optional speech playback uses the browser or operating system Web Speech
+implementation selected by the player's device.
+
+The complete asset-release status for bundled artwork is maintained in
+ASSET-PROVENANCE.md. Assets marked HOLD there require a supporting source,
+license, commission agreement, or generation record before commercial release.
+
 N5 course vocabulary source
 Project: elzup/jlpt-word-list
 Source: https://github.com/elzup/jlpt-word-list

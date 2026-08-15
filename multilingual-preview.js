@@ -2,15 +2,15 @@
 (()=>{
   'use strict';
   const LANGUAGES={
-    en:{name:'English',native:'English',flag:'🇺🇸',path:'Alphabet Mine to CEFR C2',mine:'English Alphabet Mine',voice:'en-US',accent:'American English · United States'},
-    es:{name:'Spanish',native:'Español',flag:'🇪🇸',path:'Alphabet Mine to CEFR C2',mine:'Spanish Alphabet Mine',voice:'es-ES',accent:'Español de España · Spain'},
-    ru:{name:'Russian',native:'Русский',flag:'🇷🇺',path:'Cyrillic Alphabet to CEFR C2',mine:'Cyrillic Alphabet Mine',voice:'ru-RU',accent:'Русский · Russia'},
-    ja:{name:'Japanese',native:'日本語',flag:'🇯🇵',path:'Hiragana to JLPT N1',mine:'Hiragana Mine',voice:'ja-JP',accent:'日本語 · Japan'},
-    ko:{name:'Korean',native:'한국어',flag:'🇰🇷',path:'Hangul Alphabet to TOPIK 6',mine:'Hangul Alphabet Mine',voice:'ko-KR',accent:'한국어 · South Korea'},
-    zh:{name:'Chinese (Mandarin)',native:'中文（普通话）',flag:'🇨🇳',path:'Pinyin Alphabet & Tones to HSK 9',mine:'Pinyin Alphabet & Tone Mine',voice:'zh-CN',accent:'普通话 · Mainland China'},
-    it:{name:'Italian',native:'Italiano',flag:'🇮🇹',path:'Alphabet Mine to CEFR C2',mine:'Italian Alphabet Mine',voice:'it-IT',accent:'Italiano · Italy'},
-    fr:{name:'French',native:'Français',flag:'🇫🇷',path:'Alphabet Mine to DALF C2',mine:'French Alphabet Mine',voice:'fr-FR',accent:'Français de France · France'},
-    de:{name:'German',native:'Deutsch',flag:'🇩🇪',path:'Alphabet Mine to CEFR C2',mine:'German Alphabet Mine',voice:'de-DE',accent:'Deutsch · Germany'}
+    en:{name:'English',native:'English',flag:'🇺🇸',path:'Alphabet Mine through advanced practice',mine:'English Alphabet Mine',voice:'en-US',accent:'American English · United States'},
+    es:{name:'Spanish',native:'Español',flag:'🇪🇸',path:'Alphabet Mine through advanced practice',mine:'Spanish Alphabet Mine',voice:'es-ES',accent:'Español de España · Spain'},
+    ru:{name:'Russian',native:'Русский',flag:'🇷🇺',path:'Cyrillic Alphabet through advanced practice',mine:'Cyrillic Alphabet Mine',voice:'ru-RU',accent:'Русский · Russia'},
+    ja:{name:'Japanese',native:'日本語',flag:'🇯🇵',path:'Hiragana through advanced JLPT-oriented practice',mine:'Hiragana Mine',voice:'ja-JP',accent:'日本語 · Japan'},
+    ko:{name:'Korean',native:'한국어',flag:'🇰🇷',path:'Hangul through advanced TOPIK-oriented practice',mine:'Hangul Alphabet Mine',voice:'ko-KR',accent:'한국어 · South Korea'},
+    zh:{name:'Chinese (Mandarin)',native:'中文（普通话）',flag:'🇨🇳',path:'Pinyin and tones through advanced HSK-oriented practice',mine:'Pinyin Alphabet & Tone Mine',voice:'zh-CN',accent:'普通话 · Mainland China'},
+    it:{name:'Italian',native:'Italiano',flag:'🇮🇹',path:'Alphabet Mine through advanced practice',mine:'Italian Alphabet Mine',voice:'it-IT',accent:'Italiano · Italy'},
+    fr:{name:'French',native:'Français',flag:'🇫🇷',path:'Alphabet Mine through advanced DALF-oriented practice',mine:'French Alphabet Mine',voice:'fr-FR',accent:'Français de France · France'},
+    de:{name:'German',native:'Deutsch',flag:'🇩🇪',path:'Alphabet Mine through advanced practice',mine:'German Alphabet Mine',voice:'de-DE',accent:'Deutsch · Germany'}
   };
   const EXPEDITION_COURSES={
     en:[
@@ -19,8 +19,8 @@
       ['English Grammar Quarry','Sentence patterns and core grammar','🧱'],
       ['Conversation Tunnel','Listening and real-world conversation','💬'],
       ['Intermediate English Range','Independent reading and expression','⛰️'],
-      ['Advanced English Depths','Nuance, fluency, and advanced texts','📚'],
-      ['CEFR C2 Summit','Complete English mastery','🏆']
+      ['Advanced English Depths','Nuance and advanced-text practice','📚'],
+      ['C2-oriented Summit','Advanced practice milestone · not a proficiency certificate','🏆']
     ],
     es:[
       ['Spanish Alphabet Mine','A–Z, Ñ, and Spanish letter names','Ñ'],
@@ -28,8 +28,8 @@
       ['Spanish Grammar Quarry','Gender, verbs, and sentence patterns','🧱'],
       ['Conversation Tunnel','Listening and real-world conversation','💬'],
       ['Intermediate Spanish Range','Independent reading and expression','⛰️'],
-      ['Advanced Spanish Depths','Nuance, fluency, and advanced texts','📚'],
-      ['CEFR C2 Summit','Complete Spanish mastery','🏆']
+      ['Advanced Spanish Depths','Nuance and advanced-text practice','📚'],
+      ['C2-oriented Summit','Advanced practice milestone · not a proficiency certificate','🏆']
     ],
     ru:[
       ['Cyrillic Alphabet Mine','All 33 Russian Cyrillic letters','Я'],
@@ -37,8 +37,8 @@
       ['Russian Cases Quarry','Cases, verbs, and sentence patterns','🧱'],
       ['Conversation Tunnel','Listening and real-world conversation','💬'],
       ['Intermediate Russian Range','Independent reading and expression','⛰️'],
-      ['Advanced Russian Depths','Nuance, fluency, and advanced texts','📚'],
-      ['CEFR C2 Summit','Complete Russian mastery','🏆']
+      ['Advanced Russian Depths','Nuance and advanced-text practice','📚'],
+      ['C2-oriented Summit','Advanced practice milestone · not a proficiency certificate','🏆']
     ],
     ja:[
       ['Hiragana Mine','Hiragana character families','あ'],
@@ -47,7 +47,7 @@
       ['JLPT N4 Tunnel','Elementary Japanese','文'],
       ['JLPT N3 Ridge','Intermediate Japanese','読'],
       ['JLPT N2 Depths','Advanced Japanese','聴'],
-      ['JLPT N1 Summit','Japanese mastery','🏆']
+      ['JLPT N1-oriented Summit','Advanced Japanese practice milestone · not JLPT certification','🏆']
     ],
     ko:[
       ['Hangul Alphabet Mine','Basic Hangul consonants and vowels','한'],
@@ -56,7 +56,7 @@
       ['Conversation Tunnel','Listening and real-world conversation','💬'],
       ['TOPIK I Range','Beginning Korean proficiency','⛰️'],
       ['TOPIK II Depths','Intermediate and advanced Korean','📚'],
-      ['TOPIK 6 Summit','Complete Korean mastery','🏆']
+      ['TOPIK 6-oriented Summit','Advanced Korean practice milestone · not TOPIK certification','🏆']
     ],
     zh:[
       ['Pinyin Alphabet & Tone Mine','Pinyin initials, finals, and four tones','声'],
@@ -65,7 +65,7 @@
       ['Conversation Tunnel','Listening and real-world conversation','💬'],
       ['HSK 1–3 Range','Beginning Mandarin proficiency','⛰️'],
       ['HSK 4–6 Depths','Intermediate Mandarin proficiency','📚'],
-      ['HSK 7–9 Summit','Advanced Mandarin mastery','🏆']
+      ['HSK 7–9-oriented Summit','Advanced Mandarin practice milestone · not HSK certification','🏆']
     ],
     it:[
       ['Italian Alphabet Mine','The 21 standard Italian letters','A'],
@@ -73,8 +73,8 @@
       ['Italian Grammar Quarry','Gender, verbs, and sentence patterns','🧱'],
       ['Conversation Tunnel','Listening and real-world conversation','💬'],
       ['Intermediate Italian Range','Independent reading and expression','⛰️'],
-      ['Advanced Italian Depths','Nuance, fluency, and advanced texts','📚'],
-      ['CEFR C2 Summit','Complete Italian mastery','🏆']
+      ['Advanced Italian Depths','Nuance and advanced-text practice','📚'],
+      ['C2-oriented Summit','Advanced practice milestone · not a proficiency certificate','🏆']
     ],
     fr:[
       ['French Alphabet Mine','A–Z and French letter names','É'],
@@ -82,8 +82,8 @@
       ['French Grammar Quarry','Gender, verbs, and sentence patterns','🧱'],
       ['Conversation Tunnel','Listening and real-world conversation','💬'],
       ['Intermediate French Range','Independent reading and expression','⛰️'],
-      ['Advanced French Depths','Nuance, fluency, and advanced texts','📚'],
-      ['DALF C2 Summit','Complete French mastery','🏆']
+      ['Advanced French Depths','Nuance and advanced-text practice','📚'],
+      ['DALF C2-oriented Summit','Advanced French practice milestone · not DALF certification','🏆']
     ],
     de:[
       ['German Alphabet Mine','A–Z, Ä, Ö, Ü, and ß','Ä'],
@@ -91,19 +91,19 @@
       ['German Grammar Quarry','Cases, verbs, and sentence patterns','🧱'],
       ['Conversation Tunnel','Listening and real-world conversation','💬'],
       ['Intermediate German Range','Independent reading and expression','⛰️'],
-      ['Advanced German Depths','Nuance, fluency, and advanced texts','📚'],
-      ['CEFR C2 Summit','Complete German mastery','🏆']
+      ['Advanced German Depths','Nuance and advanced-text practice','📚'],
+      ['C2-oriented Summit','Advanced practice milestone · not a proficiency certificate','🏆']
     ]
   };
   const COURSE_LEVEL_LABELS={
-    en:['Alphabet','CEFR A1','CEFR A2','CEFR B1','CEFR B2','CEFR C1','CEFR C2'],
-    es:['Alfabeto','CEFR A1','CEFR A2','CEFR B1','CEFR B2','CEFR C1','CEFR C2'],
-    ru:['Кириллица','CEFR A1','CEFR A2','CEFR B1','CEFR B2','CEFR C1','CEFR C2'],
-    ko:['한글','TOPIK 1','TOPIK 2','TOPIK 3','TOPIK 4','TOPIK 5','TOPIK 6'],
-    zh:['拼音与声调','HSK 1','HSK 2','HSK 3','HSK 4–5','HSK 6','HSK 7–9'],
-    it:['Alfabeto','CEFR A1','CEFR A2','CEFR B1','CEFR B2','CEFR C1','CEFR C2'],
-    fr:['Alphabet','CEFR A1','CEFR A2','CEFR B1','CEFR B2','CEFR C1','DALF C2'],
-    de:['Alphabet','CEFR A1','CEFR A2','CEFR B1','CEFR B2','CEFR C1','CEFR C2']
+    en:['Alphabet','A1-oriented','A2-oriented','B1-oriented','B2-oriented','C1-oriented','C2-oriented'],
+    es:['Alfabeto','A1-oriented','A2-oriented','B1-oriented','B2-oriented','C1-oriented','C2-oriented'],
+    ru:['Кириллица','A1-oriented','A2-oriented','B1-oriented','B2-oriented','C1-oriented','C2-oriented'],
+    ko:['한글','TOPIK 1-oriented','TOPIK 2-oriented','TOPIK 3-oriented','TOPIK 4-oriented','TOPIK 5-oriented','TOPIK 6-oriented'],
+    zh:['拼音与声调','HSK 1-oriented','HSK 2-oriented','HSK 3-oriented','HSK 4–5-oriented','HSK 6-oriented','HSK 7–9-oriented'],
+    it:['Alfabeto','A1-oriented','A2-oriented','B1-oriented','B2-oriented','C1-oriented','C2-oriented'],
+    fr:['Alphabet','A1-oriented','A2-oriented','B1-oriented','B2-oriented','C1-oriented','DALF C2-oriented'],
+    de:['Alphabet','A1-oriented','A2-oriented','B1-oriented','B2-oriented','C1-oriented','C2-oriented']
   };
   function alphabetUnits(source){
     return source.split('|').map(entry=>{const [symbol,name,spoken]=entry.split('~');return {symbol,name,spoken:spoken||name||symbol};});
@@ -229,6 +229,15 @@
     de:'Mit Lektionswiederholung überspringen startest du, ohne alle Vorschaukarten anzusehen.'
   };
   const ADDITIONAL_PACKS=window.LANGUAGE_MINER_ADDITIONAL_LANGUAGE_PACKS||{};
+  // Legal-readiness normalization: external frameworks and examinations are
+  // curriculum reference points, not promises of certification or mastery.
+  Object.values(ADDITIONAL_PACKS.languages||{}).forEach(language=>{
+    language.path=String(language.path||'').replace(/(?:Alphabet Mine|Alphabet & Tones|Script|Cyrillic)(?: to| through)? (?:CEFR )?C2/i,'Foundation through advanced practice');
+  });
+  Object.values(ADDITIONAL_PACKS.expeditions||{}).forEach(route=>{
+    route.forEach(level=>{if(!Array.isArray(level))return;level[0]=String(level[0]||'').replace(/CEFR C2 Summit/i,'C2-oriented Summit').replace(/Advanced Thai Summit/i,'Advanced-practice Summit');level[1]=String(level[1]||'').replace(/Complete [A-Za-z ()-]+ mastery/i,'Advanced practice milestone · not a proficiency certificate').replace(/Nuance, fluency, and advanced texts/i,'Nuance and advanced-text practice');});
+  });
+  Object.entries(ADDITIONAL_PACKS.levelLabels||{}).forEach(([language,levels])=>{ADDITIONAL_PACKS.levelLabels[language]=levels.map((label,index)=>index?String(label).replace(/^CEFR\s*/,'')+'-oriented':label);});
   Object.assign(LANGUAGES,ADDITIONAL_PACKS.languages||{});
   Object.assign(EXPEDITION_COURSES,ADDITIONAL_PACKS.expeditions||{});
   Object.assign(COURSE_LEVEL_LABELS,ADDITIONAL_PACKS.levelLabels||{});
@@ -721,7 +730,12 @@
       return;
     }
     if(content.dataset.lmLearning===learning&&content.querySelector('.lm-course-world-map')?.dataset.lmCourseLanguage===learning)return;
-    syncingExpeditionHub=true;try{content.dataset.lmExpeditionPreview='true';content.dataset.lmLearning=learning;content.innerHTML=multilingualExpeditionMap();}finally{syncingExpeditionHub=false;}
+    syncingExpeditionHub=true;try{
+      content.dataset.lmExpeditionPreview='true';content.dataset.lmLearning=learning;content.innerHTML=multilingualExpeditionMap();
+      const map=content.querySelector('.lm-course-world-map');
+      map?.querySelector('.lm-expedition-hero')?.insertAdjacentHTML('afterend','<aside class="lm-framework-disclaimer"><strong>Independent practice pathway</strong><span>Framework names describe the skills practiced. Language Miner does not issue official CEFR, JLPT, TOPIK, HSK, or DALF certification.</span></aside>');
+      const finish=map?.querySelector('.world-finish');if(finish)finish.textContent='🏆 Advanced practice milestone';
+    }finally{syncingExpeditionHub=false;}
   }
   const openExpeditionBeforeCourse=window.openJapaneseMinerV5;
   if(typeof openExpeditionBeforeCourse==='function')window.openJapaneseMinerV5=function(tab='map',...args){const result=openExpeditionBeforeCourse.call(this,tab,...args);if(tab==='map'){ensureExpeditionHubObserver();syncExpeditionHub();}return result;};

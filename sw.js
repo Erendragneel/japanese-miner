@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.137-settlement-village-map-r1';
+const CACHE_NAME='language-miner-v6.4.138-legal-readiness-r2';
 const APP_SHELL=[
   './',
   './index.html',
@@ -11,6 +11,10 @@ const APP_SHELL=[
   './companion-wardrobe.css',
   './avatar-holiday-specials.css',
   './settlement-village.css',
+  './legal-compliance.css',
+  './legal-policy.css',
+  './privacy.html',
+  './terms.html',
   './n5-vocabulary-1000.js',
   './multilingual-course-data.js',
   './additional-language-packs.js',
@@ -28,6 +32,7 @@ const APP_SHELL=[
   './patreon-config.js',
   './cloud-auth.js',
   './auth-utilities.js',
+  './legal-compliance.js',
   './patreon-linking.js',
   './interface-localization.js',
   './multilingual-preview.js',

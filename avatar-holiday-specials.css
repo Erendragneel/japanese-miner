@@ -1,0 +1,92 @@
+.holiday-specials-option .character-option-toggle{
+  background:linear-gradient(135deg,#4a285f,#273b68 58%,#174f4b);
+  border-bottom:1px solid #e9bd5a55;
+}
+.holiday-specials-option .character-option-toggle span{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.holiday-specials-option .character-option-toggle i{
+  padding:4px 8px;
+  border:1px solid #f1cf78;
+  border-radius:999px;
+  background:#302614;
+  color:#ffe69e;
+  font-size:.68rem;
+  font-style:normal;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.holiday-special-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.holiday-special-choice.visual-choice{
+  min-height:260px;
+  border-color:#b583d9;
+  background:radial-gradient(circle at 50% 16%,#62417d66,transparent 48%),linear-gradient(155deg,#202e50,#171b38);
+}
+.holiday-special-choice.visual-choice.selected{
+  border-color:#ffd66b;
+  box-shadow:0 0 0 2px #ffd66b55,0 14px 28px #0006;
+}
+.holiday-special-choice.visual-choice>span:last-child{
+  display:grid;
+  gap:4px;
+  min-height:105px;
+}
+.holiday-special-choice strong{color:#fff;font-size:.94rem}
+.holiday-special-choice small{color:#ffe08a;font-weight:900}
+.holiday-special-choice em{
+  color:#bdcbea;
+  font-size:.72rem;
+  font-style:normal;
+  line-height:1.35;
+}
+.holiday-special-gate{
+  grid-column:1/-1;
+  display:grid;
+  justify-items:start;
+  gap:8px;
+  padding:22px;
+  border:1px solid #d9b959;
+  border-radius:16px;
+  background:radial-gradient(circle at top right,#9b713533,transparent 50%),#121d34;
+  text-align:left;
+}
+.holiday-special-gate>span{color:#ffe08a;font-size:.72rem;font-weight:900;letter-spacing:.12em}
+.holiday-special-gate strong{font-size:1.05rem;color:#fff}
+.holiday-special-gate p{margin:0;color:#c8d5ee;line-height:1.45}
+.holiday-special-gate button{margin-top:4px;background:#7250aa;color:#fff}
+@media(max-width:850px){.holiday-special-grid{grid-template-columns:1fr}.holiday-special-choice.visual-choice{min-height:230px}}
+
+/* Non-boot footwear supplies its own lower-leg artwork. Hide the original
+   avatar's boot area so old buckles and shafts cannot show underneath it. */
+.miner-avatar[data-shoes="sneakers"]>.avatar-render,
+.miner-avatar[data-shoes="geta"]>.avatar-render{
+  clip-path:inset(0 0 23% 0);
+}
+
+/* Holiday sets are complete wardrobe layers. Preserve the player's selected
+   face and hair from the base portrait while replacing everything below the
+   neckline with the seasonal render. */
+.miner-avatar[data-holiday-special]:not([data-holiday-special="none"])>.avatar-render{
+  clip-path:inset(0 0 80.85% 0);
+}
+.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .native-shirt-layer,
+.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .native-pants-layer,
+.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .native-gloves-layer,
+.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .native-shoes-layer,
+.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .portrait-accessory-images{
+  display:none!important;
+}
+.native-holiday-layer{
+  z-index:4;
+  filter:drop-shadow(0 9px 8px #0006);
+}
+.holiday-special-choice[data-holiday-special="new-year"]{background:radial-gradient(circle at 50% 16%,#274c8666,transparent 50%),linear-gradient(155deg,#202e50,#11162d)}
+.holiday-special-choice[data-holiday-special="winter-academy"]{background:radial-gradient(circle at 50% 16%,#b92f3f44,transparent 50%),linear-gradient(155deg,#273b43,#171b38)}
+.holiday-special-choice[data-holiday-special="holiday-explorer"]{background:radial-gradient(circle at 50% 16%,#df384b44,transparent 50%),linear-gradient(155deg,#4a2338,#171b38)}
+.holiday-special-choice[data-holiday-special="summer-matsuri"]{background:radial-gradient(circle at 50% 16%,#72508a55,transparent 50%),linear-gradient(155deg,#242a50,#171b38)}

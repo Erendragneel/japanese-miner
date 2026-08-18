@@ -1,4 +1,14 @@
-# Language Miner v6.4.138
+# Language Miner v6.4.139
+
+## v6.4.139 study-flow update
+
+- Keeps the mobile heart-recovery HUD from covering the bottom course controls.
+- Makes Smart Review unlimited, available at zero hearts, and completely neutral: no XP, currency, gems, streaks, quests, rewards, or penalties.
+- Adds every language’s “I don’t know this yet” item directly to the saved Smart Review queue.
+- Removes reviewed cards from Notebook → Difficult and fixes the persistent multilingual New Question control while removing its duplicate inline button.
+- Restricts new gemstone awards to correct answers inside the gemstone’s matching mine.
+- Adds a travel-only onboarding purpose and 60 common phrases for every supported language.
+- Adds a required stroke-direction preview plus shape, placement, coverage, and direction validation to Writing Practice.
 
 ## v6.4.138 legal-readiness controls
 

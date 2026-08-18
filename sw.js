@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.138-legal-readiness-r2';
+const CACHE_NAME='language-miner-v6.4.139-study-flow-r2';
 const APP_SHELL=[
   './',
   './index.html',

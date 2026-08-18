@@ -368,6 +368,7 @@ input,select,textarea{font:inherit;font-size:16px}
  .academy-tabs::-webkit-scrollbar,.v5-tabs::-webkit-scrollbar,.shop-tabs::-webkit-scrollbar,.feature-tabs::-webkit-scrollbar{display:none}
  .academy-tabs button,.v5-tabs button,.shop-tabs button,.feature-tabs button{flex:0 0 auto;min-width:max-content}
  .academy-content{min-height:0}
+ body.heart-recovery-active .academy-panel{padding-bottom:calc(var(--heart-recovery-hud-height,66px) + 20px + env(safe-area-inset-bottom));scroll-padding-bottom:calc(var(--heart-recovery-hud-height,66px) + 20px + env(safe-area-inset-bottom))}
  .academy-toolbar,.course-subhead{align-items:stretch;flex-direction:column}
  .lesson-grid{grid-template-columns:1fr;gap:9px}
  .lesson-button{min-height:76px;padding:13px}

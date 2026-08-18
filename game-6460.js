@@ -827,7 +827,15 @@ function renderRecovery(){
   const time=document.getElementById("recoveryTime");
   const active=state.hearts<=0 && state.heartRecoveryEnd;
   const hud=document.getElementById('heartRecoveryHud'),hudTime=document.getElementById('heartRecoveryHudTime');
-  if(hud)hud.classList.toggle('active',!!active);
+  document.body.classList.toggle('heart-recovery-active',!!active);
+  if(hud){
+    hud.classList.toggle('active',!!active);
+    if(active){
+      document.documentElement.style.setProperty('--heart-recovery-hud-height',`${Math.ceil(hud.getBoundingClientRect().height)}px`);
+    }else{
+      document.documentElement.style.removeProperty('--heart-recovery-hud-height');
+    }
+  }
   if(active){
     const remaining=Math.max(0,state.heartRecoveryEnd-Date.now());
     const total=Math.ceil(remaining/1000);
@@ -1017,12 +1025,13 @@ function gemCheckpointThreshold(stage,checkpoint){const requirement=Number(STAGE
 function gemCheckpointDrop(gemName){return GEM_CHECKPOINT_DROPS.find(drop=>drop.gem===gemName)||null;}
 function gemCheckpointClaimed(drop){return !!drop&&!!state.gemCheckpointClaims?.[gemCheckpointKey(drop.stage,drop.checkpoint)];}
 function gemArtMarkup(gemName,extraClass=""){const index=gemTiers.findIndex(gem=>gem.name===gemName),col=Math.max(0,index%5),row=Math.max(0,Math.floor(index/5));return `<span class="scientific-gem-art ${extraClass}" style="background-position:${col*25}% ${row*50}%" role="img" aria-label="${gemName} gemstone"></span>`;}
-function grantUnlockedGemRewards(){
+function grantUnlockedGemRewards(activeMineStage){
   state.gemInventory=state.gemInventory&&typeof state.gemInventory==="object"?state.gemInventory:{};
   state.gemUnlockRewards=state.gemUnlockRewards&&typeof state.gemUnlockRewards==="object"&&!Array.isArray(state.gemUnlockRewards)?state.gemUnlockRewards:{};
-  const awarded=[];
+  const awarded=[],stage=Number(activeMineStage);
+  if(!Number.isInteger(stage)||stage<0||stage>=stages.length)return awarded;
   gemTiers.forEach(gem=>{
-    if(!isStageUnlocked(gem.minStage)||state.gemUnlockRewards[gem.name])return;
+    if(gem.minStage!==stage||!isStageUnlocked(stage)||state.gemUnlockRewards[gem.name])return;
     state.gemInventory[gem.name]=Number(state.gemInventory[gem.name]||0)+1;
     state.gemUnlockRewards[gem.name]=Date.now();
     awarded.push(gem);
@@ -1395,7 +1404,7 @@ function showQuestion(q){
   const area=document.getElementById("challengeArea");
   const displayedQuestion=questionDisplay(q);
   const showKanjiHelp=Boolean(q.help&&questionShowsKanji(q,displayedQuestion));
-  const helpButton=showKanjiHelp?'<button id="kanjiHelpBtn" class="kanji-help-btn" type="button">📖 I don’t know this kanji</button>':'';
+  const helpButton=showKanjiHelp?'<button id="kanjiHelpBtn" class="kanji-help-btn" type="button">📖 I don’t know this yet — add to review</button>':'';
   const helpBox=showKanjiHelp?'<div id="kanjiHelpBox" class="kanji-help-box" hidden></div>':'';
   const spoken=japaneseSpeechText(q);
   const silentTest=silentTestingActive(q);
@@ -1409,6 +1418,7 @@ function showQuestion(q){
       box.innerHTML=q.help;
       box.hidden=false;
       document.getElementById("kanjiHelpBtn").disabled=true;
+      if(window.japaneseMinerSmartReview?.enqueue?.(q)){setMessage('Added to Smart Review. You can review it without heart loss, rewards, or a queue limit.','correct');}
     });
   }
   const a=document.getElementById("answers");
@@ -1429,6 +1439,9 @@ function recordQuestionAttempt(q,correct){
 function answer(opt,button){
   if(state.answered || !state.active) return;
   const correct=opt===state.active.a;
+  if(state.active.smartReview===true){
+    const all=[...document.querySelectorAll("#answers button")];playFeedbackSound(correct);if(correct){state.answered=true;button.style.background="#225f49";all.forEach(answerButton=>answerButton.disabled=true);}else{button.disabled=true;button.style.background="#6d2933";}save();render();return;
+  }
   state.sessionAnswered=Number(state.sessionAnswered||0)+1;
   if(correct)state.sessionCorrect=Number(state.sessionCorrect||0)+1;
   updateSessionDashboard();
@@ -1454,7 +1467,7 @@ function answer(opt,button){
       state.clearedStages.push(answeredStage);
       addStoneChange(STAGE_CLEAR_REWARDS[answeredStage],Math.min(gemTiers.length-1,answeredStage*2+3));
     }
-    const unlockedGemRewards=grantUnlockedGemRewards();
+    const unlockedGemRewards=grantUnlockedGemRewards(answeredStage);
 
     const kanaProgress=recordKana(true);
     markPracticeToday();
@@ -2116,7 +2129,7 @@ renderAcademy=function(){
 
 // Connect N5 mine answers to the same Academy mastery records.
 const answerV2=answer;
-answer=function(opt,button){const q=state.active,correct=q&&opt===q.a;answerV2(opt,button);if(!q||Number(q.stage)!==2)return;if(q.vocabularyKey)recordVocabularyQuestionMastery(q,correct);let id=null;if(q.kind==='academy-kanji')id='kanji:'+q.q;if(q.kind==='academy-grammar'){const i=N5_GRAMMAR_POINTS.findIndex(g=>g[0]===q.a);if(i>=0)id='grammar:'+i;}if(q.kind==='academy-reading'){const i=N5_READING_PASSAGES.findIndex(p=>p[1]===q.q);if(i>=0)id='reading:'+i;}if(id){v3SetMastery(id,correct?10:-3);}}
+answer=function(opt,button){const q=state.active,correct=q&&opt===q.a;answerV2(opt,button);if(!q||q.smartReview===true||Number(q.stage)!==2)return;if(q.vocabularyKey)recordVocabularyQuestionMastery(q,correct);let id=null;if(q.kind==='academy-kanji')id='kanji:'+q.q;if(q.kind==='academy-grammar'){const i=N5_GRAMMAR_POINTS.findIndex(g=>g[0]===q.a);if(i>=0)id='grammar:'+i;}if(q.kind==='academy-reading'){const i=N5_READING_PASSAGES.findIndex(p=>p[1]===q.q);if(i>=0)id='reading:'+i;}if(id){v3SetMastery(id,correct?10:-3);}}
 
 // v3.1 New-player onboarding and interactive placement test
 const PLACEMENT_TEST_QUESTIONS=[
@@ -2433,7 +2446,7 @@ renderAcademy=function(){updateAcademyChrome();if(academyStage===2)return render
 document.querySelectorAll('[data-academy-tab]').forEach(b=>{b.addEventListener('click',()=>{academyTab=b.dataset.academyTab;academyView.quiz=null;renderAcademy();});});
 
 const answerV34=answer;
-answer=function(opt,button){const q=state.active,correct=q&&opt===q.a;answerV34(opt,button);if(q?.courseId){const [,type,i]=q.courseId.split(':');jlptSetMastery(type,Number(i),correct?10:-3,Number(q.stage));}};
+answer=function(opt,button){const q=state.active,correct=q&&opt===q.a;answerV34(opt,button);if(q?.smartReview===true)return;if(q?.courseId){const [,type,i]=q.courseId.split(':');jlptSetMastery(type,Number(i),correct?10:-3,Number(q.stage));}};
 
 // Expand placement from Kana/N5 through N1.
 const EXTRA_PLACEMENT_QUESTIONS=[
@@ -2804,8 +2817,9 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
   answer=function(opt,button){
     if(state.answered||!state.active)return;
     ensureV38();const q=state.active;const correct=opt===q.a,scheduledReview=Boolean(q?.id&&state.v5?.srs?.[q.id]?.dueAt<=Date.now());const beforeDay=state.questData.day;
-    answerV38(opt,button);
-    ensureV38();
+	    answerV38(opt,button);
+	    ensureV38();
+	    if(q.smartReview===true){save();return;}
     state.analytics.answered++;state.analytics[correct?'correct':'wrong']++;state.analytics.lastAnswerAt=Date.now();if(!state.analytics.firstStudyAt)state.analytics.firstStudyAt=Date.now();const cat=qCategory(q);state.analytics[cat]=(state.analytics[cat]||0)+1;
     state.questData.daily.answered=(state.questData.daily.answered||0)+1;state.questData.weekly.answered=(state.questData.weekly.answered||0)+1;
     if(correct){state.questData.daily.correct=(state.questData.daily.correct||0)+1;state.questData.weekly.correct=(state.questData.weekly.correct||0)+1;state.questData.daily.bestStreak=Math.max(state.questData.daily.bestStreak||0,state.streak||0);}else if(q.silentTesting!==true&&q.bossCourseStage==null)recordMistake(q,opt);
@@ -2907,7 +2921,7 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
 
   function renderQuests(){const dailyClaimed=DAILY_QUESTS.filter(q=>state.questData.daily['claimed_'+q.id]).length,weeklyClaimed=WEEKLY_QUESTS.filter(q=>state.questData.weekly['claimed_'+q.id]).length;return `<div class="quest-dashboard-hero"><div><span>Personal objectives</span><h3>📜 Quests</h3><p>Build a consistent study routine. Quest rewards combine Nuggets with useful Hints and Shields.</p></div><b>${dailyClaimed+weeklyClaimed}/${DAILY_QUESTS.length+WEEKLY_QUESTS.length}</b></div><div class="feature-section"><h3>Daily quests</h3><p class="small">${dailyClaimed}/${DAILY_QUESTS.length} claimed · refresh each calendar day.</p>${DAILY_QUESTS.map(q=>progressCard(q,'daily')).join('')}<h3>Weekly quests</h3><p class="small">${weeklyClaimed}/${WEEKLY_QUESTS.length} claimed · refresh every Monday.</p>${WEEKLY_QUESTS.map(q=>progressCard(q,'weekly')).join('')}</div>`;}
   function renderAchievements(){const tier=window.japaneseMinerSupporterTier?.()||0;return `<div class="achievement-grid">${ACHIEVEMENTS.map(a=>{const unlocked=state.achievements[a.id];return `<article class="achievement-card ${unlocked?'unlocked':''}"><span>${unlocked?'🏆':'🔒'}</span><div><strong>${a.name}</strong><p>${a.desc}</p><small>Reward: ${a.reward.toLocaleString()} Nuggets · Title: ${a.title}</small></div>${unlocked?`<button data-title="${a.title}" ${state.selectedTitle===a.title||tier<1?'disabled':''}>${tier<1?'🔒 Supporter title':state.selectedTitle===a.title?'Equipped':'Use title'}</button>`:''}</article>`}).join('')}</div>`;}
-  function visibleNotebookMistakes(){return state.mistakes.map((mistake,index)=>({mistake,index})).filter(({mistake})=>tutorAccessGranted()||(!mistake.tutor&&!tutorQuestion(questions.find(question=>String(question.id)===String(mistake.key)))));}
+  function visibleNotebookMistakes(){return state.mistakes.map((mistake,index)=>({mistake,index})).filter(({mistake})=>!mistake.resolved&&(tutorAccessGranted()||(!mistake.tutor&&!tutorQuestion(questions.find(question=>String(question.id)===String(mistake.key))))));}
   function visibleNotebookNotes(){return state.notebookNotes.filter(note=>tutorAccessGranted()||!note.tutor).sort((a,b)=>Number(b.updatedAt)-Number(a.updatedAt));}
   function notebookNoteForMistake(key){return state.notebookNotes.find(note=>note.mistakeKey&&String(note.mistakeKey)===String(key))||null;}
   function notebookNoteId(){return `note-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;}
@@ -2933,7 +2947,7 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
   function renderNotebookReview(){
     const visible=visibleNotebookMistakes();
     if(!visible.length)return '<div class="empty-feature">📓 No difficult items saved yet. Incorrect mine answers will appear in your Notebook automatically.</div>';
-    return `<div class="mistake-list notebook-entry-list">${visible.map(({mistake:m,index:i})=>{const sticky=notebookNoteForMistake(m.key);return `<article class="mistake-card notebook-entry ${m.resolved?'resolved':''} ${sticky?'has-sticky':''}"><div class="notebook-entry-copy"><span class="viz-badge">${v3Esc(stages[m.stage]?.label||'Review')}</span><h3>${v3Esc(m.question||m.prompt)}</h3><p>${v3Esc(m.prompt)}</p><p><strong>Correct:</strong> ${v3Esc(m.correct)} · <strong>Your last answer:</strong> ${v3Esc(m.lastAnswer)}</p><small>Missed ${Number(m.count)||0} time${Number(m.count)===1?'':'s'} · ${new Date(m.lastMissed).toLocaleDateString()}</small></div><div class="notebook-entry-actions"><button data-resolve-mistake="${i}">${m.resolved?'Restore':'Mark reviewed'}</button></div><section class="sticky-note-editor"><label for="mistakeNote${i}">🗒️ Sticky note for this word or phrase</label><textarea id="mistakeNote${i}" data-mistake-note="${i}" maxlength="800" rows="3" placeholder="Write a memory trick, tutor explanation, example sentence, or personal reference…">${v3Esc(sticky?.note||'')}</textarea><div><small>${sticky?'Saved to the Sticky Notes tab.':'This note will stay attached to this Notebook item.'}</small><button data-save-mistake-note="${i}">${sticky?'Update sticky note':'Stick note to this item'}</button></div></section></article>`;}).join('')}</div>`;
+    return `<div class="mistake-list notebook-entry-list">${visible.map(({mistake:m,index:i})=>{const sticky=notebookNoteForMistake(m.key);return `<article class="mistake-card notebook-entry ${sticky?'has-sticky':''}"><div class="notebook-entry-copy"><span class="viz-badge">${v3Esc(stages[m.stage]?.label||'Review')}</span><h3>${v3Esc(m.question||m.prompt)}</h3><p>${v3Esc(m.prompt)}</p><p><strong>Correct:</strong> ${v3Esc(m.correct)} · <strong>Your last answer:</strong> ${v3Esc(m.lastAnswer)}</p><small>Missed ${Number(m.count)||0} time${Number(m.count)===1?'':'s'} · ${new Date(m.lastMissed).toLocaleDateString()}</small></div><div class="notebook-entry-actions"><button data-resolve-mistake="${i}">Mark reviewed</button></div><section class="sticky-note-editor"><label for="mistakeNote${i}">🗒️ Sticky note for this word or phrase</label><textarea id="mistakeNote${i}" data-mistake-note="${i}" maxlength="800" rows="3" placeholder="Write a memory trick, tutor explanation, example sentence, or personal reference…">${v3Esc(sticky?.note||'')}</textarea><div><small>${sticky?'Saved to the Sticky Notes tab.':'This note will stay attached to this Notebook item.'}</small><button data-save-mistake-note="${i}">${sticky?'Update sticky note':'Stick note to this item'}</button></div></section></article>`;}).join('')}</div>`;
   }
   function renderNotebookStickies(){
     const notes=visibleNotebookNotes();
@@ -2973,7 +2987,7 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
     content.querySelectorAll('[data-notebook-smart-review]').forEach(b=>b.addEventListener('click',()=>{const api=window.japaneseMinerSmartReview,action=b.dataset.notebookSmartReview;if(!api)return;closeFeatureCenter();if(action==='center'){api.openCenter?.();return;}if(api.start?.()===false)api.openCenter?.();}));
     content.querySelectorAll('[data-review-word]').forEach(b=>b.addEventListener('click',()=>{const api=window.japaneseMinerSmartReview,questionId=b.dataset.reviewWord;if(!api||!questionId)return;closeFeatureCenter();if(api.start?.(questionId)===false)api.openCenter?.();}));
     const reviewSearch=document.getElementById('notebookReviewSearch'),clearReviewSearch=document.getElementById('clearNotebookReviewSearch');if(reviewSearch){const filterReviewWords=()=>{const query=reviewSearch.value.trim().toLocaleLowerCase(),cards=[...content.querySelectorAll('[data-notebook-review-item]')];let visible=0;cards.forEach(card=>{const match=!query||String(card.dataset.reviewSearch||'').includes(query);card.hidden=!match;if(match)visible++;});const count=document.getElementById('notebookReviewVisibleCount'),empty=document.getElementById('notebookReviewNoMatches');if(count)count.textContent=`Showing ${visible} of ${cards.length} due items`;if(empty)empty.hidden=visible>0;if(clearReviewSearch)clearReviewSearch.hidden=!query;};reviewSearch.addEventListener('input',filterReviewWords);clearReviewSearch?.addEventListener('click',()=>{reviewSearch.value='';filterReviewWords();reviewSearch.focus();});}
-    content.querySelectorAll('[data-resolve-mistake]').forEach(b=>b.addEventListener('click',()=>{const m=state.mistakes[Number(b.dataset.resolveMistake)];if(m){m.resolved=!m.resolved;save();renderFeatureCenter('notebook');}}));
+    content.querySelectorAll('[data-resolve-mistake]').forEach(b=>b.addEventListener('click',()=>{const m=state.mistakes[Number(b.dataset.resolveMistake)];if(m){m.resolved=true;save();renderFeatureCenter('notebook');}}));
     content.querySelectorAll('[data-save-mistake-note]').forEach(b=>b.addEventListener('click',()=>{const index=Number(b.dataset.saveMistakeNote),text=content.querySelector(`[data-mistake-note="${index}"]`)?.value||'';if(upsertNotebookNoteForMistake(index,text)){setMessage(text.trim()?'Sticky note saved to this Notebook item.':'Sticky note removed.','correct');renderFeatureCenter('notebook');}}));
     document.getElementById('createStickyNoteBtn')?.addEventListener('click',()=>{const target=document.getElementById('newStickyTarget')?.value||'',text=document.getElementById('newStickyText')?.value||'';if(!createNotebookSticky(target,text)){setMessage('Enter both a word or phrase and a reference before saving.','wrong');return;}setMessage('New sticky note added to your Notebook.','correct');renderFeatureCenter('notebook');});
     content.querySelectorAll('[data-save-sticky]').forEach(b=>b.addEventListener('click',()=>{const card=b.closest('[data-sticky-id]'),target=card?.querySelector('[data-sticky-target]')?.value||'',text=card?.querySelector('[data-sticky-text]')?.value||'';if(!updateNotebookSticky(b.dataset.saveSticky,target,text)){setMessage('A sticky note needs both a target and a reference.','wrong');return;}setMessage('Sticky note updated.','correct');renderFeatureCenter('notebook');}));

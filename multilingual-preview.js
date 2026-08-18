@@ -281,7 +281,11 @@
   function courseAssessmentTimeLabel(value){return window.japaneseMinerAssessmentTimeLabel?.(value)||`${Math.max(0,Number(value)||0)/1000}s`;}
   function courseAssessmentRecordMarkup(value,newRecord=false,label=ui('fastestSuccessfulCompletion')){const time=courseAssessmentTime(value);if(!time)return '';return `<div class="assessment-time-record ${newRecord?'new-record':''}"><span>${newRecord?`&#127942; ${escapeHtml(ui('newFastestTime'))}`:`&#9201;&#65039; ${escapeHtml(label)}`}</span><strong>${escapeHtml(courseAssessmentTimeLabel(time))}</strong><small>${escapeHtml(ui('savedToPlayerProfile'))}</small></div>`;}
   function targetName(id=learning){return LANGUAGES[id]?.native||LANGUAGES[id]?.name||id;}
+  function coursePurpose(settings=currentSettings()){return settings?.purposes?.[learning]==='travel'?'travel':'full';}
+  function travelCourseActive(settings=currentSettings()){return coursePurpose(settings)==='travel';}
+  function fullJapaneseCourse(settings=currentSettings()){return learning==='ja'&&!travelCourseActive(settings);}
   function coursePath(){
+    if(travelCourseActive())return window.LanguageMinerI18n?.translate?.('Travel & common phrases')||'Travel & common phrases';
     if(learning==='ru')return ui('cyrillicPath');
     if(learning==='ja')return ui('hiraganaPath');
     if(learning==='ko')return ui('hangulPath');
@@ -290,7 +294,7 @@
     return ui('alphabetMine');
   }
   function sectionKey(section){return section==='sentences'?'sentences':section;}
-  function sectionLabel(section){return ui(sectionKey(section));}
+  function sectionLabel(section){return section==='travel'?(window.LanguageMinerI18n?.translate?.('Travel & common phrases')||'Travel & common phrases'):ui(sectionKey(section));}
 
   function accountKey(){
     const profile=window.japaneseMinerActiveProfile?.();
@@ -311,7 +315,7 @@
     }catch{return {known:'en',learning:'ja',placements:{}};}
   }
   function saveSettingsFor(targetAccountKey,next){try{localStorage.setItem(STORAGE_PREFIX+targetAccountKey,JSON.stringify(next));}catch{}}
-  function normalizeSettings(saved){saved=saved&&typeof saved==='object'?saved:{};saved.known=LANGUAGES[saved.known]?saved.known:'en';saved.learning=LANGUAGES[saved.learning]?saved.learning:'ja';saved.placements=saved.placements&&typeof saved.placements==='object'?saved.placements:{};saved.progress=saved.progress&&typeof saved.progress==='object'?saved.progress:{};saved.guides=saved.guides&&typeof saved.guides==='object'?saved.guides:{};Object.values(saved.placements).forEach(record=>{if(record&&typeof record==='object'){record.elapsedTimeMs=courseAssessmentTime(record.elapsedTimeMs);record.fastestTimeMs=courseAssessmentTime(record.fastestTimeMs||record.elapsedTimeMs);}});Object.values(saved.progress).forEach(progress=>{if(!progress||typeof progress!=='object')return;progress.bossFastestByMine=progress.bossFastestByMine&&typeof progress.bossFastestByMine==='object'&&!Array.isArray(progress.bossFastestByMine)?progress.bossFastestByMine:{};Object.keys(progress.bossFastestByMine).forEach(mine=>{const time=courseAssessmentTime(progress.bossFastestByMine[mine]);if(time)progress.bossFastestByMine[mine]=time;else delete progress.bossFastestByMine[mine];});Object.values(progress.reviewCheckpoints||{}).forEach(record=>{if(record&&typeof record==='object')record.fastestTimeMs=courseAssessmentTime(record.fastestTimeMs);});});return saved;}
+  function normalizeSettings(saved){saved=saved&&typeof saved==='object'?saved:{};saved.known=LANGUAGES[saved.known]?saved.known:'en';saved.learning=LANGUAGES[saved.learning]?saved.learning:'ja';saved.placements=saved.placements&&typeof saved.placements==='object'?saved.placements:{};saved.purposes=saved.purposes&&typeof saved.purposes==='object'&&!Array.isArray(saved.purposes)?saved.purposes:{};saved.progress=saved.progress&&typeof saved.progress==='object'?saved.progress:{};saved.guides=saved.guides&&typeof saved.guides==='object'?saved.guides:{};Object.keys(saved.purposes).forEach(id=>saved.purposes[id]=saved.purposes[id]==='travel'?'travel':'full');Object.values(saved.placements).forEach(record=>{if(record&&typeof record==='object'){record.elapsedTimeMs=courseAssessmentTime(record.elapsedTimeMs);record.fastestTimeMs=courseAssessmentTime(record.fastestTimeMs||record.elapsedTimeMs);}});Object.values(saved.progress).forEach(progress=>{if(!progress||typeof progress!=='object')return;progress.bossFastestByMine=progress.bossFastestByMine&&typeof progress.bossFastestByMine==='object'&&!Array.isArray(progress.bossFastestByMine)?progress.bossFastestByMine:{};Object.keys(progress.bossFastestByMine).forEach(mine=>{const time=courseAssessmentTime(progress.bossFastestByMine[mine]);if(time)progress.bossFastestByMine[mine]=time;else delete progress.bossFastestByMine[mine];});Object.values(progress.reviewCheckpoints||{}).forEach(record=>{if(record&&typeof record==='object')record.fastestTimeMs=courseAssessmentTime(record.fastestTimeMs);});});return saved;}
   function readSettings(){return readSettingsFor(accountKey());}
   function saveSettings(next){saveSettingsFor(accountKey(),next);window.dispatchEvent(new CustomEvent('lm-course-settings-saved'));}
   function currentSettings(){return normalizeSettings(readSettings());}
@@ -338,7 +342,7 @@
     document.getElementById('lmContinuePlacement')?.addEventListener('click',renderPlacement);
   }
   function originalJapanesePlacementComplete(){return learning==='ja'&&window.placementTestAlreadyCompleted?.()===true;}
-  function persistPair(placementValue){const settings=currentSettings();settings.known=known;settings.learning=learning;if(placementValue)settings.placements[learning]=placementValue;saveSettings(settings);applyCourse(settings);}
+  function persistPair(placementValue,purposeValue){const settings=currentSettings();settings.known=known;settings.learning=learning;if(placementValue)settings.placements[learning]=placementValue;if(purposeValue)settings.purposes[learning]=purposeValue==='travel'?'travel':'full';saveSettings(settings);applyCourse(settings);}
   function postGuideText(value){
     const target=LANGUAGES[learning];return String(value).replaceAll('{language}',target.native).replaceAll('{mine}',target.mine);
   }
@@ -361,18 +365,18 @@
   function placementRecordComplete(record){return record==='tested'||!!(record&&typeof record==='object'&&record.status==='tested');}
   function placementRecordBeginner(record){return record==='beginner'||!!(record&&typeof record==='object'&&record.status==='beginner');}
   function hideOriginalJapanesePlacementForOtherCourses(){
-    if(learning==='ja')return;
+    if(fullJapaneseCourse())return;
     const japanesePlacement=document.getElementById('placementOverlay');
     if(!japanesePlacement)return;
     japanesePlacement.classList.remove('open');japanesePlacement.setAttribute('aria-hidden','true');window.syncJapaneseMinerPageScroll?.();
   }
   function renderPlacement(){
     step='placement';progress(1);
-    const target=LANGUAGES[learning],settings=currentSettings(),placement=settings.placements[learning],tested=placementRecordComplete(placement)||originalJapanesePlacementComplete(),beginner=placementRecordBeginner(placement),score=placement&&typeof placement==='object'?Number(placement.score):null,fastest=placement&&typeof placement==='object'?courseAssessmentTime(placement.fastestTimeMs):0;
+    const target=LANGUAGES[learning],settings=currentSettings(),placement=settings.placements[learning],tested=placementRecordComplete(placement)||originalJapanesePlacementComplete(),beginner=placementRecordBeginner(placement),travel=travelCourseActive(settings),score=placement&&typeof placement==='object'?Number(placement.score):null,fastest=placement&&typeof placement==='object'?courseAssessmentTime(placement.fastestTimeMs):0;
     hideOriginalJapanesePlacementForOtherCourses();
     setHead('📝',ui('chooseStart'),ui('choiceStored',{language:targetName()}));
-    content.innerHTML=`<section class="lm-flow-screen"><div class="lm-placement-status">${escapeHtml(tested?`${ui('placementCompleted')}${Number.isFinite(score)?` · ${score}/10`:''}${fastest?` · ${ui('recordTime',{time:courseAssessmentTimeLabel(fastest)})}`:''}`:beginner?ui('beginnerSaved'):ui('testAvailable'))}</div><div class="lm-placement-options"><article class="lm-placement-option"><span class="lm-big-icon">🌱</span><h3>${escapeHtml(ui('newToLanguage',{language:targetName()}))}</h3><p>${escapeHtml(ui('newHelp',{language:targetName()}))}</p><button id="lmSkipPlacement" class="lm-flow-secondary lm-flow-skip" type="button" ${tested?'disabled':''}>${escapeHtml(ui('skipTest'))}</button></article><article class="lm-placement-option"><span class="lm-big-icon">🧭</span><h3>${escapeHtml(ui('knowSomeLanguage',{language:targetName()}))}</h3><p>${escapeHtml(ui('knowSomeHelp',{language:targetName()}))}</p><button id="lmStartPlacement" class="lm-flow-primary" type="button" ${tested?'disabled':''}>${escapeHtml(tested?ui('placementComplete'):ui('startTest',{language:targetName()}))}</button></article></div><div class="lm-flow-note">${escapeHtml(ui('oneAttemptNote'))}</div><div class="lm-flow-actions"><button id="lmPlacementBack" class="lm-flow-secondary" type="button">${escapeHtml(ui('backToLanguages'))}</button>${tested?`<button id="lmEnterCurrentCourse" class="lm-flow-primary" type="button">${escapeHtml(ui('continueGuide'))}</button>`:''}</div></section>`;
-    document.getElementById('lmPlacementBack').addEventListener('click',renderLanguages);document.getElementById('lmSkipPlacement')?.addEventListener('click',skipPlacement);document.getElementById('lmStartPlacement')?.addEventListener('click',startPlacement);document.getElementById('lmEnterCurrentCourse')?.addEventListener('click',openPostPlacementGuide);
+    content.innerHTML=`<section class="lm-flow-screen"><div class="lm-placement-status">${escapeHtml(travel?'Travel & common phrases selected':tested?`${ui('placementCompleted')}${Number.isFinite(score)?` · ${score}/10`:''}${fastest?` · ${ui('recordTime',{time:courseAssessmentTimeLabel(fastest)})}`:''}`:beginner?ui('beginnerSaved'):ui('testAvailable'))}</div><div class="lm-placement-options"><article class="lm-placement-option"><span class="lm-big-icon">🌱</span><h3>${escapeHtml(ui('newToLanguage',{language:targetName()}))}</h3><p>${escapeHtml(ui('newHelp',{language:targetName()}))}</p><button id="lmSkipPlacement" class="lm-flow-secondary lm-flow-skip" type="button" ${tested?'disabled':''}>${escapeHtml(ui('skipTest'))}</button></article><article class="lm-placement-option"><span class="lm-big-icon">🧭</span><h3>${escapeHtml(ui('knowSomeLanguage',{language:targetName()}))}</h3><p>${escapeHtml(ui('knowSomeHelp',{language:targetName()}))}</p><button id="lmStartPlacement" class="lm-flow-primary" type="button" ${tested?'disabled':''}>${escapeHtml(tested?ui('placementComplete'):ui('startTest',{language:targetName()}))}</button></article><article class="lm-placement-option lm-travel-placement-option"><span class="lm-big-icon">🧳</span><h3>Travel & common phrases</h3><p>Use the game only for greetings, directions, dining, shopping, health, and hotels—without taking the full language course.</p><button id="lmChooseTravel" class="lm-flow-primary" type="button">${travel?'Continue travel course':'Choose travel course'}</button></article></div><div class="lm-flow-note">${escapeHtml(ui('oneAttemptNote'))}</div><div class="lm-flow-actions"><button id="lmPlacementBack" class="lm-flow-secondary" type="button">${escapeHtml(ui('backToLanguages'))}</button>${tested||travel?`<button id="lmEnterCurrentCourse" class="lm-flow-primary" type="button">${travel?'Open travel course':escapeHtml(ui('continueGuide'))}</button>`:''}</div></section>`;
+    document.getElementById('lmPlacementBack').addEventListener('click',renderLanguages);document.getElementById('lmSkipPlacement')?.addEventListener('click',skipPlacement);document.getElementById('lmStartPlacement')?.addEventListener('click',startPlacement);document.getElementById('lmChooseTravel')?.addEventListener('click',chooseTravelCourse);document.getElementById('lmEnterCurrentCourse')?.addEventListener('click',travel?chooseTravelCourse:openPostPlacementGuide);
   }
   function multilingualPlacementQuestion(concept,targetId,knownId){
     const answer=concept.forms[targetId],meaning=concept.forms[knownId],options=[answer];
@@ -408,13 +412,14 @@
     const session=multilingualPlacement;if(!session)return;
     const target=LANGUAGES[session.learning],score=session.correct,total=session.questions.length,completedAt=Date.now(),elapsedTimeMs=Math.max(1,completedAt-Number(session.startedAt||completedAt));
     const lesson=score<=3?1:score<=6?2:score<=8?3:4,band={xp:(lesson-1)*25,label:ui('lesson',{number:lesson}),title:ui('recommendedStart',{language:targetName(session.learning),lesson}),copy:ui('resultCopy')};
-    const settings=currentSettings(),previousPlacement=settings.placements[session.learning]&&typeof settings.placements[session.learning]==='object'?settings.placements[session.learning]:{},rewardEligible=previousPlacement.status!=='tested'&&!previousPlacement.rewardClaimedAt,rewardRequested=MULTILINGUAL_PLACEMENT_REWARDS[Math.max(0,Math.min(MULTILINGUAL_PLACEMENT_REWARDS.length-1,lesson-1))],placementReward=rewardEligible?Number(window.LanguageMinerEconomy?.grantNuggets?.(rewardRequested,Math.max(0,lesson-1),`${targetName(session.learning)} placement reward`)||0):0;settings.placements[session.learning]={status:'tested',score,total,recommendedXp:band.xp,completedAt,elapsedTimeMs,fastestTimeMs:elapsedTimeMs,rewardNuggets:placementReward||Number(previousPlacement.rewardNuggets)||0,rewardClaimedAt:placementReward?completedAt:Number(previousPlacement.rewardClaimedAt)||0};const savedProgress=settings.progress[session.learning]||{answered:0,correct:0,xp:0};savedProgress.xp=Math.max(Number(savedProgress.xp)||0,band.xp);settings.progress[session.learning]=savedProgress;settings.known=session.known;settings.learning=session.learning;saveSettings(settings);applyCourse(settings);multilingualPlacement=null;
+    const settings=currentSettings(),previousPlacement=settings.placements[session.learning]&&typeof settings.placements[session.learning]==='object'?settings.placements[session.learning]:{},rewardEligible=previousPlacement.status!=='tested'&&!previousPlacement.rewardClaimedAt,rewardRequested=MULTILINGUAL_PLACEMENT_REWARDS[Math.max(0,Math.min(MULTILINGUAL_PLACEMENT_REWARDS.length-1,lesson-1))],placementReward=rewardEligible?Number(window.LanguageMinerEconomy?.grantNuggets?.(rewardRequested,Math.max(0,lesson-1),`${targetName(session.learning)} placement reward`)||0):0;settings.placements[session.learning]={status:'tested',score,total,recommendedXp:band.xp,completedAt,elapsedTimeMs,fastestTimeMs:elapsedTimeMs,rewardNuggets:placementReward||Number(previousPlacement.rewardNuggets)||0,rewardClaimedAt:placementReward?completedAt:Number(previousPlacement.rewardClaimedAt)||0};settings.purposes[session.learning]='full';const savedProgress=settings.progress[session.learning]||{answered:0,correct:0,xp:0};savedProgress.xp=Math.max(Number(savedProgress.xp)||0,band.xp);settings.progress[session.learning]=savedProgress;settings.known=session.known;settings.learning=session.learning;saveSettings(settings);applyCourse(settings);multilingualPlacement=null;
     setHead('🎯',ui('placementResult',{language:targetName(session.learning)}),ui('placementScore',{score,total,language:targetName(session.learning)}));
     content.innerHTML=`<section class="lm-placement-result"><span>${target.flag} ${escapeHtml(ui('placementResult',{language:targetName(session.learning)}))}</span><strong>${score}/${total}</strong>${courseAssessmentRecordMarkup(elapsedTimeMs,true,ui('placementTestRecord'))}${placementReward?`<div class="lm-course-reward">🪙 +${placementReward.toLocaleString()} Nuggets</div>`:''}<h3>${escapeHtml(band.title)}</h3><p>${escapeHtml(band.copy)}</p><div class="lm-placement-recommendation">${escapeHtml(ui('recommendedStartingPoint',{value:band.label}))}</div><div class="lm-flow-actions"><button id="lmFinishPlacement" class="lm-flow-primary" type="button">${escapeHtml(ui('continueGuide'))}</button></div></section>`;
     document.getElementById('lmFinishPlacement').addEventListener('click',openPostPlacementGuide);
   }
-  function skipPlacement(){persistPair('beginner');hideOriginalJapanesePlacementForOtherCourses();if(learning==='ja'){closeFlow();if(window.openPlacementOnboarding?.(true))window.chooseBrandNew?.();return;}openPostPlacementGuide();}
-  function startPlacement(){persistPair();if(learning==='ja'){closeFlow();if(window.openPlacementOnboarding?.(true))window.startPlacementTest?.();return;}hideOriginalJapanesePlacementForOtherCourses();beginMultilingualPlacement();}
+  function skipPlacement(){persistPair('beginner','full');hideOriginalJapanesePlacementForOtherCourses();if(learning==='ja'){closeFlow();if(window.openPlacementOnboarding?.(true))window.chooseBrandNew?.();return;}openPostPlacementGuide();}
+  function startPlacement(){persistPair(null,'full');if(learning==='ja'){closeFlow();if(window.openPlacementOnboarding?.(true))window.startPlacementTest?.();return;}hideOriginalJapanesePlacementForOtherCourses();beginMultilingualPlacement();}
+  function chooseTravelCourse(){const now=Date.now();persistPair({status:'travel',completedAt:now},'travel');selectedCourseMine=0;selectedCourseSection='travel';selectedCourseLesson=0;activePreviewQuestion=null;const progress=languageProgress();progress.selectedMine=0;progress.selectedSection='travel';progress.selectedLesson=0;saveLanguageProgress(progress);closeFlow();renderCourseQuestion('travel',0);showToast(`${targetName()} travel & common phrases course ready.`);}
   function finishFlow(message){persistPair();closeFlow();showToast(message);}
   function escapeHtml(value){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
   function shuffled(values){const copy=[...values];for(let index=copy.length-1;index>0;index--){const swap=Math.floor(Math.random()*(index+1));[copy[index],copy[swap]]=[copy[swap],copy[index]];}return copy;}
@@ -459,6 +464,7 @@
   }
   function courseSectionLessonsFor(languageId,section,mineIndex=selectedCourseMine){
     mineIndex=Number(mineIndex);const data=multilingualCourseData();
+    if(section==='travel'){const phrases=data.sentences.filter(item=>[1,2,3,4,7,11].includes(Number(item.topic))),result=[];if(mineIndex!==0)return result;for(let offset=0;offset<phrases.length;offset+=10)result.push(phrases.slice(offset,offset+10));return result;}
     if(section==='alphabet')return mineIndex===0?splitEvenly(ALPHABET_SYSTEMS[languageId]?.units||[],4):[];
     const source=section==='vocabulary'?data.vocabulary:section==='grammar'?data.grammar:section==='sentences'?data.sentences:[];
     if(!source.length||mineIndex===0)return section==='boss'?[[]]:[];
@@ -478,7 +484,7 @@
     const lessons=courseSectionLessons(section,mineIndex);if(!lessons.length)return 0;
     return Math.round(lessons.reduce((sum,_,index)=>sum+courseLessonMastery(section,index,mineIndex),0)/lessons.length);
   }
-  function courseMineSections(mineIndex){return Number(mineIndex)===0?['alphabet','boss']:['vocabulary','grammar','sentences','boss'];}
+  function courseMineSections(mineIndex){if(travelCourseActive())return Number(mineIndex)===0?['travel']:[];return Number(mineIndex)===0?['alphabet','travel','boss']:['vocabulary','grammar','sentences','boss'];}
   function courseMineMastery(mineIndex){const sections=courseMineSections(mineIndex);return Math.round(sections.reduce((sum,section)=>sum+courseSectionMastery(section,mineIndex),0)/sections.length);}
   function courseMineUnlocked(mineIndex,progress=languageProgress()){return Number(mineIndex)===0||courseBossDefeated(Number(mineIndex)-1,progress);}
   function recordCourseMastery(question,correct){
@@ -489,11 +495,11 @@
     progress.answered=Number(progress.answered||0)+1;progress.correct=Number(progress.correct||0)+(correct?1:0);progress.xp=Number(progress.xp||0)+xpGain;saveLanguageProgress(progress);const economy=window.LanguageMinerEconomy?.recordCourseAnswer?.({correct,stage:selectedCourseMine,review:false,deferTreasure:false})||null;updateFoundationProgress();return economy;
   }
   function updateFoundationProgress(){
-    if(learning==='ja')return;
+    if(fullJapaneseCourse())return;
     const progress=languageProgress(),xpNeed=100,xp=Math.min(xpNeed,courseMineMastery(selectedCourseMine));
     const xpText=document.getElementById('xp'),needText=document.getElementById('xpNeed'),bar=document.getElementById('xpBar');
     if(xpText)xpText.textContent=String(xp);if(needText)needText.textContent=String(xpNeed);if(bar)bar.style.width=`${xp}%`;
-    const levelLabel=COURSE_LEVEL_LABELS[learning]?.[selectedCourseMine]||`${ui('level')} ${selectedCourseMine+1}`,label=`${targetName()} · ${levelLabel}`;
+    const levelLabel=COURSE_LEVEL_LABELS[learning]?.[selectedCourseMine]||`${ui('level')} ${selectedCourseMine+1}`,label=travelCourseActive()?`${targetName()} · Travel & common phrases`:`${targetName()} · ${levelLabel}`;
     const stage=document.getElementById('stageName'),quickStage=document.getElementById('quickStage');if(stage)stage.textContent=label;if(quickStage)quickStage.textContent=label;
   }
   function speakLanguage(text,languageId){
@@ -638,15 +644,18 @@
     if(question.mode==='alphabet'||question.sourceSection==='alphabet')return (ALPHABET_PROMPTS[known]||ALPHABET_PROMPTS.en)(question.label,targetName());
     return (QUESTION_PROMPTS[known]||QUESTION_PROMPTS.en)(question.meaning,targetName());
   }
+  function enqueueCurrentCourseQuestion(question=activePreviewQuestion){
+    if(!question?.answer)return false;const itemId=question.item?.id??question.unit?.symbol??question.id??question.answer,id=`multilingual:${learning}:${selectedCourseMine}:${question.sourceSection||question.mode}:${itemId}:${known}`;return window.japaneseMinerSmartReview?.enqueue?.({id,stage:selectedCourseMine,q:question.spoken||question.answer,displayChallenge:question.spoken||question.answer,prompt:courseQuestionPrompt(question,LANGUAGES[learning]),a:question.answer,opts:question.options,speechText:question.spoken||question.answer})===true;
+  }
   function renderCourseQuestion(section=selectedCourseSection,lesson=selectedCourseLesson){
-    if(learning==='ja')return;selectedCourseSection=section;selectedCourseLesson=Number(lesson)||0;if(section==='boss'){renderCourseBossArena();return;}
+    if(fullJapaneseCourse())return;selectedCourseSection=section;selectedCourseLesson=Number(lesson)||0;if(section==='boss'){renderCourseBossArena();return;}
     const target=LANGUAGES[learning],system=ALPHABET_SYSTEMS[learning],question=section==='alphabet'||(section==='boss'&&selectedCourseMine===0)?makeAlphabetQuestion(section==='boss'?Math.floor(Math.random()*4):selectedCourseLesson):makeMeaningQuestion(section,selectedCourseLesson),area=document.getElementById('challengeArea'),message=document.getElementById('message');
     if(section==='boss')question.mode='boss';
     activePreviewQuestion=question;if(!area||!question?.answer)return;
     const lessonTotal=courseSectionLessons(section,selectedCourseMine).length,translatedSection=sectionLabel(section),bossStatus=section==='boss'&&multilingualBoss?` · ${ui('boss')} ${multilingualBoss.index+1}/${multilingualBoss.total}`:'';
     const alphabetQuestion=section==='alphabet'||question.sourceSection==='alphabet',optionalAudio=alphabetQuestion?`<div class="lm-question-actions"><button id="lmSpeakQuestion" class="lm-speak-button" type="button">🔊 ${escapeHtml(ui('replayClue'))}</button></div>`:'';
-    area.innerHTML=`<section class="lm-course-question ${alphabetQuestion?'lm-alphabet-question':''}" aria-label="${escapeHtml(targetName())} ${escapeHtml(translatedSection)}"><div class="lm-question-kicker">${target.flag} ${escapeHtml(alphabetQuestion?system.name:`${targetName()} ${translatedSection} ${ui('mine')}`)} · ${escapeHtml(ui('lesson',{number:selectedCourseLesson+1}))}/${lessonTotal}${bossStatus}</div><h3 class="lm-course-prompt" data-lm-no-interface-translate>${escapeHtml(courseQuestionPrompt(question,target))}</h3>${optionalAudio}<div class="lm-answer-grid ${alphabetQuestion?'lm-alphabet-answers':''}" data-lm-no-interface-translate>${question.options.map(option=>`<button type="button" data-lm-course-answer="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join('')}</div><div id="lmCourseFeedback" class="lm-course-feedback" aria-live="polite"></div><button id="lmNextCourseQuestion" class="lm-next-course-question" type="button" hidden>${escapeHtml(section==='boss'?ui('continueBoss'):ui('nextSectionQuestion',{section:translatedSection}))}</button></section>`;
-    if(message)message.textContent='';document.getElementById('lmSpeakQuestion')?.addEventListener('click',()=>speakTarget(question.spoken));document.querySelectorAll('[data-lm-course-answer]').forEach(button=>button.addEventListener('click',()=>answerCourseQuestion(button)));document.getElementById('lmNextCourseQuestion')?.addEventListener('click',advanceCourseQuestion);
+    area.innerHTML=`<section class="lm-course-question ${alphabetQuestion?'lm-alphabet-question':''}" aria-label="${escapeHtml(targetName())} ${escapeHtml(translatedSection)}"><div class="lm-question-kicker">${target.flag} ${escapeHtml(alphabetQuestion?system.name:`${targetName()} ${translatedSection} ${ui('mine')}`)} · ${escapeHtml(ui('lesson',{number:selectedCourseLesson+1}))}/${lessonTotal}${bossStatus}</div><h3 class="lm-course-prompt" data-lm-no-interface-translate>${escapeHtml(courseQuestionPrompt(question,target))}</h3>${optionalAudio}<button id="lmUnknownCourseItem" class="lm-unknown-course-item" type="button">📖 I don’t know this yet — add to review</button><div class="lm-answer-grid ${alphabetQuestion?'lm-alphabet-answers':''}" data-lm-no-interface-translate>${question.options.map(option=>`<button type="button" data-lm-course-answer="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join('')}</div><div id="lmCourseFeedback" class="lm-course-feedback" aria-live="polite"></div></section>`;
+    if(message)message.textContent='';document.getElementById('lmSpeakQuestion')?.addEventListener('click',()=>speakTarget(question.spoken));document.getElementById('lmUnknownCourseItem')?.addEventListener('click',event=>{if(enqueueCurrentCourseQuestion(question)){event.currentTarget.disabled=true;event.currentTarget.textContent='✓ Added to Smart Review';const feedback=document.getElementById('lmCourseFeedback');if(feedback){feedback.className='lm-course-feedback correct';feedback.textContent='Added to unlimited Smart Review. No hearts, rewards, or penalties are used there.';}}});document.querySelectorAll('[data-lm-course-answer]').forEach(button=>button.addEventListener('click',()=>answerCourseQuestion(button)));
     const quickLabel=document.getElementById('quickMineLabel');if(quickLabel)quickLabel.textContent=ui('returnToQuestion');updateFoundationProgress();area.scrollIntoView({behavior:'smooth',block:'center'});
   }
   function answerCourseQuestion(button){
@@ -654,7 +663,7 @@
     if(question?.mode==='boss'){answerCourseBossQuestion(button);return;}
     buttons.forEach(item=>{item.disabled=true;if(item.dataset.lmCourseAnswer===question.answer)item.classList.add('correct');else if(item===button)item.classList.add('wrong');});const economy=recordCourseMastery(question,correct);
     const feedback=document.getElementById('lmCourseFeedback');if(feedback){feedback.className=`lm-course-feedback ${correct?'correct':'wrong'}`;feedback.innerHTML=correct?`✓ ${escapeHtml(ui('correct'))} — <strong>${escapeHtml(question.answer)}</strong>${economy?.treasureAmount?`<span class="lm-inline-reward">🪙 +${Number(economy.treasureAmount).toLocaleString()} Nuggets</span>`:''}`:escapeHtml(ui('notQuite',{answer:question.answer}));}
-    document.getElementById('lmNextCourseQuestion').hidden=false;speakTarget(question.spoken||question.answer);
+    activePreviewQuestion=null;const quickLabel=document.getElementById('quickMineLabel');if(quickLabel)quickLabel.textContent=ui('newQuestion');speakTarget(question.spoken||question.answer);
   }
   function advanceCourseQuestion(){
     renderCourseQuestion(selectedCourseSection,selectedCourseLesson);
@@ -674,14 +683,16 @@
     const voiceLabel=document.querySelector('label[for="voiceToggle"] .form-check-label'),voiceTest=document.getElementById('testVoiceBtn');if(voiceLabel)voiceLabel.textContent=ui('voice',{language:targetName()});if(voiceTest)voiceTest.textContent=`🔊 ${ui('voice',{language:targetName()})}`;
     const quickLabel=document.getElementById('quickMineLabel');if(quickLabel&&!activePreviewQuestion)quickLabel.textContent=ui('newQuestion');
     const empty=document.querySelector('#challengeArea .small');if(empty&&/No challenge active\.?/i.test(empty.textContent))empty.textContent=ui('noChallengeActive');
-    if(learning!=='ja')updateFoundationProgress();
+    if(!fullJapaneseCourse())updateFoundationProgress();
     syncExpeditionHub();
   }
   function nonJapaneseCoursePlan(){
     const alphabet=ALPHABET_SYSTEMS[learning],labels=COURSE_LEVEL_LABELS[learning]||[];
+    if(travelCourseActive())return [{mine:0,title:`${targetName()} · Travel & common phrases`,summary:'60 essential phrases for greetings, directions, dining, shopping, health, and hotels.',icon:'🧳'}];
     return Array.from({length:7},(_,index)=>({mine:index,title:`${targetName()} · ${labels[index]||`${ui('level')} ${index+1}`}`,summary:index===0?ui('alphabetPlan',{summary:window.LanguageMinerI18n?.translate?.(alphabet.summary)||alphabet.summary}):ui('levelPlan'),icon:EXPEDITION_COURSES[learning]?.[index]?.[2]||(index===6?'🏆':'⛏️')}));
   }
   function courseLessonSubtitle(section,items,index){
+    if(section==='travel')return `${index*10+1}–${index*10+items.length} · essential travel phrases`;
     if(section==='alphabet')return `${items.map(item=>item.symbol).join(' · ')} · ${ui('symbols',{count:items.length})}`;
     if(section==='vocabulary')return `${index*25+1}–${index*25+items.length} · ${ui('words',{count:items.length})}`;
     if(section==='grammar')return ui('grammarExamples',{start:index*10+1,end:index*10+items.length});
@@ -699,22 +710,22 @@
   const courseLessonGridBeforeFastestReplay=courseLessonGrid;
   courseLessonGrid=function(section,mineIndex){return courseLessonGridBeforeFastestReplay(section,mineIndex).replace(/(<button[^>]*class="[^"]*lm-guardian-lesson[^"]*complete[^"]*"[^>]*?) disabled(>)/g,'$1$2');};
   function courseMineContents(mineIndex){
-    return courseMineSections(mineIndex).map(section=>`<section class="lm-stage-course-section"><h4>${section==='boss'?'🏯':'📘'} ${escapeHtml(section==='boss'?ui('guardianBoss'):sectionLabel(section))}</h4>${courseLessonGrid(section,mineIndex)}</section>`).join('');
+    return courseMineSections(mineIndex).map(section=>`<section class="lm-stage-course-section"><h4>${section==='boss'?'🏯':section==='travel'?'🧳':'📘'} ${escapeHtml(section==='boss'?ui('guardianBoss'):sectionLabel(section))}</h4>${courseLessonGrid(section,mineIndex)}</section>`).join('');
   }
   function multilingualExpeditionMap(){
     const target=LANGUAGES[learning],course=nonJapaneseCoursePlan();
-    const mapIntro=window.LanguageMinerI18n?.translate?.('Every course follows seven levels. Each level contains lessons and its own guardian boss; defeat each boss to unlock the next mine.')||'Every course follows seven levels. Each level contains lessons and its own guardian boss; defeat each boss to unlock the next mine.';
+    const mapIntro=travelCourseActive()?'A focused phrase course for real travel situations. Practice only what you need, with no full-language pathway required.':(window.LanguageMinerI18n?.translate?.('Every course follows seven levels. Each level contains lessons and its own guardian boss; defeat each boss to unlock the next mine.')||'Every course follows seven levels. Each level contains lessons and its own guardian boss; defeat each boss to unlock the next mine.');
     return `<div class="lm-course-world-map" data-lm-course-language="${escapeHtml(learning)}"><div class="v5-hero world-hero lm-expedition-hero"><div><span>${escapeHtml(ui('mapTitle',{language:targetName()}))}</span><h3>${escapeHtml(ui('courseExpedition',{language:targetName()}))}</h3><p>${escapeHtml(mapIntro)}</p></div><b>${target.flag}</b></div><div class="world-legend"><span>🟢 ${escapeHtml(ui('available'))}</span><span>⭐ ${escapeHtml(ui('currentLesson'))}</span><span>🔒 ${escapeHtml(ui('locked'))}</span><span>🏯 ${escapeHtml(ui('guardianBoss'))}</span></div><div class="lm-expedition-mine-list">${course.map((stage,index)=>{const unlocked=courseMineUnlocked(index),expanded=unlocked&&expandedCourseMines.has(index),mastery=courseMineMastery(index),panelId=`lmMinePanel${index}`;return `<section class="world-region lm-expedition-mine region-${index} ${selectedCourseMine===index?'current-region':''} ${expanded?'expanded':''} ${unlocked?'':'locked-region'}"><div class="lm-mine-summary"><div class="region-scenery">${unlocked?stage.icon:'🔒'}<small>${escapeHtml(targetName())} ${escapeHtml(ui('mine'))} ${index+1}</small></div><div class="region-label"><strong>${escapeHtml(stage.title)}</strong><span>${escapeHtml(unlocked?stage.summary:ui('passPreviousBoss'))}</span><i><b style="width:${mastery}%"></b></i><em>${escapeHtml(ui('complete',{value:mastery}))}</em></div><button class="lm-mine-dropdown" data-lm-mine-toggle="${index}" type="button" ${unlocked?'':'disabled'} aria-expanded="${expanded}" aria-controls="${panelId}" aria-label="${escapeHtml(ui(expanded?'collapse':'expand',{value:stage.title}))}"><span>${unlocked?(expanded?'▲':'▼'):'🔒'}</span></button></div><div id="${panelId}" class="lm-mine-dropdown-panel" ${expanded?'':'hidden'}>${unlocked?courseMineContents(index):''}</div></section>`;}).join('')}</div><div class="world-finish">🏆 ${escapeHtml(targetName())} ${escapeHtml(ui('mastery'))}</div></div>`;
   }
   function updateExpeditionHeader(hub){
     const target=LANGUAGES[learning],copyBlock=hub.querySelector('.menu-header-copy'),tab=hub.querySelector('[data-v5tab="map"]');
-    if(copyBlock){const eyebrow=copyBlock.querySelector('span'),heading=copyBlock.querySelector('h2');if(eyebrow)eyebrow.textContent=learning==='ja'?'Language Miner v5.0':ui('mapTitle',{language:targetName()});if(heading)heading.textContent=learning==='ja'?ui('expeditionHub'):`${targetName()} ${ui('expeditionHub')}`;}
-    if(tab)tab.textContent=`${learning==='ja'?'🗺️':target.flag} ${ui('expedition')}`;
+    if(copyBlock){const eyebrow=copyBlock.querySelector('span'),heading=copyBlock.querySelector('h2');if(eyebrow)eyebrow.textContent=fullJapaneseCourse()?'Language Miner v5.0':ui('mapTitle',{language:targetName()});if(heading)heading.textContent=fullJapaneseCourse()?ui('expeditionHub'):`${targetName()} ${travelCourseActive()?'Travel Course':ui('expeditionHub')}`;}
+    if(tab)tab.textContent=`${fullJapaneseCourse()?'🗺️':target.flag} ${travelCourseActive()?'Travel':ui('expedition')}`;
   }
   let syncingExpeditionHub=false,expeditionHubObserver=null,expeditionHubObservedContent=null;
   function ensureExpeditionHubObserver(){
     const content=document.getElementById('v5Content');if(!content||content===expeditionHubObservedContent)return;
-    expeditionHubObserver?.disconnect();expeditionHubObservedContent=content;expeditionHubObserver=new MutationObserver(()=>{if(syncingExpeditionHub||learning==='ja')return;const hub=document.getElementById('v5Overlay'),mapTab=hub?.querySelector('[data-v5tab="map"]');if(!hub?.classList.contains('open')||!mapTab?.classList.contains('active'))return;if(content.dataset.lmLearning!==learning||content.querySelector('.lm-course-world-map')?.dataset.lmCourseLanguage!==learning)syncExpeditionHub();});try{if(content?.nodeType===Node.ELEMENT_NODE)expeditionHubObserver.observe(content,{childList:true});}catch{}
+    expeditionHubObserver?.disconnect();expeditionHubObservedContent=content;expeditionHubObserver=new MutationObserver(()=>{if(syncingExpeditionHub||fullJapaneseCourse())return;const hub=document.getElementById('v5Overlay'),mapTab=hub?.querySelector('[data-v5tab="map"]');if(!hub?.classList.contains('open')||!mapTab?.classList.contains('active'))return;if(content.dataset.lmLearning!==learning||content.querySelector('.lm-course-world-map')?.dataset.lmCourseLanguage!==learning)syncExpeditionHub();});try{if(content?.nodeType===Node.ELEMENT_NODE)expeditionHubObserver.observe(content,{childList:true});}catch{}
   }
   function syncExpeditionHub(){
     const hub=document.getElementById('v5Overlay'),content=document.getElementById('v5Content'),mapTab=hub?.querySelector('[data-v5tab="map"]');
@@ -722,7 +733,7 @@
     ensureExpeditionHubObserver();
     updateExpeditionHeader(hub);
     if(!mapTab.classList.contains('active'))return;
-    if(learning==='ja'){
+    if(fullJapaneseCourse()){
       if(content.dataset.lmExpeditionPreview==='true'){
         delete content.dataset.lmExpeditionPreview;delete content.dataset.lmLearning;
         mapTab.click();
@@ -739,20 +750,20 @@
   }
   const openExpeditionBeforeCourse=window.openJapaneseMinerV5;
   if(typeof openExpeditionBeforeCourse==='function')window.openJapaneseMinerV5=function(tab='map',...args){const result=openExpeditionBeforeCourse.call(this,tab,...args);if(tab==='map'){ensureExpeditionHubObserver();syncExpeditionHub();}return result;};
-  let lastAppliedLearning='';
+  let lastAppliedLearning='',lastAppliedPurpose='';
   function applyCourse(settings=currentSettings()){
-    const previous=learning;known=settings.known&&LANGUAGES[settings.known]?settings.known:'en';learning=settings.learning&&LANGUAGES[settings.learning]?settings.learning:'ja';const courseChanged=previous!==learning||lastAppliedLearning!==learning;
+    const previous=learning;known=settings.known&&LANGUAGES[settings.known]?settings.known:'en';learning=settings.learning&&LANGUAGES[settings.learning]?settings.learning:'ja';const purpose=coursePurpose(settings),courseChanged=previous!==learning||lastAppliedLearning!==learning||lastAppliedPurpose!==purpose;
     if(courseChanged){clearCourseBossClock();clearCourseReviewClock();activePreviewQuestion=null;selectedCourseMine=0;selectedCourseSection='alphabet';selectedCourseLesson=0;multilingualBoss=null;multilingualReviewQuiz=null;expandedCourseMines.clear();expandedCourseMines.add(0);}
-    if(learning!=='ja'){const progress=languageProgress(),savedMine=Math.max(0,Math.min(6,Number(progress.selectedMine)||0));if(courseMineUnlocked(savedMine))selectedCourseMine=savedMine;if(courseChanged){const sections=courseMineSections(selectedCourseMine).filter(section=>section!=='boss'),savedSection=String(progress.selectedSection||sections[0]||'alphabet');selectedCourseSection=sections.includes(savedSection)?savedSection:sections[0];const lessons=courseSectionLessons(selectedCourseSection,selectedCourseMine),savedLesson=Math.max(0,Math.min(Math.max(0,lessons.length-1),Number(progress.selectedLesson)||0));selectedCourseLesson=courseLessonUnlocked(selectedCourseSection,savedLesson,selectedCourseMine)?savedLesson:0;}expandedCourseMines.add(selectedCourseMine);}
+    if(!fullJapaneseCourse(settings)){const progress=languageProgress(),maxMine=travelCourseActive(settings)?0:6,savedMine=Math.max(0,Math.min(maxMine,Number(progress.selectedMine)||0));if(courseMineUnlocked(savedMine))selectedCourseMine=savedMine;if(courseChanged){const sections=courseMineSections(selectedCourseMine).filter(section=>section!=='boss'),savedSection=String(progress.selectedSection||sections[0]||(travelCourseActive(settings)?'travel':'alphabet'));selectedCourseSection=sections.includes(savedSection)?savedSection:sections[0];const lessons=courseSectionLessons(selectedCourseSection,selectedCourseMine),savedLesson=Math.max(0,Math.min(Math.max(0,lessons.length-1),Number(progress.selectedLesson)||0));selectedCourseLesson=courseLessonUnlocked(selectedCourseSection,savedLesson,selectedCourseMine)?savedLesson:0;}expandedCourseMines.add(selectedCourseMine);}
     window.LanguageMinerI18n?.setLocale?.(known,{known,learning});
     if(indicator)indicator.innerHTML=`${LANGUAGES[known].flag} ${escapeHtml(LANGUAGES[known].native)} <b>→</b> ${LANGUAGES[learning].flag} ${escapeHtml(LANGUAGES[learning].native)}`;
     const voiceToggleLabel=document.querySelector('#voiceToggle + .form-check-label');if(voiceToggleLabel)voiceToggleLabel.textContent=ui('voice',{language:targetName()});
     const accentLabel=document.getElementById('voiceAccentLabel');if(accentLabel)accentLabel.textContent=ui('nativeAccent',{accent:LANGUAGES[learning].accent,code:LANGUAGES[learning].voice});
     if(learning==='ja'&&lastAppliedLearning&&lastAppliedLearning!=='ja')window.render?.();
-    hideOriginalJapanesePlacementForOtherCourses();updateCourseChrome();lastAppliedLearning=learning;
+    hideOriginalJapanesePlacementForOtherCourses();updateCourseChrome();lastAppliedLearning=learning;lastAppliedPurpose=purpose;
   }
   function handleCourseControls(event){
-    if(learning==='ja'||overlay?.classList.contains('open'))return;
+    if(fullJapaneseCourse()||overlay?.classList.contains('open'))return;
     const reviewAnswer=event.target.closest?.('[data-lm-review-answer]'),reviewAction=event.target.closest?.('[data-lm-review-action]'),reviewCheckpoint=event.target.closest?.('[data-lm-review-section]'),bossAction=event.target.closest?.('[data-lm-boss-action]'),expeditionTab=event.target.closest?.('[data-v5tab="map"]'),mineToggle=event.target.closest?.('[data-lm-mine-toggle]'),courseLesson=event.target.closest?.('[data-lm-course-section]'),rock=event.target.closest?.('#rock'),quick=event.target.closest?.('#quickMineBtn'),voiceTest=event.target.closest?.('#testVoiceBtn');
     if(reviewAnswer){event.preventDefault();event.stopImmediatePropagation();answerCourseReview(reviewAnswer);return;}
     if(reviewAction){event.preventDefault();event.stopImmediatePropagation();const action=reviewAction.dataset.lmReviewAction,quiz=multilingualReviewQuiz;if(!quiz)return;if(action==='retry')openCourseReview(quiz.mine,quiz.section,quiz.evenLesson);else if(action==='continue'){const {mine,section,evenLesson}=quiz;clearCourseReviewClock();multilingualReviewQuiz=null;startCourseLesson(section,evenLesson,mine);}else if(action==='map'){clearCourseReviewClock();multilingualReviewQuiz=null;window.openJapaneseMinerV5?.('map');setTimeout(()=>{const content=document.getElementById('v5Content');if(content){delete content.dataset.lmLearning;syncExpeditionHub();}},0);}return;}
@@ -827,17 +838,17 @@
     if(!multilingualAdminAllowed()||languageId==='ja'||!LANGUAGES[languageId])return null;const progress=currentSettings().progress[languageId]||{},bosses=Array.from({length:7},(_,mine)=>progress.bossDefeatedByMine?.[mine]===true&&Number(progress.bossBestByMine?.[mine])===100),expectedMastery=(ALPHABET_SYSTEMS[languageId]?.units||[]).length+Object.values(multilingualCourseData()).filter(Array.isArray).reduce((sum,items)=>sum+items.length,0);return {languageId,bossesDefeated:bosses.filter(Boolean).length,minesUnlocked:1+bosses.slice(0,6).filter(Boolean).length,masteredItems:Object.values(progress.courseMastery||{}).filter(value=>Number(value)>=100).length,expectedMastery};
   }
   function courseArcadeLesson(mineIndex=selectedCourseMine,section=selectedCourseSection,lesson=selectedCourseLesson){
-    if(learning==='ja'||section==='boss')return null;mineIndex=Number(mineIndex)||0;lesson=Number(lesson)||0;const items=courseSectionLessons(section,mineIndex)[lesson]||[],pairs=[];
+    if(fullJapaneseCourse()||section==='boss')return null;mineIndex=Number(mineIndex)||0;lesson=Number(lesson)||0;const items=courseSectionLessons(section,mineIndex)[lesson]||[],pairs=[];
     items.forEach((item,index)=>{const learn=section==='alphabet'?item?.symbol:item?.forms?.[learning],meaning=section==='alphabet'?item?.name:item?.forms?.[known];if(learn&&meaning&&String(learn)!==String(meaning))pairs.push({id:`course-${mineIndex}-${section}-${lesson}-${item?.id??item?.symbol??index}`,learn:String(learn),meaning:String(meaning)});});
     if(!pairs.length)return null;const sectionName=section==='alphabet'?(ALPHABET_SYSTEMS[learning]?.name||sectionLabel(section)):sectionLabel(section);return {key:`course:${mineIndex}:${section}:${lesson}`,learning,known,mine:mineIndex,section,lesson,label:`${targetName()} Â· ${sectionName} Â· ${ui('lesson',{number:lesson+1})}`,pairs};
   }
   function courseArcadeLessonOptions(){
-    if(learning==='ja')return[];const options=[];
-    for(let mineIndex=0;mineIndex<=6;mineIndex++){if(!courseMineUnlocked(mineIndex))continue;courseMineSections(mineIndex).filter(section=>section!=='boss').forEach(section=>courseSectionLessons(section,mineIndex).forEach((_,lesson)=>{if(!courseLessonUnlocked(section,lesson,mineIndex))return;const record=courseArcadeLesson(mineIndex,section,lesson);if(record)options.push({key:record.key,label:record.label});}));}
+    if(fullJapaneseCourse())return[];const options=[],maxMine=travelCourseActive()?0:6;
+    for(let mineIndex=0;mineIndex<=maxMine;mineIndex++){if(!courseMineUnlocked(mineIndex))continue;courseMineSections(mineIndex).filter(section=>section!=='boss').forEach(section=>courseSectionLessons(section,mineIndex).forEach((_,lesson)=>{if(!courseLessonUnlocked(section,lesson,mineIndex))return;const record=courseArcadeLesson(mineIndex,section,lesson);if(record)options.push({key:record.key,label:record.label});}));}
     return options;
   }
   function selectCourseArcadeLesson(key){
-    const match=/^course:(\d+):([a-z]+):(\d+)$/.exec(String(key||''));if(!match||learning==='ja')return false;const mineIndex=Number(match[1]),section=match[2],lesson=Number(match[3]);if(!courseMineUnlocked(mineIndex)||section==='boss'||!courseLessonUnlocked(section,lesson,mineIndex)||!courseSectionLessons(section,mineIndex)[lesson])return false;
+    const match=/^course:(\d+):([a-z]+):(\d+)$/.exec(String(key||''));if(!match||fullJapaneseCourse())return false;const mineIndex=Number(match[1]),section=match[2],lesson=Number(match[3]);if(!courseMineUnlocked(mineIndex)||section==='boss'||!courseLessonUnlocked(section,lesson,mineIndex)||!courseSectionLessons(section,mineIndex)[lesson])return false;
     selectedCourseMine=mineIndex;selectedCourseSection=section;selectedCourseLesson=lesson;activePreviewQuestion=null;const progress=languageProgress();progress.selectedMine=mineIndex;progress.selectedSection=section;progress.selectedLesson=lesson;saveLanguageProgress(progress);expandedCourseMines.add(mineIndex);updateFoundationProgress();return true;
   }
   window.LanguageMinerCourseAdmin=Object.freeze({unlockAll:adminUnlockAllLanguages,resetLanguage:adminResetLanguage,resetAll:adminResetAllLanguages,resetBossesAndReviews:adminResetBossesAndReviews,resetPlacement:adminResetPlacement,resetAllPlacements:adminResetAllPlacements,resetForAccount:adminResetForAccount,currentLanguage:()=>multilingualAdminAllowed()?learning:null,status:adminCourseStatus});

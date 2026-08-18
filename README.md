@@ -1,4 +1,29 @@
-# Language Miner v6.4.139
+# Language Miner v6.4.142
+
+## v6.4.142 navigation consolidation
+
+- Simplified the Game Menu to four Explore destinations, four Gear destinations, and five Player destinations.
+- Combined Quests and Missions into one Goals center with Daily, Weekly, and Expedition tabs.
+- Replaced duplicate Quick Stats and Player Stats entry points with one Stats Center, with Calendar available in the header and Stats.
+- Moved reading support, question audio, native voice, and Smart Review preferences into Settings.
+- Combined account backup, Privacy & Safety, and Patreon membership access under Account & Support.
+- Combined Game Guide, Share Game, Feedback, and Discord access under Help & Community.
+- Removed the duplicate Mine, Calendar, Player Dashboard, Placement Complete, and separate Privacy menu controls.
+
+## v6.4.141 cross-device learner linking
+
+- Parent/Teacher Center can send a learner-approved request to the exact email on another Language Miner account.
+- Approved adults can refresh whitelisted progress summaries from the learner's latest cloud save on any signed-in device.
+- Learners can approve, decline, or revoke access from their own account; adults can cancel pending requests or remove access.
+- Linked progress refreshes whenever the Center opens, every 30 seconds while visible, when the app regains focus, and on demand.
+- The duplicate Learning Path screen and menu entry were removed; Expedition Hub is now the single course map.
+- Deploy `supabase/migrations/202608180001_cross_device_parent_teacher_links.sql` before using cross-device linking in production.
+
+## v6.4.140 travel-path separation
+
+- Travel & common phrases now appears only for players who explicitly choose the travel-purpose option during language setup.
+- Standard beginner and placement-test pathways no longer include the travel section in their normal language-course map.
+- Existing travel-purpose selections continue to open the focused 60-phrase travel course.
 
 ## v6.4.139 study-flow update
 

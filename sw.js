@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.139-study-flow-r2';
+const CACHE_NAME='language-miner-v6.4.142-navigation-consolidation-r1';
 const APP_SHELL=[
   './',
   './index.html',

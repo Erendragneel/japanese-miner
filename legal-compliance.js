@@ -63,8 +63,7 @@
   function openCenter(){ensureOverlay();renderCenter();const overlay=document.getElementById('legalCenterOverlay');overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');window.syncJapaneseMinerPageScroll?.();setTimeout(()=>document.getElementById('legalCenterClose')?.focus(),0);}
   function closeCenter(){const overlay=document.getElementById('legalCenterOverlay');if(!overlay)return;overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');window.syncJapaneseMinerPageScroll?.();}
   function addMenuItem(){
-    const grid=document.querySelector('.menu-wheel,.game-menu-grid');if(!grid||grid.querySelector('[data-legal-menu]'))return;
-    const button=document.createElement('button');button.type='button';button.dataset.legalMenu='privacy';button.dataset.menuCategoryName='player';button.innerHTML='<span>🛡️</span><strong>Privacy &amp; Safety</strong><small>Policies, consent, data export, and deletion</small>';button.onclick=()=>{window.closeGameMenu?.();openCenter();};grid.appendChild(button);
+    document.querySelectorAll('[data-legal-menu]').forEach(button=>button.remove());
   }
   function ensureConsentOverlay(){
     if(document.getElementById('legalConsentOverlay'))return;

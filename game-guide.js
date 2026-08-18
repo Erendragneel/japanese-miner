@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 const TEXT={
- kicker:'GAME HANDBOOK',title:'Everything in Language Miner, explained',intro:'Choose a topic or search for anything you cannot find. Every topic shows the exact path through the game and explains what each control does.',search:'Search the guide',searchPlaceholder:'Search controls, review, rewards, Patreon, settings…',allTopics:'All topics',where:'WHERE TO FIND IT',how:'HOW IT WORKS',remember:'REMEMBER',openArea:'Open this area',backAll:'Back to all topics',previous:'Previous topic',next:'Next topic',finish:'Finish guide',close:'Close guide',menu:'Menu',noResults:'No guide topics match that search.',topics:'{count} topics',topicCount:'Topic {current} of {total}',complete:'Guide complete. You can reopen it from Menu → Player → Game Guide.',startHere:'Not sure where to begin? Start with “Your first five minutes.”'
+ kicker:'GAME HANDBOOK',title:'Everything in Language Miner, explained',intro:'Choose a topic or search for anything you cannot find. Every topic shows the exact path through the game and explains what each control does.',search:'Search the guide',searchPlaceholder:'Search controls, review, rewards, Patreon, settings…',allTopics:'All topics',where:'WHERE TO FIND IT',how:'HOW IT WORKS',remember:'REMEMBER',openArea:'Open this area',backAll:'Back to all topics',previous:'Previous topic',next:'Next topic',finish:'Finish guide',close:'Close guide',menu:'Menu',noResults:'No guide topics match that search.',topics:'{count} topics',topicCount:'Topic {current} of {total}',complete:'Guide complete. You can reopen it from Menu → Player → Help & Community.',startHere:'Not sure where to begin? Start with “Your first five minutes.”'
 };
 const CATEGORIES=[
  {id:'start',icon:'🧭',name:'Start Here'},
@@ -17,17 +17,17 @@ const TOPICS=[
   'Tap the mine rock or New Question, choose one answer, and read the correction.',
   'Use Next Question to continue. Answered questions, mastery, rewards, and study time save to the current player profile.',
   'For a structured lesson, open Menu → Explore → Expedition Hub and choose an available mine or lesson.'
- ],note:'The Game Guide is always available at Menu → Player → Game Guide.',actions:[['mine','Go to the Mine'],['expedition','Open Expedition Hub']]},
+ ],note:'The Game Guide is always available at Menu → Player → Help & Community.',actions:[['mine','Go to the Mine'],['expedition','Open Expedition Hub']]},
  {id:'main-controls',category:'start',icon:'🎮',title:'Main screen controls',summary:'Learn what the buttons around the mine do and how to return from other screens.',path:'Home screen',steps:[
-  'The top bar contains Change Language, your player identity, quick Stats, the Practice Calendar, and Log out.',
+  'The top bar contains Change Language, your player identity, the Stats Center, the Practice Calendar, and Log out.',
   'The center of the home screen shows the active mine, question, answers, reading support, audio, Hints, Shields, hearts, and the correction after an answer.',
   'The round Menu button at the lower-right opens every major game area. Companion visibility is managed in the Companions tab of the Shop.',
   'Use ← Menu to return to the category menu. Use × to close an overlay and return directly to the mine.'
  ],note:'If a button is off-screen on a phone, scroll inside the open panel.',actions:[['menu','Open the Menu']]},
  {id:'menu-map',category:'start',icon:'☰',title:'Where everything is in the Menu',summary:'The Menu is divided into Explore, Gear, and Player so related features stay together.',path:'Home screen → Menu',steps:[
-  'Explore contains Expedition Hub, Course, Learning Path, Mine, Quests, and Missions.',
-  'Gear contains Shop, Inventory or Bag, Character, and Notebook.',
-  'Player contains the Player Dashboard, Player Stats, Parent/Teacher Center, Achievements, Calendar, Account, Game Guide, Share Game, Accessibility, Feedback, and Patreon.',
+  'Explore contains Expedition Hub, Course, Writing Practice, and Goals.',
+  'Gear contains Shop, Inventory or Bag, Notebook, and Character.',
+  'Player contains Stats, Settings, Account & Support, Parent/Teacher Center, and Help & Community.',
   'Choose a category first, then choose its feature. The selected category controls which feature buttons are visible.'
  ],note:'When you cannot find something, return to Menu and check all three category buttons.',actions:[['menu','Open the Menu']]},
  {id:'languages-and-profile',category:'start',icon:'🌐',title:'Languages, placement, and player profiles',summary:'The known language controls the interface; the learning language controls the course.',path:'Home screen → Change Language · Menu → Player → Account',steps:[
@@ -39,8 +39,8 @@ const TOPICS=[
  {id:'expedition-hub',category:'learning',icon:'🗺️',title:'Expedition Hub and course map',summary:'Use the Expedition Hub to choose a mine, lesson, guardian, or related study tool.',path:'Menu → Explore → Expedition Hub',steps:[
   'The Hub always follows the selected learning language. Available or highlighted mines can be opened; a lock explains the requirement for a later mine.',
   'Open a mine card, then choose an available family, section, lesson, checkpoint, or guardian.',
-  'The Hub tabs also lead to Bosses, Review, Word Book, Companions, Settlement, Missions, and Events.',
-  'Expedition Hub, Course, and Learning Path are different views of the same saved course progress.'
+  'The Hub tabs also lead to Bosses, Review, Word Book, Companions, Settlement, and Events. Expedition objectives live in Explore → Goals.',
+  'Expedition Hub is the single course map; Course provides the detailed lesson view for the same saved progress.'
  ],note:'Selecting a lesson makes it the active route used by the mine on the home screen.',actions:[['expedition','Open Expedition Hub'],['course','Open Course']]},
  {id:'lessons-and-mastery',category:'learning',icon:'📘',title:'Lessons, preview cards, and mastery',summary:'Lessons organize the course into manageable groups and unlock later checkpoints.',path:'Menu → Explore → Course · Expedition Hub → open a mine',steps:[
   'Open a lesson to see its preview cards, then begin the practice questions. Skip Lesson Review enters the lesson without opening every preview card.',
@@ -84,30 +84,30 @@ const TOPICS=[
   'Correct course vocabulary enters the permanent Word Book automatically, where you can inspect mastery and use optional listening.',
   'Notebook and Word Book are different: Notebook organizes review work; Word Book is the vocabulary collection.'
  ],note:'Use Notebook search when you know the exact word, meaning, prompt, or mine you want.',actions:[['notebook','Open Notebook'],['wordbook','Open Word Book']]},
- {id:'stats-streak-calendar',category:'progress',icon:'📅',title:'Stats, study streak, Calendar, and records',summary:'These screens explain what has been studied and when it happened.',path:'Top bar → Stats or Calendar · Menu → Player → Player Stats',steps:[
+ {id:'stats-streak-calendar',category:'progress',icon:'📅',title:'Stats, study streak, Calendar, and records',summary:'These screens explain what has been studied and when it happened.',path:'Top bar → Stats or Calendar · Menu → Player → Stats',steps:[
   'A study day is recorded when practice questions are answered. Merely opening the game does not add a study day.',
   'Current streak counts consecutive recorded study days. Total study days never decreases when a streak ends.',
   'Practice Calendar shows daily activity, monthly totals, current streak, and total study time. Select a date to inspect that day.',
-  'Player Stats shows accuracy, total questions, mastery, practice distribution, recommended focus, and saved assessment records.'
- ],note:'Study timing pauses while the game page is hidden and resumes when it becomes active.',actions:[['calendar','Open Calendar'],['statistics','Open Player Stats']]},
+  'Stats Center shows balance, health, level, streaks, accuracy, total questions, mastery, practice distribution, recommended focus, and a Calendar shortcut.'
+ ],note:'Study timing pauses while the game page is hidden and resumes when it becomes active.',actions:[['calendar','Open Calendar'],['statistics','Open Stats Center']]},
  {id:'parent-teacher-center',category:'progress',icon:'🏫',title:'Parent/Teacher Center and learner access',summary:'Approved adults can switch between linked learners and view progress without controlling the game.',path:'Menu → Player → Parent/Teacher Center',steps:[
   'The Center is a separate read-only area for activity, streaks, due-review counts, course progress, assessment history, and fastest completion records.',
   'Use Link student to send a request to another player profile. Nothing is shared while the request is waiting.',
   'The learner signs in to their own profile, opens Parent/Teacher Center, and chooses Approve or Decline. Only the learner can approve access.',
   'Use Switch student to change reports. Manage access lets an adult cancel or remove a link, and lets a learner revoke previously approved access.'
  ],note:'Linked adults cannot answer questions, spend Nuggets, reset progress, or read private Notebook notes.',actions:[['parentteacher','Open Parent/Teacher Center']]},
- {id:'rewards-and-health',category:'progress',icon:'💎',title:'Nuggets, gemstones, treasure, supplies, and hearts',summary:'Learn what each reward is for and where balances are stored.',path:'Menu → Player → Player Dashboard · Menu → Gear → Inventory',steps:[
+ {id:'rewards-and-health',category:'progress',icon:'💎',title:'Nuggets, gemstones, treasure, supplies, and hearts',summary:'Learn what each reward is for and where balances are stored.',path:'Menu → Player → Stats · Menu → Gear → Shop or Inventory',steps:[
   'Nuggets are the main spending value shown in the Shop. Scientific gemstones are fixed checkpoint specimens with saved Nugget values.',
-  'Treasure chests appear after answer-streak milestones. Quests, Missions, guardians, achievements, events, and review rewards can add more Nuggets or supplies.',
+  'Treasure chests appear after answer-streak milestones. Goals, guardians, achievements, events, and review rewards can add more Nuggets or supplies.',
   'Hints and Shields are supplies shown in Inventory. Hearts are practice health and recover while the game is closed; missing a study day does not remove hearts.',
-  'Player Dashboard contains Practice Health, Nugget Exchange, Inventory, mastery, course, Learning Path, and Gem Collection tabs.'
+  'Stats contains health and progression totals, Shop contains purchases and supplies, and Inventory contains owned items and gemstones.'
  ],note:'A purchase shows its price before charging. Permanent items do not need to be purchased twice.',actions:[['inventory','Open Inventory or Bag'],['gems','Open Gem Collection']]},
- {id:'goals',category:'progress',icon:'🎯',title:'Quests, Missions, Achievements, and Events',summary:'These systems reward different kinds of consistent play.',path:'Menu → Explore → Quests or Missions · Menu → Player → Achievements · Expedition Hub → Events',steps:[
-  'Quests contain daily and weekly goals. Complete the requirement, then use Claim rewards when the reward is ready.',
-  'Missions are daily expedition objectives tied to answers, accuracy, review, and treasure. Their Nugget values follow the active mine when the board resets.',
+ {id:'goals',category:'progress',icon:'🎯',title:'Goals, Achievements, and Events',summary:'These systems reward different kinds of consistent play.',path:'Menu → Explore → Goals · Stats Center → Achievements · Expedition Hub → Events',steps:[
+  'Goals contains Daily, Weekly, and Expedition tabs. Complete the requirement, then use Claim rewards when the reward is ready.',
+  'Expedition goals track answers, accuracy, review, and treasure. Their Nugget values follow the active mine when the board resets.',
   'Achievements unlock automatically from lifetime milestones and can award Nuggets or character titles.',
   'Events contain seasonal activities and rewards with their own availability or claim rules.'
- ],note:'A completed goal is not always paid automatically; look for a visible Claim button.',actions:[['quests','Open Quests'],['missions','Open Missions']]},
+ ],note:'A completed goal is not always paid automatically; look for a visible Claim button.',actions:[['quests','Open Goals']]},
  {id:'shop-bag-character',category:'collection',icon:'🛍️',title:'Shop, Inventory or Bag, and Character',summary:'Buy, find, equip, and manage permanent collection items.',path:'Menu → Gear → Shop, Inventory, or Character',steps:[
   'Shop tabs separate mine cosmetics, character customization, companions, settlement, Arcade, wallpapers, and supplies. The former Fashion tab has been merged into Character.',
   'Previewable permanent items show their appearance and price before purchase. Owned items can be equipped again without another charge.',
@@ -127,25 +127,25 @@ const TOPICS=[
   'Sakura Garden improves daily Mission Nuggets, while Gem Forge improves answer-streak treasure chest rewards.',
   'Other buildings expand settlement, collection, and long-term progression features as their levels increase.'
  ],note:'The next upgrade button explains whether Player Level, Nuggets, or Patreon access is still required.',actions:[['settlement','Open Settlement'],['patreon','View Patreon Tiers']]},
- {id:'patreon-and-arcade',category:'collection',icon:'⭐',title:'Patreon tiers and the Study Arcade',summary:'Supporter benefits are unlocked by the verified membership attached to the game account.',path:'Menu → Player → Patreon · Menu → Gear → Shop → Arcade',steps:[
+ {id:'patreon-and-arcade',category:'collection',icon:'⭐',title:'Patreon tiers and the Study Arcade',summary:'Supporter benefits are unlocked by the verified membership attached to the game account.',path:'Menu → Player → Account & Support → Patreon · Menu → Gear → Shop → Arcade',steps:[
   'Tier 1 is the $1 Supporter level for cosmetics, wallpapers, titles, and community benefits.',
   'Tier 2 is the $3 Companion Keeper level and includes Tier 1 plus the companion system.',
   'Tier 3 is the $5 Settlement Founder level and includes everything above, Settlement, Memory Mine, Crystal Match, and Star Word Defender.',
   'Tier 3 players claim each Arcade game once in the Shop, then launch it from Shop or Inventory or Bag without spending Nuggets.'
  ],note:'Patreon access follows the verified account. If Tier 3 ends, Arcade games lock even if they were claimed earlier.',actions:[['patreon','View Patreon Tiers'],['arcade','Open Study Arcade']]},
- {id:'settings-install',category:'help',icon:'⚙️',title:'Accessibility, portrait lock, installation, and recovery',summary:'Adjust comfort, display, sound, rotation, installation, and local safety tools.',path:'Menu → Player → Accessibility',steps:[
-  'Text size, reduced motion, high contrast, color indicators, explanations, sound effects, music, and companion display can be changed here.',
+ {id:'settings-install',category:'help',icon:'⚙️',title:'Settings, portrait lock, installation, and recovery',summary:'Adjust learning support, comfort, display, sound, rotation, installation, and local safety tools.',path:'Menu → Player → Settings',steps:[
+  'Reading support, Smart Review, question voice, text size, reduced motion, high contrast, color indicators, explanations, sound effects, music, and companion display can be changed here.',
   'Portrait lock asks the device to stay upright and also blocks landscape play inside the game. Some phones still require system auto-rotate to be turned off.',
   'Install App now follows https://erendragneel.github.io/language-miner/. If a system prompt is unavailable, the button shows browser-specific Add to Home Screen instructions. Remove an old shortcut once before reinstalling from the renamed address.',
   'Safety snapshots create local recovery points. Restoring a snapshot replaces the current saved state, so inspect its date first.'
- ],note:'Settings save to this browser and active player unless the control says it is device-wide.',actions:[['settings','Open Accessibility']]},
- {id:'sharing-and-backups',category:'help',icon:'📱',title:'Share the game and protect a save',summary:'Use a QR code for the game link and a backup file for player progress.',path:'Menu → Player → Share Game · Menu → Player → Account',steps:[
+ ],note:'Settings save to this browser and active player unless the control says it is device-wide.',actions:[['settings','Open Settings']]},
+ {id:'sharing-and-backups',category:'help',icon:'📱',title:'Share the game and protect a save',summary:'Use a QR code for the game link and a backup file for player progress.',path:'Menu → Player → Help & Community → Share Game · Menu → Player → Account & Support',steps:[
   'Share Game creates a QR code, copyable link, native share action, and downloadable QR image for the current hosted game address.',
   'A localhost or file preview cannot be opened from another phone. Publish the game online before sharing that preview address.',
   'Account export creates a portable backup of the active player. Import restores that backup in another supported browser or device.',
   'Export a backup before clearing browser storage, resetting a save, changing devices, or making a risky recovery change.'
  ],note:'The QR code shares the game address; it does not contain private player progress.',actions:[['share','Open Share Game'],['account','Open Account']]},
- {id:'common-questions',category:'help',icon:'🛟',title:'Common questions when something looks wrong',summary:'Use these checks before assuming progress or a feature has disappeared.',path:'Menu → Player → Game Guide',steps:[
+ {id:'common-questions',category:'help',icon:'🛟',title:'Common questions when something looks wrong',summary:'Use these checks before assuming progress or a feature has disappeared.',path:'Menu → Player → Help & Community → Game Guide',steps:[
   'Wrong language: check the top language pair, then use Change Language. Interface text follows the known language; course content follows the learning language.',
   'Missing feature: open Menu and check Explore, Gear, and Player. Some panels also contain tabs that scroll horizontally on a phone.',
   'Locked feature: read the lock message for its guardian, lesson mastery, Player Level, Nugget, or Patreon requirement.',

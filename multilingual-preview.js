@@ -484,7 +484,7 @@
     const lessons=courseSectionLessons(section,mineIndex);if(!lessons.length)return 0;
     return Math.round(lessons.reduce((sum,_,index)=>sum+courseLessonMastery(section,index,mineIndex),0)/lessons.length);
   }
-  function courseMineSections(mineIndex){if(travelCourseActive())return Number(mineIndex)===0?['travel']:[];return Number(mineIndex)===0?['alphabet','travel','boss']:['vocabulary','grammar','sentences','boss'];}
+  function courseMineSections(mineIndex){if(travelCourseActive())return Number(mineIndex)===0?['travel']:[];return Number(mineIndex)===0?['alphabet','boss']:['vocabulary','grammar','sentences','boss'];}
   function courseMineMastery(mineIndex){const sections=courseMineSections(mineIndex);return Math.round(sections.reduce((sum,section)=>sum+courseSectionMastery(section,mineIndex),0)/sections.length);}
   function courseMineUnlocked(mineIndex,progress=languageProgress()){return Number(mineIndex)===0||courseBossDefeated(Number(mineIndex)-1,progress);}
   function recordCourseMastery(question,correct){

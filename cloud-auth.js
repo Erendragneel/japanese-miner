@@ -1,4 +1,4 @@
-// Language Miner v6.4.138 - Supabase accounts, legal consent, privacy requests, deletion, and conflict-safe cloud saves.
+// Language Miner v6.4.141 - Supabase accounts, cloud saves, and learner-approved cross-device progress sharing.
 (()=>{
 "use strict";
 const CONFIG=window.JAPANESE_MINER_PATREON_CONFIG||{};
@@ -146,6 +146,15 @@ async function adminUpdatePlayerSave(userId,payload){
     p_target:String(payload?.target||"selected"),p_base_revision:Math.max(0,Number(payload?.baseRevision)||0)
   }));
 }
+async function listParentTeacherLinks(){const payload=await rpc("list_parent_teacher_links",{});return Array.isArray(payload)?payload:[];}
+async function requestStudentLink(email){
+  const normalized=String(email||"").trim().toLowerCase();
+  if(!/^\S+@\S+\.\S+$/.test(normalized))throw new Error("Enter the email address on the learner's Language Miner account.");
+  return firstRow(await rpc("request_student_link",{p_student_email:normalized}));
+}
+async function respondStudentLink(linkId,approve){return firstRow(await rpc("respond_student_link",{p_link_id:String(linkId||""),p_approve:approve===true}));}
+async function removeStudentLink(linkId){return firstRow(await rpc("remove_parent_teacher_link",{p_link_id:String(linkId||"")}));}
+async function loadLinkedLearnerProgress(studentUserId){return firstRow(await rpc("load_linked_learner_progress",{p_student_user_id:String(studentUserId||"")}));}
 async function recordLegalConsent(legal){
   try{return firstRow(await rpc("record_legal_consent",{p_account_role:String(legal?.account_role||""),p_age_assurance:String(legal?.age_assurance||""),p_terms_version:String(legal?.terms_version||""),p_privacy_version:String(legal?.privacy_version||"")}));}
   catch(error){console.warn("The legal-consent database migration is not deployed yet.",error);return null;}
@@ -161,5 +170,5 @@ async function deleteAccount(){
   saveSession(null);return payload;
 }
 
-window.languageMinerCloudAuth=Object.freeze({enabled,getSession,saveSession,bootstrap,validSession,signIn,signUp,resetPassword,updatePassword,updateUserMetadata,updateLegalConsent,recordLegalConsent,createPrivacyRequest,listPrivacyRequests,deleteAccount,signOut,adminStatus,loadPlayerSave,savePlayerState,adminSearchPlayers,adminGetPlayerSave,adminUpdatePlayerSave});
+window.languageMinerCloudAuth=Object.freeze({enabled,getSession,saveSession,bootstrap,validSession,signIn,signUp,resetPassword,updatePassword,updateUserMetadata,updateLegalConsent,recordLegalConsent,createPrivacyRequest,listPrivacyRequests,deleteAccount,signOut,adminStatus,loadPlayerSave,savePlayerState,adminSearchPlayers,adminGetPlayerSave,adminUpdatePlayerSave,listParentTeacherLinks,requestStudentLink,respondStudentLink,removeStudentLink,loadLinkedLearnerProgress});
 })();

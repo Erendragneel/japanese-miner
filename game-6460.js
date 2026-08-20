@@ -338,7 +338,7 @@ window.japaneseMinerAssessmentTimeLabel=assessmentTimeLabel;
 window.japaneseMinerAssessmentRecordMarkup=assessmentRecordMarkup;
 
 const DEFAULT_STATE = {
-  supportMode:"guided", n5Tier:"beginner", n5Curriculum:"mixed", tutorTrack:"all",
+  supportMode:"guided", quizDifficulty:"easy", n5Tier:"beginner", n5Curriculum:"mixed", tutorTrack:"all",
   n5AcademyMastery:{}, academyTestBest:0, academyReviewDate:"", recentQuestionIds:[], onboardingComplete:false, placementResult:null, placementTestCompleted:false,
   gems:0, hearts:3, maxHearts:3, level:1, xp:0, streak:0, bestStreak:0, practiceStreak:0,
   hints:2, shields:1, active:null, answered:false, shieldArmed:false, lastPracticeDate:null,
@@ -528,6 +528,7 @@ function normalizeState(raw){
   next.sessionAnswered=Math.max(0,Number(next.sessionAnswered)||0);
   next.sessionCorrect=Math.max(0,Math.min(next.sessionAnswered,Number(next.sessionCorrect)||0));
   next.supportMode=["guided","standard","challenge"].includes(next.supportMode)?next.supportMode:"guided";
+  next.quizDifficulty=["easy","hard"].includes(next.quizDifficulty)?next.quizDifficulty:"easy";
   next.n5Tier=["beginner","intermediate","advanced"].includes(next.n5Tier)?next.n5Tier:"beginner";
   next.n5Curriculum=["standard","tutor","mixed"].includes(next.n5Curriculum)?next.n5Curriculum:"mixed";
   next.tutorTrack=["all","vocabulary","verbs","particles","patterns","adjectives","conversation"].includes(next.tutorTrack)?next.tutorTrack:"all";
@@ -677,6 +678,8 @@ function syncSelectedStageUI(){
   if(soundToggle) soundToggle.checked=state.soundEnabled!==false;
   const supportMode=document.getElementById("supportMode");
   if(supportMode) supportMode.value=state.supportMode||"guided";
+  document.querySelectorAll('[data-quiz-difficulty]').forEach(button=>{const selected=button.dataset.quizDifficulty===(state.quizDifficulty||'easy');button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));});
+  const difficultyHint=document.getElementById('quizDifficultyHint');if(difficultyHint)difficultyHint.textContent=state.quizDifficulty==='hard'?'Hard · kanji with reduced reading aids':'Easy · kana and reading support';
   syncOwnerTutorControls(idx);
 }
 
@@ -1262,31 +1265,79 @@ const VOICE_STYLE_PRESETS={
   energetic:{pitch:1.25,rate:1.3,volume:1},
   calm:{pitch:.9,rate:.65,volume:.82}
 };
-const VOICE_GENDER_PRESETS={female:{pitch:1.15,rate:1.06},male:{pitch:.82,rate:.92}};
 const FEMALE_VOICE_HINT=/female|woman|girl|kyoko|nanami|haruka|ayumi|sayaka|samantha|victoria|karen|moira|amelie|audrey|paulina|sabina|helena|heami|yuna|mei-jia|ting-ting|zira|alice|elsa|katja/i;
 const MALE_VOICE_HINT=/\bmale\b|\bman\b|\bboy\b|ichiro|otoya|hattori|keita|takumi|david|mark|james|daniel|jorge|diego|pablo|paul|thomas|henri|stefan|yuri|pavel|alex/i;
+const NATURAL_VOICE_HINT=/natural|neural|premium|enhanced|online|studio|wavenet|siri/i;
+const ROBOTIC_VOICE_HINT=/espeak|compact|festival/i;
+const VOICE_LANGUAGE_PROFILES={
+  en:{tag:'en-US',preferred:['en-US','en-GB','en-AU','en-CA'],rate:.98},
+  es:{tag:'es-ES',preferred:['es-ES','es-MX','es-US','es-AR'],rate:.97},
+  ru:{tag:'ru-RU',preferred:['ru-RU'],rate:.94},
+  ja:{tag:'ja-JP',preferred:['ja-JP'],rate:.90},
+  ko:{tag:'ko-KR',preferred:['ko-KR'],rate:.92},
+  zh:{tag:'zh-CN',preferred:['zh-CN','zh-TW','zh-HK'],rate:.90},
+  it:{tag:'it-IT',preferred:['it-IT'],rate:.97},
+  fr:{tag:'fr-FR',preferred:['fr-FR','fr-CA'],rate:.96},
+  de:{tag:'de-DE',preferred:['de-DE','de-AT','de-CH'],rate:.96},
+  pt:{tag:'pt-BR',preferred:['pt-BR','pt-PT'],rate:.96},
+  vi:{tag:'vi-VN',preferred:['vi-VN'],rate:.92},
+  th:{tag:'th-TH',preferred:['th-TH'],rate:.88},
+  tr:{tag:'tr-TR',preferred:['tr-TR'],rate:.95},
+  id:{tag:'id-ID',preferred:['id-ID'],rate:.96},
+  pl:{tag:'pl-PL',preferred:['pl-PL'],rate:.94},
+  el:{tag:'el-GR',preferred:['el-GR'],rate:.94},
+  uk:{tag:'uk-UA',preferred:['uk-UA'],rate:.94}
+};
 let languageMinerVoices=[];
 function refreshLanguageMinerVoices(){if('speechSynthesis'in window)languageMinerVoices=speechSynthesis.getVoices();}
 if('speechSynthesis'in window){refreshLanguageMinerVoices();speechSynthesis.addEventListener?.('voiceschanged',refreshLanguageMinerVoices);}
+function normalizedVoiceTag(languageTag){return String(languageTag||'ja-JP').replace('_','-').toLowerCase();}
+function voiceLanguageProfile(languageTag){
+  const requested=normalizedVoiceTag(languageTag),base=requested.split('-')[0],profile=VOICE_LANGUAGE_PROFILES[base]||{tag:languageTag||'ja-JP',preferred:[languageTag||'ja-JP'],rate:.95};
+  return {...profile,base,requested,preferred:profile.preferred.map(normalizedVoiceTag)};
+}
+function voiceQualityScore(voice){
+  const name=String(voice?.name||'');let score=0;
+  if(NATURAL_VOICE_HINT.test(name))score+=24;
+  if(/microsoft|google|apple|siri/i.test(name))score+=8;
+  if(voice?.localService)score+=5;
+  if(voice?.default)score+=2;
+  if(ROBOTIC_VOICE_HINT.test(name))score-=20;
+  return score;
+}
 function voiceCandidates(languageTag){
-  refreshLanguageMinerVoices();const normalized=String(languageTag||'ja-JP').replace('_','-').toLowerCase();return languageMinerVoices.filter(voice=>String(voice.lang||'').replace('_','-').toLowerCase()===normalized);
+  refreshLanguageMinerVoices();const profile=voiceLanguageProfile(languageTag);
+  return languageMinerVoices.filter(voice=>normalizedVoiceTag(voice.lang).split('-')[0]===profile.base).map((voice,index)=>{
+    const tag=normalizedVoiceTag(voice.lang),preferredIndex=profile.preferred.indexOf(tag);
+    const localeScore=tag===profile.requested?300:preferredIndex>=0?240-(preferredIndex*12):150;
+    return {voice,index,score:localeScore+voiceQualityScore(voice)};
+  }).sort((a,b)=>b.score-a.score||a.index-b.index).map(entry=>entry.voice);
 }
 function styledVoice(candidates,gender){
   const hint=gender==='male'?MALE_VOICE_HINT:FEMALE_VOICE_HINT,opposite=gender==='male'?FEMALE_VOICE_HINT:MALE_VOICE_HINT;return candidates.find(voice=>hint.test(voice.name))||candidates.find(voice=>!opposite.test(voice.name))||candidates[0]||null;
 }
-function voiceTuning(rate=state.voiceRate){
-  const style=state.voiceStyle||'natural',gender=state.voiceGender||'female',stylePreset=VOICE_STYLE_PRESETS[style]||VOICE_STYLE_PRESETS.natural,genderPreset=VOICE_GENDER_PRESETS[gender]||VOICE_GENDER_PRESETS.female;return {style,gender,pitch:Math.max(.35,Math.min(1.9,stylePreset.pitch*genderPreset.pitch)),rate:Math.max(.5,Math.min(1.4,(Number(rate)||.85)*stylePreset.rate*genderPreset.rate)),volume:stylePreset.volume};
+function voiceTuning(rate=state.voiceRate,languageTag='ja-JP'){
+  const style=state.voiceStyle||'natural',gender=state.voiceGender||'female',stylePreset=VOICE_STYLE_PRESETS[style]||VOICE_STYLE_PRESETS.natural,profile=voiceLanguageProfile(languageTag),userTempo=Math.max(.65,Math.min(1.25,(Number(rate)||.85)/.85));
+  return {style,gender,language:profile.tag,pitch:Math.max(.35,Math.min(1.9,stylePreset.pitch)),rate:Math.max(.5,Math.min(1.4,profile.rate*userTempo*stylePreset.rate)),volume:stylePreset.volume};
 }
 function syncVoiceTuningLabel(){
   const label=document.getElementById('voiceTuningLabel');if(!label)return;const tuning=voiceTuning();label.textContent=`${tuning.gender==='male'?'Male':'Female'} · ${tuning.style[0].toUpperCase()+tuning.style.slice(1)} · Pitch ${tuning.pitch.toFixed(2)} · Tempo ${tuning.rate.toFixed(2)}× · Volume ${Math.round(tuning.volume*100)}%`;
 }
 function configureLanguageMinerUtterance(utterance,languageTag,rate=state.voiceRate){
-  const tuning=voiceTuning(rate);utterance.lang=languageTag||'ja-JP';utterance.rate=tuning.rate;utterance.pitch=tuning.pitch;utterance.volume=tuning.volume;const voice=styledVoice(voiceCandidates(utterance.lang),tuning.gender);if(voice)utterance.voice=voice;return utterance;
+  const requestedTag=languageTag||'ja-JP',tuning=voiceTuning(rate,requestedTag),voice=styledVoice(voiceCandidates(requestedTag),tuning.gender);utterance.lang=voice?.lang||requestedTag;utterance.rate=tuning.rate;utterance.pitch=tuning.pitch;utterance.volume=tuning.volume;if(voice)utterance.voice=voice;return utterance;
 }
 function speakLanguageMinerText(text,languageTag='ja-JP',rate=state.voiceRate){
   if(silentTestingActive()||!state.voiceEnabled)return false;if(!('speechSynthesis'in window)){setMessage('Speech is not supported in this browser.','wrong');return false;}const clean=stripMarkup(text).trim();if(!clean)return false;speechSynthesis.cancel();const utterance=configureLanguageMinerUtterance(new SpeechSynthesisUtterance(clean),languageTag,rate);speechSynthesis.speak(utterance);return true;
 }
-window.LanguageMinerSpeech=Object.freeze({speak:speakLanguageMinerText,gender:()=>state.voiceGender,style:()=>state.voiceStyle,styles:()=>Object.keys(VOICE_STYLE_PRESETS),settings:()=>({...voiceTuning()})});
+window.LanguageMinerSpeech=Object.freeze({
+  speak:speakLanguageMinerText,
+  gender:()=>state.voiceGender,
+  style:()=>state.voiceStyle,
+  styles:()=>Object.keys(VOICE_STYLE_PRESETS),
+  settings:(languageTag='ja-JP')=>({...voiceTuning(state.voiceRate,languageTag)}),
+  profile:(languageTag='ja-JP')=>{const profile=voiceLanguageProfile(languageTag);return {tag:profile.tag,base:profile.base,preferred:[...profile.preferred],rate:profile.rate};},
+  voiceFor:(languageTag='ja-JP')=>{const voice=styledVoice(voiceCandidates(languageTag),state.voiceGender);return voice?{name:voice.name,lang:voice.lang,localService:Boolean(voice.localService),default:Boolean(voice.default)}:null;}
+});
 function japaneseSpeechText(q=state.active){
   if(!q)return '日本語を勉強しましょう。';
   if(q.speechText)return readingSpeechText(q.speechText);
@@ -1390,6 +1441,11 @@ function mine(){
 }
 
 function questionDisplay(q){
+  const vocabularyMeaningQuestion=Boolean(q?.vocabularyKey&&/meaning/i.test(String(q.prompt||'')));
+  if(vocabularyMeaningQuestion){
+    if(state.quizDifficulty==='hard')return stripMarkup(q.vocabularyKey||q.displayChallenge||q.q);
+    const reading=readingSpeechText(q.speechText||q.displayGuided||'');if(reading)return reading;
+  }
   // Reading and meaning questions must never reveal their own answer.
   if(q.concealedPrompt) return q.concealedPrompt;
   if(q.kind==="reading" && q.displayChallenge) return q.displayChallenge;
@@ -1423,12 +1479,17 @@ function showQuestion(q){
     });
   }
   const a=document.getElementById("answers");
-  shuffle([...q.opts]).forEach(opt=>{
+  quizOptionsForDifficulty(q.opts,q.a).forEach(opt=>{
     const b=document.createElement("button");
     b.textContent=opt;
     b.onclick=()=>answer(opt,b);
     a.appendChild(b);
   });
+}
+
+function quizOptionsForDifficulty(options,answer){
+  const values=[...new Set((Array.isArray(options)?options:[]).map(value=>String(value)))],correct=String(answer??''),wrong=shuffle(values.filter(value=>value!==correct)),limit=state.quizDifficulty==='hard'?4:3;
+  return shuffle([correct,...wrong.slice(0,Math.max(1,limit-1))].filter(Boolean));
 }
 
 function recordQuestionAttempt(q,correct){
@@ -1626,6 +1687,7 @@ function jumpToSection(id){
 document.getElementById("quickMineBtn").onclick=quickMineAction;
 document.getElementById("soundToggle").addEventListener("change",e=>{state.soundEnabled=e.target.checked;save();if(state.soundEnabled)playFeedbackSound(true);});
 document.getElementById("supportMode").addEventListener("change",e=>{state.supportMode=e.target.value;state.active=null;state.answered=false;save();render();setMessage(`Support mode changed to ${e.target.options[e.target.selectedIndex].text}. Start a new question.`,"correct");});
+document.querySelectorAll('[data-quiz-difficulty]').forEach(button=>button.addEventListener('click',()=>{const mode=button.dataset.quizDifficulty;if(!['easy','hard'].includes(mode)||mode===state.quizDifficulty)return;state.quizDifficulty=mode;state.supportMode=mode==='easy'?'guided':'challenge';state.active=null;state.answered=false;state.shieldArmed=false;state.recentQuestionIds=[];const area=document.getElementById('challengeArea');if(area)area.innerHTML=`<div class="empty"><strong>${mode==='easy'?'🌱 Easy mode':'⛏️ Hard mode'}</strong><br>${mode==='easy'?'Japanese vocabulary uses kana and full reading support.':'Japanese vocabulary uses kanji and reduces reading aids.'}<br>Tap the rock to begin.</div>`;save();render();setMessage(`${mode==='easy'?'Easy':'Hard'} quiz mode selected. Start a new question.`,"correct");}));
 document.getElementById("quickStatsBtn")?.addEventListener("click",()=>setStatsDrawer(true));
 document.getElementById("headerStatsBtn").onclick=()=>window.openLanguageMinerStats?.();
 document.getElementById("closeStatsBtn").onclick=()=>setStatsDrawer(false);
@@ -1722,7 +1784,7 @@ function resetOfflineV5Progress(targetState){
   targetState.v5=collection;
 }
 function resetJapaneseCourseProgress(targetState=state){
-  resetStateFields(["supportMode","n5Tier","n5Curriculum","tutorTrack","n5AcademyMastery","academyTestBest","academyReviewDate","recentQuestionIds","onboardingComplete","placementResult","placementTestCompleted","placementRewardClaimed","placementUnlockedThrough","selectedStage","jlptSectionSelection","jlptVocabularyLevel","jlptSectionLevel","jlptReviewCheckpoints","jlptVocabularyLessonSize","kanaFamilyLevel","kanaStats","stats","hiraganaXp","stageXp","clearedStages","questionStats","level","xp","active","answered","shieldArmed","sessionAnswered","sessionCorrect"],targetState);
+  resetStateFields(["supportMode","quizDifficulty","n5Tier","n5Curriculum","tutorTrack","n5AcademyMastery","academyTestBest","academyReviewDate","recentQuestionIds","onboardingComplete","placementResult","placementTestCompleted","placementRewardClaimed","placementUnlockedThrough","selectedStage","jlptSectionSelection","jlptVocabularyLevel","jlptSectionLevel","jlptReviewCheckpoints","jlptVocabularyLessonSize","kanaFamilyLevel","kanaStats","stats","hiraganaXp","stageXp","clearedStages","questionStats","level","xp","active","answered","shieldArmed","sessionAnswered","sessionCorrect"],targetState);
   if(targetState===state)window.japaneseMinerV5Admin?.resetProgress?.();else resetOfflineV5Progress(targetState);
 }
 function resetJapanesePlacement(targetState=state){
@@ -2087,10 +2149,11 @@ function v3WordExamples(w){
  return examples[w.jp]||[`${w.jp}（${w.reading}）は「${w.en}」という意味です。`];
 }
 function v3SetMastery(id,delta){state.n5AcademyMastery[id]=Math.max(0,Math.min(100,academyItemMastery(id)+delta));save();renderAcademySummary();}
+function japaneseVocabularyQuizTerm(word){return state.quizDifficulty==='hard'?String(word?.jp||word?.primary||word?.[0]||''):String(word?.reading||word?.secondary||word?.[1]||word?.jp||word?.primary||word?.[0]||'');}
 function v3QuizCard(question,options,answer,onDone){
- academyView.quiz={question,options:shuffle([...options]),answer,onDone};renderAcademy();
+ academyView.quiz={question,options:quizOptionsForDifficulty(options,answer),answer,onDone};renderAcademy();
 }
-function v3RenderQuiz(){const q=academyView.quiz;return `<section class="course-focus quiz-focus"><button class="course-back" data-course-back type="button">← Back</button><div class="course-kicker">Quick practice</div><h3>${v3Esc(q.question)}</h3><div class="course-answer-grid">${q.options.map(o=>`<button data-course-answer="${v3Esc(o)}" type="button">${v3Esc(o)}</button>`).join('')}</div><div id="courseQuizFeedback" class="course-feedback"></div></section>`;}
+function v3RenderQuiz(){const q=academyView.quiz,mode=state.quizDifficulty==='hard'?'⛏️ Hard':'🌱 Easy';return `<section class="course-focus quiz-focus"><button class="course-back" data-course-back type="button">← Back</button><div class="course-kicker">Quick practice · ${mode}</div><h3>${v3Esc(q.question)}</h3><div class="course-answer-grid">${q.options.map(o=>`<button data-course-answer="${v3Esc(o)}" type="button">${v3Esc(o)}</button>`).join('')}</div><div id="courseQuizFeedback" class="course-feedback"></div></section>`;}
 function v3HandleQuizAnswer(value,button){const q=academyView.quiz;if(!q)return;const good=value===q.answer;document.querySelectorAll('[data-course-answer]').forEach(b=>b.disabled=true);button.classList.add(good?'answer-good':'answer-bad');const fb=document.getElementById('courseQuizFeedback');if(fb)fb.innerHTML=good?'✅ Correct! Mastery increased.':`❌ The correct answer is <strong>${v3Esc(q.answer)}</strong>. This wrong answer was added to your Notebook.`;if(!good)window.japaneseMinerRecordWrongAssessment?.({id:`academy-quick:${academyStage}:${q.question}:${q.answer}`,stage:Number(academyStage)||2,q:q.question,prompt:'Course quick practice',a:q.answer,kind:'academy-quiz'},value,'Course Quick Practice');q.onDone?.(good);setTimeout(()=>{academyView.quiz=null;renderAcademy();},850);}
 function v3RenderVocabulary(){
  return renderVocabularyCourse(2);
@@ -2440,7 +2503,7 @@ function renderAdvancedAcademy(){const c=JLPT_COURSES[academyStage],counts=advan
  if(academyTab==='listening')box.innerHTML=`<div class="academy-toolbar"><strong>${c.label} Listening</strong><span>Uses Japanese browser speech when available.</span></div><div class="study-grid">${c.reading.map((r,i)=>`<article class="study-card"><strong>Listening ${i+1}</strong><p class="jp-passage listening-hidden" id="advListen${i}">${v3Esc(r[1])}</p><button data-adv-speak="${i}" type="button">▶ Play Japanese</button><button data-adv-reveal="${i}" type="button">Reveal text</button></article>`).join('')}</div>`;
  if(academyTab==='review'){const due=[...c.vocab.map((x,i)=>['vocab',i,x[0]]),...c.kanji.map((x,i)=>['kanji',i,x[0]]),...c.grammar.map((x,i)=>['grammar',i,x[0]])].filter(([t,i])=>jlptItemMastery(t,i)<75).sort((a,b)=>jlptItemMastery(a[0],a[1])-jlptItemMastery(b[0],b[1])).slice(0,20);box.innerHTML=`<div class="academy-toolbar"><strong>Today's ${c.label} Review</strong><span>${due.length} priority cards</span></div><div class="review-list">${due.map(([t,i,l])=>`<button data-adv-practice="${t}:${i}" type="button"><span>${v3Esc(l)}</span><strong>${jlptItemMastery(t,i)}%</strong></button>`).join('')||'<p>Everything due today is mastered.</p>'}</div>`;}
  if(academyTab==='tests')box.innerHTML=`<div class="academy-test-grid"><article class="study-card"><h3>Mini ${c.label} Test</h3><p>20 mixed questions from this level.</p><button data-adv-test="20" class="primary" type="button">Start test</button></article><article class="study-card"><h3>Extended ${c.label} Test</h3><p>40 mixed questions from this level.</p><button data-adv-test="40" type="button">Start test</button></article></div>`;
- box.onclick=e=>{const t=e.target.closest('button');if(!t)return;if(handleVocabularyCourseAction(t,academyStage))return;if(t.id==='hubEnterMineBtn'){closeAcademy();selectStage(academyStage,false);document.getElementById('rock')?.scrollIntoView({behavior:'smooth',block:'center'});}else if(t.dataset.advSpeak!==undefined)speakJapanese(c.reading[Number(t.dataset.advSpeak)][1]);else if(t.dataset.advReveal!==undefined)document.getElementById(`advListen${t.dataset.advReveal}`)?.classList.remove('listening-hidden');else if(t.dataset.advPractice){const [type,raw]=t.dataset.advPractice.split(':'),i=Number(raw);let prompt,answer,wrong;if(type==='vocab'){prompt=`What does ${c.vocab[i][0]} mean?`;answer=c.vocab[i][2];wrong=c.vocab.filter((_,j)=>j!==i).map(x=>x[2]);}if(type==='kanji'){prompt=`What does ${c.kanji[i][0]} mean?`;answer=c.kanji[i][2];wrong=c.kanji.filter((_,j)=>j!==i).map(x=>x[2]);}if(type==='grammar'){prompt=`Which pattern appears in: ${c.grammar[i][2]}`;answer=c.grammar[i][0];wrong=c.grammar.filter((_,j)=>j!==i).map(x=>x[0]);}if(type==='reading'){prompt=c.reading[i][2];answer=c.reading[i][3];wrong=c.reading.filter((_,j)=>j!==i).map(x=>x[3]);}v3QuizCard(prompt,[answer,...shuffle(wrong).slice(0,3)],answer,good=>jlptSetMastery(type,i,good?25:-5));}else if(t.dataset.courseAnswer!==undefined)v3HandleQuizAnswer(t.dataset.courseAnswer,t);else if(t.dataset.courseBack!==undefined){academyView.quiz=null;renderAcademy();}else if(t.dataset.advTest){academyView.quiz=null;const pool=questions.filter(q=>q.stage===academyStage);const q=pool[Math.floor(Math.random()*pool.length)];v3QuizCard(q.prompt+' '+q.q,q.opts,q.a,good=>{if(q.courseId){const [,type,i]=q.courseId.split(':');jlptSetMastery(type,Number(i),good?15:-4);}});}};
+ box.onclick=e=>{const t=e.target.closest('button');if(!t)return;if(handleVocabularyCourseAction(t,academyStage))return;if(t.id==='hubEnterMineBtn'){closeAcademy();selectStage(academyStage,false);document.getElementById('rock')?.scrollIntoView({behavior:'smooth',block:'center'});}else if(t.dataset.advSpeak!==undefined)speakJapanese(c.reading[Number(t.dataset.advSpeak)][1]);else if(t.dataset.advReveal!==undefined)document.getElementById(`advListen${t.dataset.advReveal}`)?.classList.remove('listening-hidden');else if(t.dataset.advPractice){const [type,raw]=t.dataset.advPractice.split(':'),i=Number(raw);let prompt,answer,wrong;if(type==='vocab'){prompt=`What does ${japaneseVocabularyQuizTerm(c.vocab[i])} mean?`;answer=c.vocab[i][2];wrong=c.vocab.filter((_,j)=>j!==i).map(x=>x[2]);}if(type==='kanji'){prompt=`What does ${c.kanji[i][0]} mean?`;answer=c.kanji[i][2];wrong=c.kanji.filter((_,j)=>j!==i).map(x=>x[2]);}if(type==='grammar'){prompt=`Which pattern appears in: ${c.grammar[i][2]}`;answer=c.grammar[i][0];wrong=c.grammar.filter((_,j)=>j!==i).map(x=>x[0]);}if(type==='reading'){prompt=c.reading[i][2];answer=c.reading[i][3];wrong=c.reading.filter((_,j)=>j!==i).map(x=>x[3]);}v3QuizCard(prompt,[answer,...shuffle(wrong).slice(0,3)],answer,good=>jlptSetMastery(type,i,good?25:-5));}else if(t.dataset.courseAnswer!==undefined)v3HandleQuizAnswer(t.dataset.courseAnswer,t);else if(t.dataset.courseBack!==undefined){academyView.quiz=null;renderAcademy();}else if(t.dataset.advTest){academyView.quiz=null;const pool=questions.filter(q=>q.stage===academyStage);const q=pool[Math.floor(Math.random()*pool.length)];v3QuizCard(`${q.prompt} ${stripMarkup(questionDisplay(q))}`,q.opts,q.a,good=>{if(q.courseId){const [,type,i]=q.courseId.split(':');jlptSetMastery(type,Number(i),good?15:-4);}});}};
 }
 const renderAcademyV34=renderAcademy;
 renderAcademy=function(){updateAcademyChrome();if(academyStage===2)return renderAcademyV34();if(academyView.quiz){const box=document.getElementById('academyContent');box.innerHTML=v3RenderQuiz();box.onclick=e=>{const t=e.target.closest('button');if(t?.dataset.courseAnswer!==undefined)v3HandleQuizAnswer(t.dataset.courseAnswer,t);else if(t?.dataset.courseBack!==undefined){academyView.quiz=null;renderAcademy();}};return;}renderAdvancedAcademy();};
@@ -3303,7 +3366,7 @@ function handleVocabularyCourseAction(target,stage=academyStage){
   if(target.matches("[data-word-index]")){academyView.word=Number(target.dataset.wordIndex);academyView.preview=null;renderAcademy();return true;}
   if(target.matches("[data-word-back]")){academyView.word=null;academyView.preview=null;renderAcademy();return true;}
   if(target.matches("[data-word-speak]")){const word=jlptVocabularyWords(stage)[Number(target.dataset.wordSpeak)];if(word)speakJapanese(word.reading||word.jp);return true;}
-  if(target.matches("[data-word-quiz]")){const index=Number(target.dataset.wordQuiz),words=jlptVocabularyWords(stage),word=words[index];if(!word)return true;const wrong=shuffle(words.filter((_,wordIndex)=>wordIndex!==index).map(item=>item.en)).slice(0,3);v3QuizCard(`What does ${word.jp} mean?`,[word.en,...wrong],word.en,good=>setVocabularyWordMastery(word,good?25:-5));return true;}
+  if(target.matches("[data-word-quiz]")){const index=Number(target.dataset.wordQuiz),words=jlptVocabularyWords(stage),word=words[index];if(!word)return true;const wrong=shuffle(words.filter((_,wordIndex)=>wordIndex!==index).map(item=>item.en)).slice(0,3);v3QuizCard(`What does ${japaneseVocabularyQuizTerm(word)} mean?`,[word.en,...wrong],word.en,good=>setVocabularyWordMastery(word,good?25:-5));return true;}
   return false;
 }
 
@@ -3351,18 +3414,19 @@ function jlptReviewCheckpointAvailable(stage,section,evenLesson){
 }
 function jlptReviewCheckpointChoices(answer,values){
   const wrong=[...new Set(values.map(value=>String(value||"")).filter(value=>value&&value!==String(answer)))];
-  return shuffle([String(answer),...shuffle(wrong).slice(0,3)]);
+  return shuffle([String(answer),...shuffle(wrong).slice(0,state.quizDifficulty==='hard'?3:2)]);
 }
 function jlptReviewCheckpointQuestionBank(stage,section,evenLesson){
   stage=Number(stage);section=String(section);evenLesson=Number(evenLesson);
   const rawPair=jlptSectionLevels(stage,section).slice(evenLesson-2,evenLesson).flat(),ids=new Set(rawPair.map(item=>String(item.masteryId))),all=jlptSectionItems(stage,section),items=all.filter(item=>ids.has(String(item.masteryId))),bank=[];
   const add=(id,display,prompt,answer,values)=>{const options=jlptReviewCheckpointChoices(answer,values);if(String(answer||"")&&options.length>=2)bank.push({id,display:String(display||""),prompt:String(prompt||""),answer:String(answer),options});};
   if(section==="vocabulary")items.forEach(item=>{
-    add(`${item.masteryId}:meaning`,item.primary,"Choose the correct meaning.",item.meaning,items.map(entry=>entry.meaning));
-    if(item.secondary&&item.secondary!==item.primary)add(`${item.masteryId}:reading`,item.primary,"Choose the correct reading.",item.secondary,items.map(entry=>entry.secondary));
+    add(`${item.masteryId}:meaning`,japaneseVocabularyQuizTerm(item),"Choose the correct meaning.",item.meaning,items.map(entry=>entry.meaning));
+    if(state.quizDifficulty==='hard'&&item.secondary&&item.secondary!==item.primary)add(`${item.masteryId}:reading`,item.primary,"Choose the correct reading.",item.secondary,items.map(entry=>entry.secondary));
   });
   if(section==="kanji")items.forEach(item=>{
-    add(`${item.masteryId}:meaning`,item.primary,"Choose this kanji's meaning.",item.meaning,items.map(entry=>entry.meaning));
+    const display=state.quizDifficulty==='easy'&&item.secondary&&item.secondary!=="—"?`${item.primary}（${item.secondary}）`:item.primary;
+    add(`${item.masteryId}:meaning`,display,"Choose this kanji's meaning.",item.meaning,items.map(entry=>entry.meaning));
     if(item.secondary&&item.secondary!=="—")add(`${item.masteryId}:reading`,item.primary,"Choose the correct reading.",item.secondary,items.map(entry=>entry.secondary));
   });
   if(section==="grammar")items.forEach(item=>add(`${item.masteryId}:grammar`,item.detail,"Which grammar point is used?",item.primary,items.map(entry=>entry.primary)));
@@ -3628,7 +3692,7 @@ function renderJlptReviewCheckpointQuiz(){
     return `<section class="jlpt-review-quiz-result ${quiz.passed?'passed':'failed'}"><div class="lesson-review-check">${quiz.passed?'✓':'!'}</div><div class="course-kicker">${vocabularyCourseLabel(quiz.stage)} ${spec.name} · ${pair} checkpoint</div><h3>${quiz.passed?'Review quiz passed':'Review quiz needs another try'}</h3><div class="jlpt-review-result-score">${quiz.score}%</div><p>${quiz.correct}/${JLPT_REVIEW_QUIZ_QUESTION_COUNT} correct · ${unanswered} unanswered · ${elapsed} seconds used</p>${recordMarkup}<strong>${quiz.passed?(nextExists?`Lesson ${quiz.evenLesson+1} is now available.`:'Final lesson-pair review complete.'):gatePassed?'This checkpoint remains passed from your earlier score.':'Score at least 75% (19 correct answers) to unlock the next lesson.'}</strong>${missedMarkup}<div class="lesson-preview-actions"><button data-checkpoint-back type="button">← All lessons</button><button data-checkpoint-retry type="button">Try another random set</button>${gatePassed&&nextExists?`<button data-checkpoint-continue class="primary" type="button">Continue to Lesson ${quiz.evenLesson+1}</button>`:""}</div></section>`;
   }
   const question=quiz.questions[quiz.current],remaining=jlptReviewQuizRemainingMs(quiz),progress=(quiz.current+1)/JLPT_REVIEW_QUIZ_QUESTION_COUNT*100,record=jlptReviewCheckpointResult(quiz.stage,quiz.section,quiz.evenLesson),recordCopy=record.fastestTimeMs?` · Record ${assessmentTimeLabel(record.fastestTimeMs)}`:'';
-  return `<section class="course-focus jlpt-review-quiz"><header><div><div class="course-kicker">${vocabularyCourseLabel(quiz.stage)} ${spec.name} · ${pair} Review Quiz</div><h3>Question ${quiz.current+1} of ${JLPT_REVIEW_QUIZ_QUESTION_COUNT}</h3><p>${quiz.correct} correct so far · 75% required to pass${recordCopy}</p></div><strong id="jlptReviewQuizTimer" class="jlpt-review-timer ${remaining<=30000?'urgent':''}" aria-live="polite">${jlptReviewQuizTimeLabel(remaining)}</strong></header>${progressBar(progress)}<article class="jlpt-review-question"><div class="jlpt-review-question-display">${v3Esc(question.display)}</div><p>${v3Esc(question.prompt)}</p><div class="course-answer-grid">${question.options.map((option,index)=>{const correct=quiz.answered&&option===question.answer,wrong=quiz.answered&&option===quiz.selected&&option!==question.answer;return `<button data-checkpoint-answer="${index}" class="${correct?'answer-good':wrong?'answer-bad':''}" type="button" ${quiz.answered?'disabled':''}>${v3Esc(option)}</button>`;}).join("")}</div><div class="course-feedback" aria-live="polite">${quiz.answered?(quiz.selected===question.answer?'✅ Correct!':`❌ Correct answer: <strong>${v3Esc(question.answer)}</strong>`):"Choose the best answer before time runs out."}</div></article><div class="lesson-preview-actions"><button data-checkpoint-quit type="button">Quit quiz</button>${quiz.answered?'<span class="jlpt-review-auto-advance" role="status">Next question loading automatically…</span>':""}</div></section>`;
+  return `<section class="course-focus jlpt-review-quiz"><header><div><div class="course-kicker">${vocabularyCourseLabel(quiz.stage)} ${spec.name} · ${pair} Review Quiz · ${state.quizDifficulty==='hard'?'⛏️ Hard':'🌱 Easy'}</div><h3>Question ${quiz.current+1} of ${JLPT_REVIEW_QUIZ_QUESTION_COUNT}</h3><p>${quiz.correct} correct so far · 75% required to pass${recordCopy}</p></div><strong id="jlptReviewQuizTimer" class="jlpt-review-timer ${remaining<=30000?'urgent':''}" aria-live="polite">${jlptReviewQuizTimeLabel(remaining)}</strong></header>${progressBar(progress)}<article class="jlpt-review-question"><div class="jlpt-review-question-display">${v3Esc(question.display)}</div><p>${v3Esc(question.prompt)}</p><div class="course-answer-grid">${question.options.map((option,index)=>{const correct=quiz.answered&&option===question.answer,wrong=quiz.answered&&option===quiz.selected&&option!==question.answer;return `<button data-checkpoint-answer="${index}" class="${correct?'answer-good':wrong?'answer-bad':''}" type="button" ${quiz.answered?'disabled':''}>${v3Esc(option)}</button>`;}).join("")}</div><div class="course-feedback" aria-live="polite">${quiz.answered?(quiz.selected===question.answer?'✅ Correct!':`❌ Correct answer: <strong>${v3Esc(question.answer)}</strong>`):"Choose the best answer before time runs out."}</div></article><div class="lesson-preview-actions"><button data-checkpoint-quit type="button">Quit quiz</button>${quiz.answered?'<span class="jlpt-review-auto-advance" role="status">Next question loading automatically…</span>':""}</div></section>`;
 }
 function leaveJlptReviewCheckpoint(){clearJlptReviewQuizClock();academyView.checkpointQuiz=null;syncJlptReviewQuizTabs(false);resetJlptLessonView();renderAcademy();}
 function openJlptReviewCheckpoint(stage,section,evenLesson){

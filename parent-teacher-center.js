@@ -22,8 +22,9 @@
   function recordLabel(value){const exact=t(value);if(exact!==value)return exact;return String(value).replace(/\bLevel\b/g,t('Level')).replace(/\bReview\b/g,t('Review')).replace(/\bGuardian\b/g,t('Guardian'));}
   const uid=()=>`ptc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,9)}`;
   const linkLabel=status=>status==='approved'?t('Approved'):status==='pending'?t('Awaiting approval'):t('Declined');
-  const previewCloudMode=()=>window.LANGUAGE_MINER_PREVIEW===true&&!String(current()?.cloudUserId||'');
-  const currentCloudUserId=()=>String(current()?.cloudUserId||cloud()?.getSession?.()?.user?.id||(previewCloudMode()?'preview-cloud-adult':''));
+  const signedInCloudUserId=()=>String(cloud()?.getSession?.()?.user?.id||'');
+  const previewCloudMode=()=>window.LANGUAGE_MINER_PREVIEW===true&&!String(current()?.cloudUserId||'')&&!signedInCloudUserId();
+  const currentCloudUserId=()=>String(current()?.cloudUserId||signedInCloudUserId()||(previewCloudMode()?'preview-cloud-adult':''));
   const cloudReady=()=>previewCloudMode()||!!(currentCloudUserId()&&cloud()?.enabled?.()&&cloud()?.listParentTeacherLinks);
   function readLinks(){
     try{
@@ -36,6 +37,7 @@
   function writeLinks(links){
     localStorage.setItem(LINK_KEY,JSON.stringify(links));
     window.dispatchEvent(new CustomEvent('lm-parent-teacher-access-changed'));
+    syncRequestNotification();
   }
   function normalizeCloudLink(row){
     const adultUserId=String(row?.adult_user_id||''),studentUserId=String(row?.student_user_id||'');
@@ -57,10 +59,16 @@
   }
   function incomingRequests(){return allLinks().filter(link=>isStudent(link)&&link.status==='pending');}
   function centerOpen(){return document.getElementById('parentTeacherCenter')?.classList.contains('open');}
+  function syncRequestNotification(){
+    const account=document.querySelector('.app>header .account-chip');if(!account)return;
+    let button=document.getElementById('parentTeacherRequestNotice');
+    if(!button){button=document.createElement('button');button.id='parentTeacherRequestNotice';button.className='ptc-request-notice';button.type='button';button.title=t('Open student access requests');button.addEventListener('click',()=>openCenter('dashboard'));account.insertBefore(button,account.querySelector('#headerStatsBtn')||account.firstChild);}
+    const count=incomingRequests().length;button.hidden=count===0;button.setAttribute('aria-label',count?`${count} ${t('student access request')}${count===1?'':'s'} ${t('awaiting your approval')}`:t('No student access requests'));button.innerHTML=`<span aria-hidden="true">🔔</span> ${esc(t('Requests'))}<b>${count}</b>`;
+  }
   function cloudTime(value){if(!value)return t('Not synced yet');try{return new Date(value).toLocaleString(locale(),{dateStyle:'medium',timeStyle:'short'});}catch{return new Date(value).toLocaleString();}}
   async function syncCloudData(announce=false){
-    if(!cloudReady()){cloudLinks=[];cloudSummaries=new Map();cloudError='';if(centerOpen())render();return false;}
-    if(previewCloudMode()){cloudError='';cloudLastSync=Date.now();if(announce)window.setMessage?.(t('Preview cross-device progress refreshed.'),'correct');if(centerOpen())render();return true;}
+    if(!cloudReady()){cloudLinks=[];cloudSummaries=new Map();cloudError='';syncRequestNotification();if(centerOpen())render();return false;}
+    if(previewCloudMode()){cloudError='';cloudLastSync=Date.now();syncRequestNotification();if(announce)window.setMessage?.(t('Preview cross-device progress refreshed.'),'correct');if(centerOpen())render();return true;}
     if(cloudBusy)return false;cloudBusy=true;cloudError='';if(centerOpen())render();
     try{
       await window.languageMinerPushCloudSave?.();
@@ -71,9 +79,9 @@
       if(announce)window.setMessage?.(t('Linked learner progress refreshed from the cloud.'),'correct');
       return true;
     }catch(error){cloudError=String(error?.message||error||t('Cloud learner data is temporarily unavailable.'));if(announce)window.setMessage?.(cloudError,'wrong');return false;}
-    finally{cloudBusy=false;const learners=approvedLearners();if(!selectedLearnerId||!learners.some(item=>item.id===selectedLearnerId))selectedLearnerId=learners[0]?.id||'';if(centerOpen())render();}
+    finally{cloudBusy=false;const learners=approvedLearners();if(!selectedLearnerId||!learners.some(item=>item.id===selectedLearnerId))selectedLearnerId=learners[0]?.id||'';syncRequestNotification();if(centerOpen())render();}
   }
-  function startCloudRefresh(){clearInterval(cloudTimer);cloudTimer=setInterval(()=>{if(centerOpen()&&!document.hidden)syncCloudData(false);},30000);}
+  function startCloudRefresh(){clearInterval(cloudTimer);cloudTimer=setInterval(()=>{if(!document.hidden&&cloudReady())syncCloudData(false);},30000);}
   function seedPreviewAccess(){
     if(window.LANGUAGE_MINER_PREVIEW!==true)return;
     const adult=current();if(!adult||!['codex-preview','codex-preview-player'].includes(adult.id))return;const candidates=profiles().filter(profile=>profile.id!==adult.id&&profile.id.startsWith('preview-player-')).slice(0,2);if(!candidates.length)return;
@@ -99,7 +107,7 @@
     const overlay=document.getElementById('parentTeacherCenter');overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');render();window.syncJapaneseMinerPageScroll?.();
     startCloudRefresh();syncCloudData(false);setTimeout(()=>document.querySelector('#ptcContent button:not([disabled])')?.focus(),0);return true;
   }
-  function closeCenter(){const overlay=document.getElementById('parentTeacherCenter');if(!overlay)return;overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');clearInterval(cloudTimer);cloudTimer=0;window.syncJapaneseMinerPageScroll?.();}
+  function closeCenter(){const overlay=document.getElementById('parentTeacherCenter');if(!overlay)return;overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');window.syncJapaneseMinerPageScroll?.();}
   function refreshHeader(){const root=document.getElementById('parentTeacherCenter');if(!root)return;root.querySelector('.ptc-head>div>span').textContent=t('READ-ONLY LEARNER INSIGHTS');document.getElementById('ptcTitle').textContent=`🏫 ${t('Parent/Teacher Center')}`;document.getElementById('ptcBackMenu').textContent=`← ${t('Menu')}`;document.getElementById('ptcClose').setAttribute('aria-label',t('Close Parent/Teacher Center'));}
   function privacyBanner(){return `<aside class="ptc-privacy"><span>🛡️</span><div><strong>${esc(t('Read-only means read-only'))}</strong><p>${esc(t('Adults can review approved progress summaries. They cannot answer questions, spend Nuggets, reset progress, or read private Notebook notes.'))}</p></div></aside>`;}
   function requestCards(){
@@ -183,7 +191,7 @@
       cloudLastSync=Date.now();activeView='manage';window.setMessage?.(t('Preview request created. Production requests go to the learner’s signed-in account.'),'correct');render();return;
     }
     cloudBusy=true;cloudError='';render();
-    try{await cloud().requestStudentLink(email);activeView='manage';window.setMessage?.(t('Cross-device access request sent. The learner must approve it from their account.'),'correct');}
+      try{const request=await cloud().requestStudentLink(email);if(!request?.id)throw new Error(t('The server did not confirm the access request. Please try again.'));activeView='manage';window.setMessage?.(t('Cross-device access request sent. The learner will see a notification after signing in.'),'correct');}
     catch(error){cloudError=String(error?.message||error);window.setMessage?.(cloudError,'wrong');}
     finally{cloudBusy=false;await syncCloudData(false);if(centerOpen())render();}
   }
@@ -203,12 +211,12 @@
     const grid=document.querySelector('.menu-wheel,.game-menu-grid');if(!grid||grid.querySelector('[data-parent-teacher-center]'))return;
     const button=document.createElement('button');button.type='button';button.dataset.parentTeacherCenter='1';button.dataset.menuCategoryName='player';button.innerHTML='<span>🏫</span><strong>Parent/Teacher Center</strong><small>Read-only progress for approved linked learners</small>';button.onclick=()=>{window.closeGameMenu?.();openCenter();};grid.appendChild(button);const layout=grid.closest('.miner-interface-menu');if(layout)button.hidden=layout.dataset.category!=='player';window.LanguageMinerI18n?.localize?.(button);window.refreshJapaneseMinerFeatureMenu?.();
   }
-  function init(){ensureShell();addMenuItem();}
+  function init(){ensureShell();addMenuItem();syncRequestNotification();startCloudRefresh();if(cloudReady())syncCloudData(false);}
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.getElementById('parentTeacherCenter')?.classList.contains('open'))closeCenter();});
   window.addEventListener('jm-profile-loaded',()=>{selectedLearnerId='';activeTab='overview';activeView='dashboard';cloudLinks=[];cloudSummaries=new Map();cloudError='';cloudLastSync=0;setTimeout(init,0);});
   window.addEventListener('jm-profile-logged-out',()=>{clearInterval(cloudTimer);cloudTimer=0;cloudLinks=[];cloudSummaries=new Map();cloudError='';cloudLastSync=0;});
-  window.addEventListener('lm-cloud-session-changed',()=>{if(centerOpen())syncCloudData(false);});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&centerOpen())syncCloudData(false);});
+  window.addEventListener('lm-cloud-session-changed',()=>{startCloudRefresh();syncCloudData(false);});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloudReady())syncCloudData(false);});
   window.addEventListener('lm-interface-language-changed',()=>{ensureShell();addMenuItem();if(document.getElementById('parentTeacherCenter')?.classList.contains('open'))render();});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
   window.openLanguageMinerParentTeacherCenter=openCenter;

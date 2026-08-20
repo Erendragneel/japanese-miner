@@ -1,4 +1,24 @@
-# Language Miner v6.4.142
+# Language Miner v6.4.144
+
+## v6.4.144 community shortcuts and balanced menu tabs
+
+- Added one-tap Discord and Patreon buttons to Kōji's Today’s Plan header so players can find both community destinations directly from the homepage.
+- Gave the Discord and Patreon shortcuts distinct branded colors, descriptive labels, keyboard focus styling, and safe new-tab behavior.
+- Distributed the Explore, Gear, and Player category buttons evenly across the full Game Menu bar on phone and compact layouts.
+
+## v6.4.143 natural pronunciation and header polish
+
+- Removed the large build/version badge from the homepage account controls.
+- Added regional fallback matching so each course uses the closest installed native-language voice instead of the browser's unrelated default voice.
+- Prefer higher-quality natural, neural, enhanced, and platform voices when several voices match.
+- Added language-specific natural pacing for every supported pronunciation language.
+- Removed artificial gender pitch changes in Natural mode; voice gender now selects an appropriate native voice when the device provides one.
+- Unified writing-practice pronunciation with the main course voice engine.
+- Added persistent Easy/Hard quiz modes across the shared quiz engine. Easy uses fuller reading support and up to three answer choices; Hard reduces reading aids and keeps the full four-choice distractor set. Japanese vocabulary additionally uses kana in Easy and kanji in Hard.
+- Fixed signed-in cross-device linking inside the playable preview so it no longer falls back to a simulated request when a real cloud session exists.
+- Added background link-request syncing and a prominent notification button in the homepage player header when a learner has requests awaiting approval.
+- Added a prominent homepage Install button and a guided desktop-install dialog so players can install Language Miner with its own desktop and Start menu icon.
+- Made the web-app manifest path-relative so installation works from the official hosted subdirectory and other secure deployments.
 
 ## v6.4.142 navigation consolidation
 

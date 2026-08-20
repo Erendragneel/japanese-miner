@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.142-navigation-consolidation-r1';
+const CACHE_NAME='language-miner-v6.4.144-community-shortcuts-r1';
 const APP_SHELL=[
   './',
   './index.html',

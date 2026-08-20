@@ -503,7 +503,7 @@
     const stage=document.getElementById('stageName'),quickStage=document.getElementById('quickStage');if(stage)stage.textContent=label;if(quickStage)quickStage.textContent=label;
   }
   function speakLanguage(text,languageId){
-    if(!text)return false;const language=(LANGUAGES[languageId]||LANGUAGES.en).voice;if(window.LanguageMinerSpeech?.speak)return window.LanguageMinerSpeech.speak(text,language,.82);if(!('speechSynthesis'in window))return false;speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=language;utterance.rate=.82;speechSynthesis.speak(utterance);return true;
+    if(!text)return false;const language=(LANGUAGES[languageId]||LANGUAGES.en).voice;if(window.LanguageMinerSpeech?.speak)return window.LanguageMinerSpeech.speak(text,language);if(!('speechSynthesis'in window))return false;speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=language;utterance.rate=.95;speechSynthesis.speak(utterance);return true;
   }
   function speakTarget(text){speakLanguage(text,learning);}
   window.LanguageMinerCourseVoice=Object.freeze({test:()=>{speakTarget(FOUNDATION_CONCEPTS[0].forms[learning]);return true;},currentLanguage:()=>learning});

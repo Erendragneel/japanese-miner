@@ -1,4 +1,99 @@
-# Language Miner v6.4.144
+# Language Miner v6.4.157
+
+## v6.4.157 language-aware polish and fair cosmetic prices
+
+- The animated miner now uses the player's known/interface language for spoken motivational phrases instead of the language being studied.
+- Non-Japanese Stats Center views now show the selected course language, language-appropriate sections such as Alphabet and Sentences, and seven course levels instead of Japanese-only Hiragana and Kanji labels.
+- Multilingual practice now records section-level answer totals for accurate future distribution reports while preserving older activity in an honest Earlier course activity row.
+- Full-page wallpapers, rock skins, and mine wallpapers now use a smoother 50,000–10,000,000 Nugget progression instead of rapidly climbing into hundreds of millions or billions.
+- The animated character now hides empty optional wardrobe-image slots, removing the browser's rectangular broken-image placeholder across mine wallpapers, screen sizes, and interaction states.
+
+## v6.4.156 illustrated mine wallpaper collection
+
+- Added 12 original illustrated mine wallpapers to the Tier 1 Mine Cosmetics collection, bringing the mine-scene total to 20.
+- Added permanent ownership, escalating Nugget prices, full shop previews, equipped-state persistence, responsive cave rendering, and offline caching for every new scene.
+- Kept the rock, challenge copy, and animated player readable above every illustrated background.
+- Added the preview-only `minewallpaper=<wallpaper-id>` URL option so each scene can be reviewed without bypassing production purchase rules.
+
+## v6.4.155 character outline removed
+
+- Removed the rectangular focus/tap outline around animated player characters.
+- Keyboard focus now uses a soft glow around the character instead of a box.
+
+## v6.4.154 centered mine character
+
+- Moved the customized animated miner from the cave's lower-left corner to the lower-center position beneath the challenge instructions.
+- Reduced the mine-scene character scale slightly so the miner stays between the lower crystals without covering the challenge title or instruction line.
+- Moved the temporary speech and Skip animation controls beside the character near the cave floor.
+- Added responsive centered positioning for phones, tablets, laptops, and desktop displays while leaving lesson, arcade, and settlement character positions unchanged.
+
+## v6.4.153 optional Patreon video hearts
+
+- Added three separate animated in-game Patreon tier videos: Supporter, Companion Keeper, and Settlement Founder.
+- A signed-in player who is missing hearts can choose and finish any one video to earn exactly one heart.
+- The free optional reward does not require a Patreon account, membership, external ad network, or purchase.
+- Added a six-hour per-player cooldown that begins only after a successful video completion and is saved locally and to the connected cloud save.
+- Rechecks sign-in, missing-heart, player-profile, full-heart, valid-video, completion-time, and cooldown requirements before granting the reward.
+- Added responsive phone, tablet, laptop, and desktop layouts plus reduced-motion support.
+
+## v6.4.152 restored Install App locations
+
+- Removed Install from the signed-in player header.
+- Restored a prominent Install App control on the sign-in and account-creation screen.
+- Restored the full Install Language Miner section inside Player → Settings, including browser-specific installation status and fallback instructions.
+
+## v6.4.151 signed-out interface lock
+
+- Removed the game menu, Kōji study guide, New Question control, companion launcher, heart HUD, and other gameplay surfaces from the sign-in and account-creation screens.
+- Made the complete game shell hidden and inert until a player has successfully signed in, preventing keyboard and assistive-technology access to signed-in controls.
+- Restored the gameplay interface and character guide only after profile authentication, and added a direct signed-out preview for verification.
+
+## v6.4.150 five-game Study Arcade expansion
+
+- Added Echo Cavern with target-language audio, Easy replay support, and natural-speed Hard mode.
+- Added Grammar Forge with multilingual sentence ordering, undo/clear tools, and Hard-mode distractor pieces.
+- Added Treasure Translator with translated direction clues, a responsive five-by-five map, and harder unlabeled controls.
+- Added Crystal Memory Match, a three-way word, meaning, and pronunciation memory game.
+- Added Impostor Word with multilingual vocabulary categories and a meaning explanation after every answer.
+- Connected all five games to the existing Tier 3 unlock system, lesson/language selection, Easy/Hard preference, permanent best scores, completion history, responsive layouts, reduced-motion support, and customized-character reactions.
+
+## v6.4.149 New Question button for every language
+
+- Restored the floating New Question control explicitly whenever any supported non-Japanese course is active.
+- Kept the control visible through language changes and updated its text and accessible label between New Question and Return to Question.
+- Added `learning=` support to the playable preview so every language-specific course can be checked directly without repeating setup.
+
+## v6.4.148 Crystal Cavern wallpaper collection
+
+- Added five original full-page crystal-cavern wallpapers: Moonstone Cathedral, Amethyst Crown Cavern, Emerald Geode Sanctuary, Sapphire Ice Grotto, and Sunstone Ember Vault.
+- Added permanent Nugget purchase, ownership, equipping, inventory, responsive cover cropping, and offline caching for the complete collection.
+- Added direct wallpaper-shop and selected-wallpaper preview support for desktop, phone, and tablet visual checks.
+
+## v6.4.147 interactive customized-character animations
+
+- Added one reusable animation system that renders the learner's currently equipped character, clothing, accessories, gloves, shoes, and Holiday Special outfit.
+- Added idle, mining, correct-answer, encouraging incorrect-answer, celebration, lesson, arcade, settlement, and tap-to-wave character states.
+- Placed the character beside the core mine, inside lesson reviews, alongside active Study Arcade games, and on the interactive Settlement map.
+- Added character reactions for answer results, five-answer streak milestones, lesson navigation, arcade actions/results, settlement building visits, and building upgrades.
+- Added tap-to-speak encouragement in the current learning language, an accessible Skip animation control, reduced-motion support, an animation visibility setting, and a low-performance character mode.
+- Added responsive character layouts for phones, tablets, laptops, and desktop displays.
+
+## v6.4.146 unified Install App location
+
+- Consolidated every Install App control into one consistent button beside the player name in the top header on phone and desktop.
+- Removed the duplicate installer controls from the sign-in card and Accessibility & Settings.
+- Updated the in-game guide and installation fallback so they point players to the new shared header location.
+
+## v6.4.145 settlement paths and complete learner gradebook
+
+- Gave every settlement landmark its own five-step Player Level path. Miner Lodge unlocks at Level 1, Japanese Library at 25, Sakura Garden at 50, Gem Forge at 75, and Gem Museum at 100; each landmark's later upgrades rise in 25-level increments.
+- Preserved every existing purchased building level while making the more valuable landmarks progressively harder to unlock and finish.
+- Moved the Easy/Hard quiz selector into the Expedition Hub lesson header and made the selected mode apply to every supported language. Easy uses more guidance and up to three choices; Hard uses reduced guidance and the full four-choice set.
+- Expanded the read-only Parent/Teacher Center into a learner gradebook with suggested evidence-weighted grades, lesson-by-lesson completion and mastery, individual quiz/test attempts, Easy/Hard mode, scores, pass status, elapsed times, daily active study time, streak health, learning alerts, and CSV/print export.
+- Added durable assessment-attempt and active-time telemetry. Existing aggregate progress remains visible; exact Easy/Hard mode, per-attempt history, and timed daily activity are recorded from this release forward.
+- Added `supabase/migrations/202608200001_parent_teacher_gradebook_reports.sql` to refresh the learner-link RPCs, expose only the new whitelisted gradebook fields, and reload the PostgREST schema cache.
+
+For cross-device teacher reports, deploy all pending migrations with `supabase db push`. This is required to resolve older cloud projects that report `list_parent_teacher_links` as missing from the schema cache.
 
 ## v6.4.144 community shortcuts and balanced menu tabs
 

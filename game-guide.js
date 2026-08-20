@@ -133,10 +133,10 @@ const TOPICS=[
   'Tier 3 is the $5 Settlement Founder level and includes everything above, Settlement, Memory Mine, Crystal Match, and Star Word Defender.',
   'Tier 3 players claim each Arcade game once in the Shop, then launch it from Shop or Inventory or Bag without spending Nuggets.'
  ],note:'Patreon access follows the verified account. If Tier 3 ends, Arcade games lock even if they were claimed earlier.',actions:[['patreon','View Patreon Tiers'],['arcade','Open Study Arcade']]},
- {id:'settings-install',category:'help',icon:'⚙️',title:'Settings, portrait lock, installation, and recovery',summary:'Adjust learning support, comfort, display, sound, rotation, installation, and local safety tools.',path:'Menu → Player → Settings',steps:[
+ {id:'settings-install',category:'help',icon:'⚙️',title:'App installation, settings, portrait lock, and recovery',summary:'Install from the sign-in page or Settings, then adjust learning support, comfort, display, sound, rotation, and local safety tools.',path:'Sign-in page → Install App · Menu → Player → Settings → Install App',steps:[
   'Reading support, Smart Review, question voice, text size, reduced motion, high contrast, color indicators, explanations, sound effects, music, and companion display can be changed here.',
   'Portrait lock asks the device to stay upright and also blocks landscape play inside the game. Some phones still require system auto-rotate to be turned off.',
-  'Install App now follows https://erendragneel.github.io/language-miner/. If a system prompt is unavailable, the button shows browser-specific Add to Home Screen instructions. Remove an old shortcut once before reinstalling from the renamed address.',
+  'Install App is available before signing in and again inside Settings after signing in. It follows https://erendragneel.github.io/language-miner/ and shows browser-specific Add to Home Screen instructions when a system prompt is unavailable.',
   'Safety snapshots create local recovery points. Restoring a snapshot replaces the current saved state, so inspect its date first.'
  ],note:'Settings save to this browser and active player unless the control says it is device-wide.',actions:[['settings','Open Settings']]},
  {id:'sharing-and-backups',category:'help',icon:'📱',title:'Share the game and protect a save',summary:'Use a QR code for the game link and a backup file for player progress.',path:'Menu → Player → Help & Community → Share Game · Menu → Player → Account & Support',steps:[

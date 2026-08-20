@@ -343,8 +343,8 @@ const DEFAULT_STATE = {
   gems:0, hearts:3, maxHearts:3, level:1, xp:0, streak:0, bestStreak:0, practiceStreak:0,
   hints:2, shields:1, active:null, answered:false, shieldArmed:false, lastPracticeDate:null,
   kanaStats:{}, gemInventory:{}, gemCheckpointClaims:{}, gemUnlockRewards:{}, kanaTab:"hiragana", lastKana:null, lastGem:null, hiraganaXp:0,
-  heartRecoveryEnd:null, ownedPickaxeSkins:["standard"], equippedPickaxeSkin:"standard", ownedWallpapers:["midnight"], equippedWallpaper:"midnight", ownedRockSkins:["slate"], equippedRockSkin:"slate", ownedMineWallpapers:["classic"], equippedMineWallpaper:"classic", placementUnlockedThrough:0, developerInfiniteHearts:false,
-  selectedStage:0, jlptSectionSelection:{}, jlptVocabularyLevel:{}, jlptReviewCheckpoints:{}, soundEnabled:true, voiceEnabled:true, autoSpeak:true, voiceRate:.85, voiceGender:"female", voiceStyle:"natural", smartReview:true, sessionGoal:20, sessionAnswered:0, sessionCorrect:0, stageXp:[0,0,0,0,0,0,0], clearedStages:[], questionStats:{}
+  heartRecoveryEnd:null, patreonHeartVideoReward:{lastClaimedAt:0,lastTier:0,claims:0}, ownedPickaxeSkins:["standard"], equippedPickaxeSkin:"standard", ownedWallpapers:["midnight"], equippedWallpaper:"midnight", ownedRockSkins:["slate"], equippedRockSkin:"slate", ownedMineWallpapers:["classic"], equippedMineWallpaper:"classic", placementUnlockedThrough:0, developerInfiniteHearts:false,
+  selectedStage:0, jlptSectionSelection:{}, jlptVocabularyLevel:{}, jlptReviewCheckpoints:{}, soundEnabled:true, voiceEnabled:true, autoSpeak:true, voiceRate:.85, voiceGender:"female", voiceStyle:"natural", smartReview:true, sessionGoal:20, sessionAnswered:0, sessionCorrect:0, stageXp:[0,0,0,0,0,0,0], clearedStages:[], questionStats:{}, studyTimeByDate:{}, learningReport:{assessmentAttempts:[]}
 };
 const PROFILE_INDEX_KEY="jm_profiles";
 const ACTIVE_PROFILE_KEY="jm_active_profile";
@@ -451,6 +451,16 @@ function normalizeName(name){return name.trim().replace(/\s+/g," ");}
 function setAuthOverlayVisible(visible){
   const authOverlay=document.getElementById("authOverlay");
   if(!authOverlay)return;
+  document.body?.classList.toggle("auth-session-locked",visible);
+  const appShell=document.querySelector(".app");
+  if(appShell){appShell.inert=visible;if(visible)appShell.setAttribute("aria-hidden","true");else appShell.removeAttribute("aria-hidden");}
+  document.querySelectorAll("#placementOverlay,#lmMultilingualOverlay").forEach(surface=>surface.inert=visible);
+  if(visible){
+    closeGameMenu();
+    document.getElementById("placementOverlay")?.classList.remove("open");
+    document.getElementById("lmMultilingualOverlay")?.classList.remove("open");
+    ["v6CoachDock","v5CompanionFloat","heartRecoveryHud","lmCharacterMilestone","v5Treasure"].forEach(id=>document.getElementById(id)?.remove());
+  }
   const dismissed=!visible;
   authOverlay.hidden=dismissed;
   authOverlay.inert=dismissed;
@@ -473,6 +483,9 @@ function normalizeState(raw){
   next.lastKana=next.lastKana||null;
   next.lastGem=next.lastGem||null;
   next.heartRecoveryEnd=Number(next.heartRecoveryEnd)||null;
+  const rawPatreonHeartReward=next.patreonHeartVideoReward&&typeof next.patreonHeartVideoReward==="object"&&!Array.isArray(next.patreonHeartVideoReward)?next.patreonHeartVideoReward:{};
+  const rewardTier=Math.round(Number(rawPatreonHeartReward.lastTier)||0);
+  next.patreonHeartVideoReward={lastClaimedAt:Math.max(0,Math.round(Number(rawPatreonHeartReward.lastClaimedAt)||0)),lastTier:[1,2,3].includes(rewardTier)?rewardTier:0,claims:Math.max(0,Math.round(Number(rawPatreonHeartReward.claims)||0))};
   next.ownedPickaxeSkins=Array.isArray(next.ownedPickaxeSkins)?next.ownedPickaxeSkins:["standard"];
   if(!next.ownedPickaxeSkins.includes("standard")) next.ownedPickaxeSkins.unshift("standard");
   const validPickaxeIds=["standard","copper","sakura","silver","frost","gold","neon","amethyst","inferno","galaxy","emerald","aurora","shadow","red-diamond"];
@@ -480,7 +493,7 @@ function normalizeState(raw){
   if(!next.ownedPickaxeSkins.includes(next.equippedPickaxeSkin)) next.equippedPickaxeSkin="standard";
   next.ownedWallpapers=Array.isArray(next.ownedWallpapers)?next.ownedWallpapers:["midnight"];
   if(!next.ownedWallpapers.includes("midnight"))next.ownedWallpapers.unshift("midnight");
-  const validWallpaperIds=["midnight","sakura","bamboo","sunrise","crystal","paper","galaxy","emoji","inferno","aurora","ocean","confetti"];
+  const validWallpaperIds=["midnight","sakura","bamboo","sunrise","crystal","paper","galaxy","emoji","inferno","aurora","ocean","confetti","moonstone-cathedral","amethyst-crown","emerald-geode","sapphire-ice","sunstone-ember"];
   next.equippedWallpaper=validWallpaperIds.includes(next.equippedWallpaper)?next.equippedWallpaper:"midnight";
   if(!next.ownedWallpapers.includes(next.equippedWallpaper))next.equippedWallpaper="midnight";
   next.ownedRockSkins=Array.isArray(next.ownedRockSkins)?next.ownedRockSkins:["slate"];
@@ -490,7 +503,7 @@ function normalizeState(raw){
   if(!next.ownedRockSkins.includes(next.equippedRockSkin))next.equippedRockSkin="slate";
   next.ownedMineWallpapers=Array.isArray(next.ownedMineWallpapers)?next.ownedMineWallpapers:["classic"];
   if(!next.ownedMineWallpapers.includes("classic"))next.ownedMineWallpapers.unshift("classic");
-  const validMineWallpaperIds=["classic","sakura-grotto","crystal-cathedral","bamboo-tunnel","sunken-mine","magma-forge","aurora-cavern","galaxy-depths"];
+  const validMineWallpaperIds=["classic","sakura-grotto","crystal-cathedral","bamboo-tunnel","sunken-mine","magma-forge","aurora-cavern","galaxy-depths","art-azure-passage","art-amethyst-dream","art-moonlit-ice","art-sapphire-river","art-emerald-moss","art-rose-quartz","art-golden-topaz","art-ruby-forge","art-aurora-prism","art-celestial-galaxy","art-opal-hollow","art-ancient-lantern"];
   next.equippedMineWallpaper=validMineWallpaperIds.includes(next.equippedMineWallpaper)?next.equippedMineWallpaper:"classic";
   if(!next.ownedMineWallpapers.includes(next.equippedMineWallpaper))next.equippedMineWallpaper="classic";
   next.placementUnlockedThrough=Math.max(0,Math.min(stages.length-1,Number(next.placementUnlockedThrough)||0));
@@ -508,6 +521,9 @@ function normalizeState(raw){
   next.clearedStages=Array.isArray(next.clearedStages)?next.clearedStages.map(Number).filter(i=>i>=0&&i<stages.length):[];
   next.questionStats=next.questionStats&&typeof next.questionStats==="object"?next.questionStats:{};
   Object.keys(next.questionStats).forEach(id=>{const v=next.questionStats[id]||{};next.questionStats[id]={attempts:Math.max(0,Number(v.attempts)||0),correct:Math.max(0,Number(v.correct)||0)};});
+  next.studyTimeByDate=next.studyTimeByDate&&typeof next.studyTimeByDate==="object"&&!Array.isArray(next.studyTimeByDate)?next.studyTimeByDate:{};
+  Object.keys(next.studyTimeByDate).forEach(key=>{const milliseconds=Math.max(0,Math.round(Number(next.studyTimeByDate[key])||0));if(validStudyDateKey(key)&&milliseconds)next.studyTimeByDate[key]=milliseconds;else delete next.studyTimeByDate[key];});
+  next.learningReport=normalizeLearningReport(next.learningReport);
   next.xp=Number(next.xp)||0;
   next.gems=Number(next.gems)||0;
   if(!next.stoneCurrencyMigrated){
@@ -614,6 +630,29 @@ function save(){
   catch(err){ console.error("Language Miner save failed",err); }
   scheduleCloudSave();
 }
+const LEARNING_REPORT_MAX_ATTEMPTS=500;
+function normalizeLearningReport(value){
+  const source=value&&typeof value==='object'&&!Array.isArray(value)?value:{},attempts=Array.isArray(source.assessmentAttempts)?source.assessmentAttempts:[];
+  return {assessmentAttempts:attempts.map(record=>{const total=Math.max(0,Math.round(Number(record?.total)||0)),correct=Math.max(0,Math.min(total||Number.MAX_SAFE_INTEGER,Math.round(Number(record?.correct)||0))),answered=Math.max(correct,Math.min(total||Number.MAX_SAFE_INTEGER,Math.round(Number(record?.answered)||total))),score=Math.max(0,Math.min(100,Number.isFinite(Number(record?.score))?Math.round(Number(record.score)):total?Math.round(correct/total*100):0)),completedAt=Math.max(0,Math.round(Number(record?.completedAt)||0));return {id:String(record?.id||`assessment-${completedAt}-${Math.random().toString(36).slice(2,8)}`).slice(0,120),group:String(record?.group||'assessment').slice(0,40),type:String(record?.type||'Assessment').slice(0,160),course:String(record?.course||'Course').slice(0,80),level:String(record?.level||'').slice(0,80),section:String(record?.section||'').slice(0,60),lessons:String(record?.lessons||'').slice(0,60),difficulty:['easy','hard','placement','not-recorded'].includes(String(record?.difficulty))?String(record.difficulty):'not-recorded',score,correct,total,answered,passed:record?.passed===true,completedAt,durationMs:Math.max(0,Math.round(Number(record?.durationMs)||0)),finishReason:String(record?.finishReason||'completed').slice(0,40)};}).filter(record=>record.completedAt&&record.type).sort((a,b)=>a.completedAt-b.completedAt).slice(-LEARNING_REPORT_MAX_ATTEMPTS)};
+}
+function recordLearningAssessment(details={}){
+  if(!activeProfileId)return null;state.learningReport=normalizeLearningReport(state.learningReport);const completedAt=Math.max(1,Math.round(Number(details.completedAt)||Date.now())),total=Math.max(0,Math.round(Number(details.total)||0)),correct=Math.max(0,Math.min(total||Number.MAX_SAFE_INTEGER,Math.round(Number(details.correct)||0))),answered=Math.max(correct,Math.min(total||Number.MAX_SAFE_INTEGER,Math.round(Number(details.answered)||total))),score=Math.max(0,Math.min(100,Number.isFinite(Number(details.score))?Math.round(Number(details.score)):total?Math.round(correct/total*100):0)),record={id:String(details.id||`${details.group||'assessment'}-${completedAt}-${Math.random().toString(36).slice(2,8)}`),group:String(details.group||'assessment'),type:String(details.type||'Assessment'),course:String(details.course||'Japanese'),level:String(details.level||''),section:String(details.section||''),lessons:String(details.lessons||''),difficulty:details.difficulty||state.quizDifficulty||'not-recorded',score,correct,total,answered,passed:details.passed===true,completedAt,durationMs:Math.max(0,Math.round(Number(details.durationMs)||0)),finishReason:String(details.finishReason||'completed')};state.learningReport.assessmentAttempts.push(record);state.learningReport=normalizeLearningReport(state.learningReport);markPracticeToday();save();window.dispatchEvent(new CustomEvent('lm-learning-report-updated'));return {...record};
+}
+window.LanguageMinerLearningReport=Object.freeze({recordAssessment:recordLearningAssessment,difficulty:()=>state.quizDifficulty==='hard'?'hard':'easy',attempts:()=>normalizeLearningReport(state.learningReport).assessmentAttempts.map(record=>({...record}))});
+
+// Count visible, recently interactive app time so daily reports reflect active use
+// instead of simply measuring how long a tab was left open.
+let learningActivityAt=Date.now(),learningTimeTickAt=Date.now(),learningTimeUnsaved=0;
+function noteLearningActivity(){learningActivityAt=Date.now();}
+['pointerdown','keydown','touchstart','wheel'].forEach(type=>document.addEventListener(type,noteLearningActivity,{passive:true}));
+function recordActiveLearningTime(){
+  const now=Date.now(),elapsed=Math.max(0,Math.min(30000,now-learningTimeTickAt));learningTimeTickAt=now;
+  if(!activeProfileId||document.hidden||!document.hasFocus?.()||now-learningActivityAt>120000||!elapsed)return;
+  const key=dateKey();if(!state.studyTimeByDate||typeof state.studyTimeByDate!=='object')state.studyTimeByDate={};state.studyTimeByDate[key]=Math.max(0,Number(state.studyTimeByDate[key])||0)+elapsed;markPracticeToday();learningTimeUnsaved+=elapsed;if(learningTimeUnsaved>=60000){learningTimeUnsaved=0;save();}
+}
+setInterval(recordActiveLearningTime,15000);
+document.addEventListener('visibilitychange',()=>{recordActiveLearningTime();if(document.hidden&&learningTimeUnsaved){learningTimeUnsaved=0;save();}});
+window.addEventListener('beforeunload',()=>{recordActiveLearningTime();if(learningTimeUnsaved)save();});
 const KATAKANA_XP_REQUIREMENT=STAGE_XP_REQUIREMENTS[0];
 function kanaSetMastery(set){
   if(!set.length) return 0;
@@ -682,6 +721,19 @@ function syncSelectedStageUI(){
   const difficultyHint=document.getElementById('quizDifficultyHint');if(difficultyHint)difficultyHint.textContent=state.quizDifficulty==='hard'?'Hard · kanji with reduced reading aids':'Easy · kana and reading support';
   syncOwnerTutorControls(idx);
 }
+function quizDifficultyMarkup(){
+  const mode=state.quizDifficulty==='hard'?'hard':'easy';
+  return `<div class="expedition-quiz-mode" aria-label="Quiz difficulty"><span><strong>Quiz mode</strong><small>${mode==='hard'?'Reduced hints':'More guidance'}</small></span><div class="quiz-difficulty-options" role="group" aria-label="Choose easy or hard quiz mode"><button type="button" data-quiz-difficulty="easy" class="${mode==='easy'?'selected':''}" aria-pressed="${mode==='easy'}">🌱 Easy</button><button type="button" data-quiz-difficulty="hard" class="${mode==='hard'?'selected':''}" aria-pressed="${mode==='hard'}">⛏️ Hard</button></div></div>`;
+}
+function setQuizDifficultyMode(mode){
+  if(!['easy','hard'].includes(mode))return false;
+  const changed=mode!==state.quizDifficulty;state.quizDifficulty=mode;state.supportMode=mode==='easy'?'guided':'challenge';
+  if(changed){state.active=null;state.answered=false;state.shieldArmed=false;state.recentQuestionIds=[];const area=document.getElementById('challengeArea');if(area)area.innerHTML=`<div class="empty"><strong>${mode==='easy'?'🌱 Easy mode':'⛏️ Hard mode'}</strong><br>${mode==='easy'?'More guidance and fewer answer choices are enabled for every language.':'Reduced guidance and the full answer set are enabled for every language.'}<br>Choose a lesson or tap the rock to begin.</div>`;save();render();setMessage(`${mode==='easy'?'Easy':'Hard'} quiz mode selected for every language. Start a new question.`,"correct");}
+  syncSelectedStageUI();return changed;
+}
+window.japaneseMinerQuizModeMarkup=quizDifficultyMarkup;
+window.japaneseMinerQuizDifficulty=()=>state.quizDifficulty==='hard'?'hard':'easy';
+window.setJapaneseMinerQuizDifficulty=setQuizDifficultyMode;
 
 function selectStage(index,openCourse=false){
   index=Math.max(0,Math.min(stages.length-1,Number(index)||0));
@@ -759,39 +811,51 @@ const PICKAXE_SKINS = [
 
 const ROCK_SKINS=[
   {id:"slate",name:"Classic Slate",cost:0,desc:"The dependable original mine rock."},
-  {id:"gold-ore",name:"Gold Ore",cost:250000,desc:"Dark stone threaded with bright golden ore."},
-  {id:"amethyst-geode",name:"Amethyst Geode",cost:750000,desc:"A violet geode glowing from its crystal center."},
-  {id:"sakura-quartz",name:"Sakura Quartz",cost:1500000,desc:"Rose quartz with soft cherry-blossom highlights."},
-  {id:"frost-crystal",name:"Frost Crystal",cost:4000000,desc:"An icy mineral coated in frozen blue light."},
-  {id:"emerald-core",name:"Emerald Core",cost:10000000,desc:"Deep green stone surrounding a luminous core."},
-  {id:"magma-rock",name:"Magma Rock",cost:25000000,desc:"Volcanic stone split by flowing orange magma."},
-  {id:"galaxy-meteor",name:"Galaxy Meteorite",cost:75000000,desc:"A star-speckled meteorite from the deepest mine."},
-  {id:"gem-agate",name:"Agate Strata",cost:350000,desc:"Scientific Gem Collection · Warm, naturally banded Agate layers."},
-  {id:"gem-amethyst",name:"Amethyst Cluster",cost:900000,desc:"Scientific Gem Collection · A faceted violet Amethyst crystal cluster."},
-  {id:"gem-aquamarine",name:"Aquamarine Crystal",cost:1750000,desc:"Scientific Gem Collection · Clear ocean-blue Aquamarine facets."},
-  {id:"gem-citrine",name:"Citrine Facet",cost:3000000,desc:"Scientific Gem Collection · A brilliant golden-yellow Citrine cut."},
-  {id:"gem-emerald",name:"Emerald Matrix",cost:6000000,desc:"Scientific Gem Collection · A deep green Emerald with geometric facets."},
-  {id:"gem-garnet",name:"Garnet Boulder",cost:10000000,desc:"Scientific Gem Collection · A rich crimson Garnet with fiery depth."},
-  {id:"gem-opal",name:"Opal Moonstone",cost:18000000,desc:"Scientific Gem Collection · Milky Opal filled with shifting rainbow fire."},
-  {id:"gem-peridot",name:"Peridot Shard",cost:30000000,desc:"Scientific Gem Collection · A bright olive-green Peridot crystal."},
-  {id:"gem-ruby",name:"Ruby Heartstone",cost:50000000,desc:"Scientific Gem Collection · A vivid red Ruby with a glowing inner heart."},
-  {id:"gem-sapphire",name:"Sapphire Shieldstone",cost:80000000,desc:"Scientific Gem Collection · A royal-blue Sapphire with shield-like facets."},
-  {id:"gem-topaz",name:"Topaz Prism",cost:125000000,desc:"Scientific Gem Collection · A fiery orange Topaz prism."},
-  {id:"gem-alexandrite",name:"Alexandrite Orb",cost:200000000,desc:"Scientific Gem Collection · Color-shifting Alexandrite in violet and teal."},
-  {id:"gem-paraiba",name:"Paraíba Tourmaline",cost:350000000,desc:"Scientific Gem Collection · Electric turquoise Paraíba Tourmaline crystals."},
-  {id:"gem-jadeite",name:"Jadeite Carving",cost:600000000,desc:"Scientific Gem Collection · Smooth imperial-green Jadeite with carved swirls."},
-  {id:"gem-red-diamond",name:"Red Diamond Core",cost:1000000000,desc:"Scientific Gem Collection · The rarest scarlet diamond in the mine."}
+  {id:"gold-ore",name:"Gold Ore",cost:50000,desc:"Dark stone threaded with bright golden ore."},
+  {id:"amethyst-geode",name:"Amethyst Geode",cost:100000,desc:"A violet geode glowing from its crystal center."},
+  {id:"sakura-quartz",name:"Sakura Quartz",cost:150000,desc:"Rose quartz with soft cherry-blossom highlights."},
+  {id:"frost-crystal",name:"Frost Crystal",cost:250000,desc:"An icy mineral coated in frozen blue light."},
+  {id:"emerald-core",name:"Emerald Core",cost:400000,desc:"Deep green stone surrounding a luminous core."},
+  {id:"magma-rock",name:"Magma Rock",cost:650000,desc:"Volcanic stone split by flowing orange magma."},
+  {id:"galaxy-meteor",name:"Galaxy Meteorite",cost:1000000,desc:"A star-speckled meteorite from the deepest mine."},
+  {id:"gem-agate",name:"Agate Strata",cost:75000,desc:"Scientific Gem Collection · Warm, naturally banded Agate layers."},
+  {id:"gem-amethyst",name:"Amethyst Cluster",cost:125000,desc:"Scientific Gem Collection · A faceted violet Amethyst crystal cluster."},
+  {id:"gem-aquamarine",name:"Aquamarine Crystal",cost:200000,desc:"Scientific Gem Collection · Clear ocean-blue Aquamarine facets."},
+  {id:"gem-citrine",name:"Citrine Facet",cost:300000,desc:"Scientific Gem Collection · A brilliant golden-yellow Citrine cut."},
+  {id:"gem-emerald",name:"Emerald Matrix",cost:450000,desc:"Scientific Gem Collection · A deep green Emerald with geometric facets."},
+  {id:"gem-garnet",name:"Garnet Boulder",cost:650000,desc:"Scientific Gem Collection · A rich crimson Garnet with fiery depth."},
+  {id:"gem-opal",name:"Opal Moonstone",cost:900000,desc:"Scientific Gem Collection · Milky Opal filled with shifting rainbow fire."},
+  {id:"gem-peridot",name:"Peridot Shard",cost:1250000,desc:"Scientific Gem Collection · A bright olive-green Peridot crystal."},
+  {id:"gem-ruby",name:"Ruby Heartstone",cost:1750000,desc:"Scientific Gem Collection · A vivid red Ruby with a glowing inner heart."},
+  {id:"gem-sapphire",name:"Sapphire Shieldstone",cost:2500000,desc:"Scientific Gem Collection · A royal-blue Sapphire with shield-like facets."},
+  {id:"gem-topaz",name:"Topaz Prism",cost:3500000,desc:"Scientific Gem Collection · A fiery orange Topaz prism."},
+  {id:"gem-alexandrite",name:"Alexandrite Orb",cost:5000000,desc:"Scientific Gem Collection · Color-shifting Alexandrite in violet and teal."},
+  {id:"gem-paraiba",name:"Paraíba Tourmaline",cost:6500000,desc:"Scientific Gem Collection · Electric turquoise Paraíba Tourmaline crystals."},
+  {id:"gem-jadeite",name:"Jadeite Carving",cost:8000000,desc:"Scientific Gem Collection · Smooth imperial-green Jadeite with carved swirls."},
+  {id:"gem-red-diamond",name:"Red Diamond Core",cost:10000000,desc:"Scientific Gem Collection · The rarest scarlet diamond in the mine."}
 ];
 
 const MINE_WALLPAPERS=[
   {id:"classic",name:"Original Slate Mine",cost:0,desc:"The familiar blue-slate mine with its original arch, tunnel, lantern, and crystals.",preview:"radial-gradient(ellipse at 50% 48%,#264f5f 0 10%,#172f42 42%,#080d19 76%)"},
-  {id:"sakura-grotto",name:"Amethyst Purple Mine",cost:500000,desc:"The same familiar mine recolored in deep Amethyst purple.",preview:"radial-gradient(ellipse at 50% 48%,#6d4a87 0 10%,#3d295d 42%,#110c20 76%)"},
-  {id:"crystal-cathedral",name:"Sapphire Blue Mine",cost:2000000,desc:"The same familiar mine recolored in royal Sapphire blue.",preview:"radial-gradient(ellipse at 50% 48%,#365d9b 0 10%,#1b3768 42%,#080f25 76%)"},
-  {id:"bamboo-tunnel",name:"Emerald Green Mine",cost:5000000,desc:"The same familiar mine recolored in rich Emerald green.",preview:"radial-gradient(ellipse at 50% 48%,#356f58 0 10%,#1d4938 42%,#081a13 76%)"},
-  {id:"sunken-mine",name:"Arctic Cyan Mine",cost:12000000,desc:"The same familiar mine recolored in bright Arctic cyan.",preview:"radial-gradient(ellipse at 50% 48%,#3b8493 0 10%,#20566b 42%,#071a28 76%)"},
-  {id:"magma-forge",name:"Ruby Red Mine",cost:30000000,desc:"The same familiar mine recolored in glowing Ruby red.",preview:"radial-gradient(ellipse at 50% 48%,#8d3f50 0 10%,#5b2432 42%,#210810 76%)"},
-  {id:"aurora-cavern",name:"Golden Amber Mine",cost:75000000,desc:"The same familiar mine recolored in warm golden Amber.",preview:"radial-gradient(ellipse at 50% 48%,#8a703b 0 10%,#59451f 42%,#1f1507 76%)"},
-  {id:"galaxy-depths",name:"Rose Quartz Mine",cost:200000000,desc:"The same familiar mine recolored in soft Rose Quartz pink.",preview:"radial-gradient(ellipse at 50% 48%,#9b617b 0 10%,#643a55 42%,#210b19 76%)"}
+  {id:"sakura-grotto",name:"Amethyst Purple Mine",cost:100000,desc:"The same familiar mine recolored in deep Amethyst purple.",preview:"radial-gradient(ellipse at 50% 48%,#6d4a87 0 10%,#3d295d 42%,#110c20 76%)"},
+  {id:"crystal-cathedral",name:"Sapphire Blue Mine",cost:200000,desc:"The same familiar mine recolored in royal Sapphire blue.",preview:"radial-gradient(ellipse at 50% 48%,#365d9b 0 10%,#1b3768 42%,#080f25 76%)"},
+  {id:"bamboo-tunnel",name:"Emerald Green Mine",cost:350000,desc:"The same familiar mine recolored in rich Emerald green.",preview:"radial-gradient(ellipse at 50% 48%,#356f58 0 10%,#1d4938 42%,#081a13 76%)"},
+  {id:"sunken-mine",name:"Arctic Cyan Mine",cost:550000,desc:"The same familiar mine recolored in bright Arctic cyan.",preview:"radial-gradient(ellipse at 50% 48%,#3b8493 0 10%,#20566b 42%,#071a28 76%)"},
+  {id:"magma-forge",name:"Ruby Red Mine",cost:800000,desc:"The same familiar mine recolored in glowing Ruby red.",preview:"radial-gradient(ellipse at 50% 48%,#8d3f50 0 10%,#5b2432 42%,#210810 76%)"},
+  {id:"aurora-cavern",name:"Golden Amber Mine",cost:1100000,desc:"The same familiar mine recolored in warm golden Amber.",preview:"radial-gradient(ellipse at 50% 48%,#8a703b 0 10%,#59451f 42%,#1f1507 76%)"},
+  {id:"galaxy-depths",name:"Rose Quartz Mine",cost:1500000,desc:"The same familiar mine recolored in soft Rose Quartz pink.",preview:"radial-gradient(ellipse at 50% 48%,#9b617b 0 10%,#643a55 42%,#210b19 76%)"},
+  {id:"art-azure-passage",name:"Azure Crystal Passage",cost:2000000,desc:"A sapphire tunnel framed by cyan crystals, an ore cart, and a distant warm light.",preview:"url(wallpaper-mine-azure-passage-v1.png) center/cover no-repeat"},
+  {id:"art-amethyst-dream",name:"Amethyst Dream Grotto",cost:2500000,desc:"A luminous violet grotto lined with amethyst pillars and glowing mineral veins.",preview:"url(wallpaper-mine-amethyst-dream-v1.png) center/cover no-repeat"},
+  {id:"art-moonlit-ice",name:"Moonlit Ice Cathedral",cost:3000000,desc:"A frozen crystal cathedral illuminated by silver-blue moonlight.",preview:"url(wallpaper-mine-moonlit-ice-v1.png) center/cover no-repeat"},
+  {id:"art-sapphire-river",name:"Sapphire River Tunnel",cost:3500000,desc:"A lantern-lit underground river flowing through arches of sapphire.",preview:"url(wallpaper-mine-sapphire-river-v1.png) center/cover no-repeat"},
+  {id:"art-emerald-moss",name:"Emerald Moss Geode",cost:4000000,desc:"An overgrown emerald shaft filled with ferns, moss, and glowing mushrooms.",preview:"url(wallpaper-mine-emerald-moss-v1.png) center/cover no-repeat"},
+  {id:"art-rose-quartz",name:"Rose Quartz Sanctuary",cost:4500000,desc:"A peaceful blush-crystal sanctuary with reflective pools and stone steps.",preview:"url(wallpaper-mine-rose-quartz-v1.png) center/cover no-repeat"},
+  {id:"art-golden-topaz",name:"Golden Topaz Vault",cost:5000000,desc:"An ancient amber vault filled with topaz crystals, rails, and brass lanterns.",preview:"url(wallpaper-mine-golden-topaz-v1.png) center/cover no-repeat"},
+  {id:"art-ruby-forge",name:"Ruby Magma Forge",cost:5500000,desc:"A volcanic forge surrounded by ruby formations and safely channeled magma.",preview:"url(wallpaper-mine-ruby-forge-v1.png) center/cover no-repeat"},
+  {id:"art-aurora-prism",name:"Aurora Prism Cavern",cost:6000000,desc:"Opal prisms cast ribbons of teal, violet, green, and gold across the cavern.",preview:"url(wallpaper-mine-aurora-prism-v1.png) center/cover no-repeat"},
+  {id:"art-celestial-galaxy",name:"Celestial Galaxy Mine",cost:7000000,desc:"An obsidian geode chamber opening onto stars, nebulae, and a suspended bridge.",preview:"url(wallpaper-mine-celestial-galaxy-v1.png) center/cover no-repeat"},
+  {id:"art-opal-hollow",name:"Bioluminescent Opal Hollow",cost:8000000,desc:"Pearlescent opals, turquoise pools, blue mushrooms, and floating cave lights.",preview:"url(wallpaper-mine-opal-hollow-v1.png) center/cover no-repeat"},
+  {id:"art-ancient-lantern",name:"Ancient Lantern Crystal Shaft",cost:9000000,desc:"A historic timber shaft glowing with cobalt crystals and warm hanging lanterns.",preview:"url(wallpaper-mine-ancient-lantern-v1.png) center/cover no-repeat"}
 ];
 
 const SHOP_PRICE_BY_STAGE = [
@@ -860,6 +924,48 @@ function startRecoveryClock(){
   },1000);
 }
 
+const PATREON_HEART_REWARD_COOLDOWN_MS=6*60*60*1000;
+let activePatreonHeartVideoSession=null;
+function patreonHeartRewardStatus(now=Date.now()){
+  const reward=state.patreonHeartVideoReward||{lastClaimedAt:0,lastTier:0,claims:0};
+  const remainingMs=Math.max(0,Number(reward.lastClaimedAt||0)+PATREON_HEART_REWARD_COOLDOWN_MS-Number(now||Date.now()));
+  let reason="";
+  if(!activeProfileId)reason="Sign in to use player heart rewards.";
+  else if(isDeveloperSession||state.developerInfiniteHearts)reason="This optional reward is for regular player profiles.";
+  else if(Number(state.hearts)>=Number(state.maxHearts))reason="Your hearts are already full.";
+  else if(remainingMs>0)reason="The six-hour video-heart cooldown is still active.";
+  return {eligible:!reason,reason,remainingMs,cooldownMs:PATREON_HEART_REWARD_COOLDOWN_MS,hearts:Number(state.hearts)||0,maxHearts:Number(state.maxHearts)||0,lastClaimedAt:Number(reward.lastClaimedAt)||0,lastTier:Number(reward.lastTier)||0,claims:Number(reward.claims)||0};
+}
+function beginPatreonHeartVideo(tier){
+  const selectedTier=Math.round(Number(tier)||0),status=patreonHeartRewardStatus();
+  if(![1,2,3].includes(selectedTier))return {ok:false,reason:"Choose one of the three Patreon tier videos.",status};
+  if(!status.eligible)return {ok:false,reason:status.reason,status};
+  const durationMs=window.LANGUAGE_MINER_PREVIEW?1800:24000;
+  const sessionId=`heart-video-${Date.now()}-${Math.random().toString(36).slice(2,10)}`;
+  activePatreonHeartVideoSession={sessionId,tier:selectedTier,startedAt:Date.now(),durationMs};
+  return {ok:true,sessionId,tier:selectedTier,durationMs,status};
+}
+function cancelPatreonHeartVideo(sessionId){
+  if(activePatreonHeartVideoSession?.sessionId!==String(sessionId||""))return false;
+  activePatreonHeartVideoSession=null;return true;
+}
+function claimPatreonHeartVideo(sessionId){
+  const session=activePatreonHeartVideoSession;
+  if(!session||session.sessionId!==String(sessionId||""))return {ok:false,reason:"This video session is no longer active.",status:patreonHeartRewardStatus()};
+  if(Date.now()-session.startedAt<session.durationMs-150)return {ok:false,reason:"Finish the video before claiming the heart.",status:patreonHeartRewardStatus()};
+  const status=patreonHeartRewardStatus();
+  if(!status.eligible){activePatreonHeartVideoSession=null;return {ok:false,reason:status.reason,status};}
+  state.hearts=Math.min(state.maxHearts,state.hearts+1);
+  state.patreonHeartVideoReward={lastClaimedAt:Date.now(),lastTier:session.tier,claims:Math.max(0,Number(state.patreonHeartVideoReward?.claims)||0)+1};
+  activePatreonHeartVideoSession=null;
+  if(state.hearts>0)state.heartRecoveryEnd=null;
+  save();render();setMessage("Patreon video complete — you earned 1 heart.","correct");
+  const result={ok:true,tier:session.tier,status:patreonHeartRewardStatus()};
+  window.dispatchEvent(new CustomEvent("lm-patreon-heart-reward-updated",{detail:result}));
+  return result;
+}
+window.LanguageMinerPatreonHeartReward=Object.freeze({status:patreonHeartRewardStatus,begin:beginPatreonHeartVideo,cancel:cancelPatreonHeartVideo,claim:claimPatreonHeartVideo});
+
 function render(){
   ensureHeartRecovery();
   // Each display group is rendered independently so one visual error cannot
@@ -914,6 +1020,7 @@ function render(){
   try{ renderPickaxeShop(); }catch(err){ console.error("Pickaxe workshop refresh failed",err); }
   try{ applyMineCosmetics(); }catch(err){ console.error("Mine cosmetics refresh failed",err); }
   try{ renderRecovery(); }catch(err){ console.error("Heart recovery refresh failed",err); }
+  try{ window.LanguageMinerPatreonHeartVideos?.refresh?.(); }catch(err){ console.error("Patreon heart video refresh failed",err); }
   save();
 }
 
@@ -1378,6 +1485,7 @@ function chooseQuestion(pool){
 }
 
 function quickMineAction(){
+  if(!activeProfileId)return;
   if(state.active&&!state.answered){
     const target=document.getElementById("challengeArea");
     if(target) target.scrollIntoView({behavior:"smooth",block:"center"});
@@ -1687,7 +1795,7 @@ function jumpToSection(id){
 document.getElementById("quickMineBtn").onclick=quickMineAction;
 document.getElementById("soundToggle").addEventListener("change",e=>{state.soundEnabled=e.target.checked;save();if(state.soundEnabled)playFeedbackSound(true);});
 document.getElementById("supportMode").addEventListener("change",e=>{state.supportMode=e.target.value;state.active=null;state.answered=false;save();render();setMessage(`Support mode changed to ${e.target.options[e.target.selectedIndex].text}. Start a new question.`,"correct");});
-document.querySelectorAll('[data-quiz-difficulty]').forEach(button=>button.addEventListener('click',()=>{const mode=button.dataset.quizDifficulty;if(!['easy','hard'].includes(mode)||mode===state.quizDifficulty)return;state.quizDifficulty=mode;state.supportMode=mode==='easy'?'guided':'challenge';state.active=null;state.answered=false;state.shieldArmed=false;state.recentQuestionIds=[];const area=document.getElementById('challengeArea');if(area)area.innerHTML=`<div class="empty"><strong>${mode==='easy'?'🌱 Easy mode':'⛏️ Hard mode'}</strong><br>${mode==='easy'?'Japanese vocabulary uses kana and full reading support.':'Japanese vocabulary uses kanji and reduces reading aids.'}<br>Tap the rock to begin.</div>`;save();render();setMessage(`${mode==='easy'?'Easy':'Hard'} quiz mode selected. Start a new question.`,"correct");}));
+document.addEventListener('click',event=>{const button=event.target.closest?.('[data-quiz-difficulty]');if(button)setQuizDifficultyMode(button.dataset.quizDifficulty);});
 document.getElementById("quickStatsBtn")?.addEventListener("click",()=>setStatsDrawer(true));
 document.getElementById("headerStatsBtn").onclick=()=>window.openLanguageMinerStats?.();
 document.getElementById("closeStatsBtn").onclick=()=>setStatsDrawer(false);
@@ -1796,7 +1904,7 @@ function resetBossesAndReviews(targetState=state){
   else if(targetState.v5&&typeof targetState.v5==="object"){targetState.v5.boss=null;targetState.v5.bossDefeated=[];targetState.v5.bossWins=0;targetState.v5.bossFastestTimes={};}
 }
 function resetEconomyAndInventory(targetState=state){
-  resetStateFields(["gems","gemInventory","gemCheckpointClaims","gemUnlockRewards","lastGem","stoneCurrencyMigrated","hearts","maxHearts","heartRecoveryEnd","hints","shields","shieldArmed"],targetState);
+  resetStateFields(["gems","gemInventory","gemCheckpointClaims","gemUnlockRewards","lastGem","stoneCurrencyMigrated","hearts","maxHearts","heartRecoveryEnd","patreonHeartVideoReward","hints","shields","shieldArmed"],targetState);
 }
 function resetCosmeticsAndCompanions(targetState=state){
   resetStateFields(["ownedPickaxeSkins","equippedPickaxeSkin","ownedWallpapers","equippedWallpaper","ownedRockSkins","equippedRockSkin","ownedMineWallpapers","equippedMineWallpaper","colorTheme","character","ownedCosmetics","selectedTitle"],targetState);
@@ -1804,7 +1912,7 @@ function resetCosmeticsAndCompanions(targetState=state){
   else{const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:(targetState.v5={});v.ownedCompanions=["none"];v.companion="none";v.ownedFashion=["jacket:none","gloves:none","shoes:boots"];v.fashion={jacket:"none",gloves:"none",shoes:"boots"};v.ownedHolidaySpecials=[];v.holidaySpecial="none";v.buildings={forge:0,library:0,garden:0,museum:0,home:0};}
 }
 function resetQuestsAndHistory(targetState=state){
-  resetStateFields(["streak","bestStreak","practiceStreak","lastPracticeDate","sessionAnswered","sessionCorrect","analytics","mistakes","notebookNotes","notebookView","notebookQueueVersion","achievements","selectedTitle","questData","studyTimeByDate","studyDates","practiceDates"],targetState);
+  resetStateFields(["streak","bestStreak","practiceStreak","lastPracticeDate","sessionAnswered","sessionCorrect","analytics","mistakes","notebookNotes","notebookView","notebookQueueVersion","achievements","selectedTitle","questData","studyTimeByDate","studyDates","practiceDates","learningReport"],targetState);
   if(targetState===state)window.japaneseMinerV5Admin?.resetHistory?.();
   else{const v=targetState.v5&&typeof targetState.v5==="object"?targetState.v5:(targetState.v5={});Object.assign(v,{srs:{},wordBook:{},checkpoints:{},reviewed:0,totalCorrect:0,chests:0,lastChestAt:0,companionDailyReview:"",deferredTreasures:[],studySessions:[],currentStudySession:null,dailyRefresher:null,smartReviewSession:null,missions:{},achievements:{},seasonClaim:""});}
 }
@@ -2116,7 +2224,7 @@ function renderAcademy(){
 function showVocabLesson(i){const words=academyVocabularyBank().slice(i*25,i*25+25),box=document.getElementById('vocabLessonWords');if(!box)return;box.innerHTML=words.length?words.map((w,j)=>academyCard('vocab:'+(i*25+j),w.jp,w.reading,`<p>${w.en}</p>`)).join(''):`<p class="academy-callout">This lesson is reserved in the 1,000-word progression. Additions to the course bank will populate it without changing player progress.</p>`;box.querySelectorAll('[data-master-id]').forEach(b=>b.addEventListener('click',()=>academyMaster(b.dataset.masterId)));}
 function showKanjiDetail(k){const info=N5_KANJI_INFO[k]||['—','repetition mark'];const i=N5_KANJI_LIST.indexOf(k),examples=(typeof n5Vocab!=='undefined'?n5Vocab:[]).filter(x=>x[0].includes(k)).slice(0,4);const box=document.getElementById('kanjiDetail');box.innerHTML=academyCard('kanji:'+k,`<span class="kanji-hero">${k}</span>`,`${i+1} of 120`,`<p><strong>Readings:</strong> ${info[0]}</p><p><strong>Meaning:</strong> ${info[1]}</p><p><strong>Example words:</strong> ${examples.length?examples.map(x=>`${x[0]} (${x[1]}) — ${x[2]}`).join('<br>'):'Reference examples unlock as vocabulary grows.'}</p><p class="small">Stroke-order reference: write top-to-bottom and left-to-right, following standard kanji stroke principles.</p>`);box.querySelector('[data-master-id]').addEventListener('click',()=>academyMaster('kanji:'+k));}
 
-function startAcademyTest(count){const pool=questions.filter(q=>q.stage===2&&questionAllowedForSession(q));if(!pool.length)return;let score=0;for(let i=0;i<count;i++){const q=pool[Math.floor(Math.random()*pool.length)];if(Math.random()<(questionMasteryScore(state.questionStats[q.id])/100*.6+.25))score++;}const pct=Math.round(score/count*100);state.academyTestBest=Math.max(state.academyTestBest,pct);save();alert(`Practice simulation complete: ${score}/${count} (${pct}%).\n\nThis simulation estimates performance from your recorded mastery. Mine questions directly to improve it.`);renderAcademy();}
+function startAcademyTest(count){const pool=questions.filter(q=>q.stage===2&&questionAllowedForSession(q));if(!pool.length)return;let score=0;for(let i=0;i<count;i++){const q=pool[Math.floor(Math.random()*pool.length)];if(Math.random()<(questionMasteryScore(state.questionStats[q.id])/100*.6+.25))score++;}const pct=Math.round(score/count*100);state.academyTestBest=Math.max(state.academyTestBest,pct);recordLearningAssessment({group:'practiceTest',type:'N5 Academy practice simulation',course:'Japanese',level:'JLPT N5',score:pct,correct:score,total:count,answered:count,passed:pct>=75,completedAt:Date.now(),finishReason:'simulation'});alert(`Practice simulation complete: ${score}/${count} (${pct}%).\n\nThis simulation estimates performance from your recorded mastery. Mine questions directly to improve it.`);renderAcademy();}
 
 // Add academy kanji and grammar to the N5 mine question pool.
 N5_KANJI_LIST.slice(0,120).forEach((k,i)=>{const info=N5_KANJI_INFO[k]||['—','repetition mark'];addQuestion({stage:2,tier:'intermediate',q:k,concealedPrompt:k,displayChallenge:k,speechText:readingSpeechText(info[0]),prompt:'Choose this kanji’s meaning.',a:info[1],opts:shuffle([info[1],...shuffle(Object.values(N5_KANJI_INFO).map(v=>v[1]).filter(v=>v!==info[1])).slice(0,3)]),help:`${k}: ${info[0]} — ${info[1]}`,kind:'academy-kanji'});});
@@ -2583,7 +2691,7 @@ function grantPlacementReward(routeStage,overall){
 const finishPlacementTestV34=finishPlacementTest;
 finishPlacementTest=function(){const scores={};['hiragana','katakana','n5','n4','n3','n2','n1'].forEach(s=>scores[s]=placementSectionScore(s));let stage=0;if(scores.hiragana>=70)stage=1;if(stage===1&&scores.katakana>=70)stage=2;if(stage===2&&scores.n5>=65)stage=3;if(stage===3&&scores.n4>=65)stage=4;if(stage===4&&scores.n3>=65)stage=5;if(stage===5&&scores.n2>=65)stage=6; // N1 score refines reward/readiness but N1 remains the highest placement.
  const completedAt=Date.now(),elapsedTimeMs=normalizeAssessmentTimeMs(completedAt-Number(placementSession.startedAt||completedAt));
- unlockThroughStage(stage);const unlockedGemRewards=grantUnlockedGemRewards();state.selectedStage=stage;state.supportMode=stage>=4?'challenge':stage>=2?'standard':'guided';state.n5Tier=scores.n5>=75?'advanced':scores.n5>=45?'intermediate':'beginner';state.onboardingComplete=true;state.placementTestCompleted=true;state.active=null;state.answered=false;const overall=Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/7);const reward=grantPlacementReward(stage,overall);const missed=Array.isArray(placementSession.missed)?placementSession.missed:[];state.placementResult={date:completedAt,completedAt,elapsedTimeMs,fastestTimeMs:elapsedTimeMs,route:stages[stage].label.toLowerCase(),overall,...scores,reward,unlockedGemRewards:unlockedGemRewards.map(gem=>gem.name),missed};save();render();placementSession.required=false;document.getElementById('placementCloseBtn').hidden=false;const scoreCards=Object.entries(scores).map(([k,v])=>`<div class="placement-score"><strong>${v}%</strong><span>${k==='hiragana'?'Hiragana':k==='katakana'?'Katakana':'JLPT '+k.toUpperCase()}</span></div>`).join('');const placementBonus=reward.bonusPercent?` <strong>Mastery bonus: +${reward.bonusPercent}% Nuggets.</strong>`:'';const gemBonus=unlockedGemRewards.length?` <strong>Mine access bonus: ${unlockedGemRewards.length} unlocked gemstones added for heart upgrades.</strong>`:'';const missedMarkup=window.japaneseMinerAssessmentMissesMarkup?.(missed)||'',timeMarkup=assessmentRecordMarkup(elapsedTimeMs,true,'Placement test record');document.getElementById('placementContent').innerHTML=`<div class="placement-results"><div class="placement-score-grid">${scoreCards}</div>${timeMarkup}<div class="placement-recommendation"><h3>🧭 Start in the ${stages[stage].name}</h3><p>Your one-time placement result is saved. Every earlier mine remains available for review.</p></div><div class="placement-note"><strong>${stages[stage].label} placement reward:</strong> ${reward.nuggets.toLocaleString()} Nuggets, ${reward.hints} hints, and ${reward.shields} shields.${placementBonus}${gemBonus}</div>${missedMarkup}<div class="placement-result-actions"><button id="acceptPlacementBtn" class="primary" type="button">Begin ${stages[stage].label}</button></div></div>`;document.getElementById('acceptPlacementBtn').addEventListener('click',()=>{syncPlacementTestButton();closePlacementOnboarding();document.getElementById('rock')?.scrollIntoView({behavior:'smooth',block:'center'});});};
+ unlockThroughStage(stage);const unlockedGemRewards=grantUnlockedGemRewards();state.selectedStage=stage;state.supportMode=stage>=4?'challenge':stage>=2?'standard':'guided';state.n5Tier=scores.n5>=75?'advanced':scores.n5>=45?'intermediate':'beginner';state.onboardingComplete=true;state.placementTestCompleted=true;state.active=null;state.answered=false;const overall=Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/7);const reward=grantPlacementReward(stage,overall);const missed=Array.isArray(placementSession.missed)?placementSession.missed:[];state.placementResult={date:completedAt,completedAt,elapsedTimeMs,fastestTimeMs:elapsedTimeMs,route:stages[stage].label.toLowerCase(),overall,...scores,reward,unlockedGemRewards:unlockedGemRewards.map(gem=>gem.name),missed};recordLearningAssessment({group:'placement',type:'Japanese placement test',course:'Japanese',level:stages[stage].label,difficulty:'placement',score:overall,correct:placementSession.answers.filter(answer=>answer.correct).length,total:PLACEMENT_TEST_QUESTIONS.length,answered:placementSession.answers.length,passed:true,completedAt,durationMs:elapsedTimeMs});render();placementSession.required=false;document.getElementById('placementCloseBtn').hidden=false;const scoreCards=Object.entries(scores).map(([k,v])=>`<div class="placement-score"><strong>${v}%</strong><span>${k==='hiragana'?'Hiragana':k==='katakana'?'Katakana':'JLPT '+k.toUpperCase()}</span></div>`).join('');const placementBonus=reward.bonusPercent?` <strong>Mastery bonus: +${reward.bonusPercent}% Nuggets.</strong>`:'';const gemBonus=unlockedGemRewards.length?` <strong>Mine access bonus: ${unlockedGemRewards.length} unlocked gemstones added for heart upgrades.</strong>`:'';const missedMarkup=window.japaneseMinerAssessmentMissesMarkup?.(missed)||'',timeMarkup=assessmentRecordMarkup(elapsedTimeMs,true,'Placement test record');document.getElementById('placementContent').innerHTML=`<div class="placement-results"><div class="placement-score-grid">${scoreCards}</div>${timeMarkup}<div class="placement-recommendation"><h3>🧭 Start in the ${stages[stage].name}</h3><p>Your one-time placement result is saved. Every earlier mine remains available for review.</p></div><div class="placement-note"><strong>${stages[stage].label} placement reward:</strong> ${reward.nuggets.toLocaleString()} Nuggets, ${reward.hints} hints, and ${reward.shields} shields.${placementBonus}${gemBonus}</div>${missedMarkup}<div class="placement-result-actions"><button id="acceptPlacementBtn" class="primary" type="button">Begin ${stages[stage].label}</button></div></div>`;document.getElementById('acceptPlacementBtn').addEventListener('click',()=>{syncPlacementTestButton();closePlacementOnboarding();document.getElementById('rock')?.scrollIntoView({behavior:'smooth',block:'center'});});};
 
 // v3.4 polish: correct advanced placement labels and make the launch button honor the selected JLPT mine.
 const enterSelectedMineButton=document.getElementById('enterN5MineBtn');
@@ -2615,23 +2723,28 @@ render=function(){
 // v3.6 — Persistent placement bypass, centralized menu, cosmetic shop, and wallpapers.
 const WALLPAPERS=[
  {id:'midnight',name:'Midnight Mine',cost:0,desc:'The original deep-blue mining backdrop.',preview:'radial-gradient(circle at 20% 0%,#263653,#0d1424 45%,#070b14)'},
- {id:'emoji',name:'Emoji Party',cost:400000,desc:'A cheerful field of smiles, stars, hearts, and gems.',preview:'linear-gradient(135deg,#ff78b9,#725cff)'},
- {id:'confetti',name:'Lucky Confetti',cost:900000,desc:'A colorful celebration for every study streak.',preview:'conic-gradient(from 25deg at 20% 30%,#ffdc68 0 12deg,transparent 13deg),conic-gradient(from 70deg at 70% 55%,#67f0ce 0 13deg,transparent 14deg),linear-gradient(135deg,#5d35a8,#c83f86)'},
- {id:'sakura',name:'Sakura Cavern',cost:2000000,desc:'Soft cherry-blossom light over a quiet cavern.',preview:'radial-gradient(circle at 20% 15%,#ffc4da,transparent 35%),linear-gradient(145deg,#45264c,#141a31)'},
- {id:'ocean',name:'Ocean Bubbles',cost:5000000,desc:'A bright underwater world filled with rising bubbles.',preview:'radial-gradient(circle at 18% 25%,#c9ffff88 0 8px,transparent 9px),radial-gradient(circle at 75% 55%,#fff8 0 5px,transparent 6px),linear-gradient(#087fc1,#063765)'},
- {id:'bamboo',name:'Bamboo Grove',cost:12000000,desc:'A calm green backdrop for relaxed study.',preview:'radial-gradient(circle at 20% 10%,#55a978,transparent 38%),linear-gradient(145deg,#153c31,#08151a)'},
- {id:'galaxy',name:'Galaxy Quest',cost:25000000,desc:'Stars, nebula clouds, and deep-space color.',preview:'radial-gradient(circle at 18% 22%,#fff 0 2px,transparent 3px),radial-gradient(circle at 70% 35%,#fff 0 1px,transparent 2px),radial-gradient(circle at 55% 20%,#b14cff88,transparent 35%),linear-gradient(145deg,#070522,#15105d,#09031a)'},
- {id:'sunrise',name:'Mountain Sunrise',cost:50000000,desc:'Warm sunrise colors above the mine entrance.',preview:'radial-gradient(circle at 50% 0%,#ffc168,transparent 38%),linear-gradient(160deg,#533c67,#172544)'},
- {id:'inferno',name:'Inferno Mine',cost:100000000,desc:'Animated-looking flame colors from the volcanic depths.',preview:'radial-gradient(ellipse at 30% 100%,#fff15c,transparent 28%),radial-gradient(ellipse at 70% 100%,#ff4b21,transparent 45%),linear-gradient(#3b0710,#120309)'},
- {id:'aurora',name:'Aurora Sky',cost:200000000,desc:'Flowing northern lights in emerald, cyan, and violet.',preview:'radial-gradient(ellipse at 25% 10%,#55ffc988,transparent 42%),radial-gradient(ellipse at 75% 20%,#a26cff99,transparent 45%),linear-gradient(160deg,#071d35,#121339)'},
- {id:'crystal',name:'Crystal Depths',cost:400000000,desc:'Blue and violet crystal light from the deepest tunnels.',preview:'radial-gradient(circle at 75% 10%,#735cff,transparent 35%),radial-gradient(circle at 15% 60%,#42caff,transparent 34%),#10142c'},
- {id:'paper',name:'Study Notebook',cost:800000000,desc:'A clean grid-paper look inspired by Japanese study notebooks.',preview:'linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px),#26314a'}
+ {id:'emoji',name:'Emoji Party',cost:100000,desc:'A cheerful field of smiles, stars, hearts, and gems.',preview:'linear-gradient(135deg,#ff78b9,#725cff)'},
+ {id:'confetti',name:'Lucky Confetti',cost:175000,desc:'A colorful celebration for every study streak.',preview:'conic-gradient(from 25deg at 20% 30%,#ffdc68 0 12deg,transparent 13deg),conic-gradient(from 70deg at 70% 55%,#67f0ce 0 13deg,transparent 14deg),linear-gradient(135deg,#5d35a8,#c83f86)'},
+ {id:'sakura',name:'Sakura Cavern',cost:250000,desc:'Soft cherry-blossom light over a quiet cavern.',preview:'radial-gradient(circle at 20% 15%,#ffc4da,transparent 35%),linear-gradient(145deg,#45264c,#141a31)'},
+ {id:'ocean',name:'Ocean Bubbles',cost:400000,desc:'A bright underwater world filled with rising bubbles.',preview:'radial-gradient(circle at 18% 25%,#c9ffff88 0 8px,transparent 9px),radial-gradient(circle at 75% 55%,#fff8 0 5px,transparent 6px),linear-gradient(#087fc1,#063765)'},
+ {id:'bamboo',name:'Bamboo Grove',cost:600000,desc:'A calm green backdrop for relaxed study.',preview:'radial-gradient(circle at 20% 10%,#55a978,transparent 38%),linear-gradient(145deg,#153c31,#08151a)'},
+ {id:'galaxy',name:'Galaxy Quest',cost:900000,desc:'Stars, nebula clouds, and deep-space color.',preview:'radial-gradient(circle at 18% 22%,#fff 0 2px,transparent 3px),radial-gradient(circle at 70% 35%,#fff 0 1px,transparent 2px),radial-gradient(circle at 55% 20%,#b14cff88,transparent 35%),linear-gradient(145deg,#070522,#15105d,#09031a)'},
+ {id:'sunrise',name:'Mountain Sunrise',cost:1200000,desc:'Warm sunrise colors above the mine entrance.',preview:'radial-gradient(circle at 50% 0%,#ffc168,transparent 38%),linear-gradient(160deg,#533c67,#172544)'},
+ {id:'inferno',name:'Inferno Mine',cost:1600000,desc:'Animated-looking flame colors from the volcanic depths.',preview:'radial-gradient(ellipse at 30% 100%,#fff15c,transparent 28%),radial-gradient(ellipse at 70% 100%,#ff4b21,transparent 45%),linear-gradient(#3b0710,#120309)'},
+ {id:'aurora',name:'Aurora Sky',cost:2000000,desc:'Flowing northern lights in emerald, cyan, and violet.',preview:'radial-gradient(ellipse at 25% 10%,#55ffc988,transparent 42%),radial-gradient(ellipse at 75% 20%,#a26cff99,transparent 45%),linear-gradient(160deg,#071d35,#121339)'},
+ {id:'crystal',name:'Crystal Depths',cost:2500000,desc:'Blue and violet crystal light from the deepest tunnels.',preview:'radial-gradient(circle at 75% 10%,#735cff,transparent 35%),radial-gradient(circle at 15% 60%,#42caff,transparent 34%),#10142c'},
+ {id:'moonstone-cathedral',name:'Moonstone Cathedral',cost:1000000,desc:'Towering white selenite and quartz lit by warm golden rays.',preview:'linear-gradient(#06091240,#06091270),url(wallpaper-moonstone-cathedral-v1.png)'},
+ {id:'amethyst-crown',name:'Amethyst Crown Cavern',cost:1250000,desc:'A royal chamber of violet crystal spires and lavender light.',preview:'linear-gradient(#08041430,#08041468),url(wallpaper-amethyst-crown-v1.png)'},
+ {id:'emerald-geode',name:'Emerald Geode Sanctuary',cost:1500000,desc:'Ancient emerald columns glowing beneath a hidden forest cave.',preview:'linear-gradient(#03100b38,#03100b70),url(wallpaper-emerald-geode-v1.png)'},
+ {id:'sapphire-ice',name:'Sapphire Ice Grotto',cost:1750000,desc:'Frozen sapphire prisms reflected across a silent underground lake.',preview:'linear-gradient(#020a1830,#020a1868),url(wallpaper-sapphire-ice-v1.png)'},
+ {id:'sunstone-ember',name:'Sunstone Ember Vault',cost:2000000,desc:'Amber and citrine blades burning brightly against black basalt.',preview:'linear-gradient(#12070238,#12070272),url(wallpaper-sunstone-ember-v1.png)'},
+ {id:'paper',name:'Study Notebook',cost:3000000,desc:'A clean grid-paper look inspired by Japanese study notebooks.',preview:'linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px),#26314a'}
 ];
 let activeShopTab='mine-cosmetics';
 const SHOP_COLOR_THEMES=[['midnight','Midnight'],['sunrise','Sunrise'],['sakura','Sakura'],['aqua','Aqua'],['candy','Candy']];
 function shopText(key,values={}){return window.LanguageMinerI18n?.t?.(key,values)||String(key);}
 function applyWallpaper(){const supporter=(window.japaneseMinerSupporterTier?.()||0)>=1;document.body.dataset.wallpaper=supporter?(state.equippedWallpaper||'midnight'):'midnight';document.body.dataset.theme=supporter?(state.colorTheme||'midnight'):'midnight';}
-function openGameMenu(){setStatsDrawer(false);document.getElementById('gameMenuOverlay')?.classList.add('open');document.getElementById('gameMenuOverlay')?.setAttribute('aria-hidden','false');document.getElementById('gameMenuBtn')?.setAttribute('aria-expanded','true');syncPageScrollLock();}
+function openGameMenu(){if(!activeProfileId)return;setStatsDrawer(false);document.getElementById('gameMenuOverlay')?.classList.add('open');document.getElementById('gameMenuOverlay')?.setAttribute('aria-hidden','false');document.getElementById('gameMenuBtn')?.setAttribute('aria-expanded','true');syncPageScrollLock();}
 function closeGameMenu(){document.getElementById('gameMenuOverlay')?.classList.remove('open');document.getElementById('gameMenuOverlay')?.setAttribute('aria-hidden','true');document.getElementById('gameMenuBtn')?.setAttribute('aria-expanded','false');syncPageScrollLock();}
 window.closeGameMenu=closeGameMenu;
 function returnToGameMenu(closeCurrent){if(typeof closeCurrent==='function')closeCurrent();openGameMenu();}
@@ -3034,7 +3147,19 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
   }
   function renderNotebook(){ensureV38();const difficult=visibleNotebookMistakes().length,stickies=visibleNotebookNotes().length,review=notebookSmartReviewStatus(),view=state.notebookView;return `<div class="notebook-hero"><div><span>Personal study reference</span><h3>📓 Study Notebook</h3><p>Choose review words, inspect difficult items, and keep your own memory notes.</p></div><b title="${review.dueCount} words due">${review.dueCount}</b></div>${renderNotebookSmartReview()}<nav class="notebook-tabs" aria-label="Notebook sections"><button data-notebook-view="queue" class="${view==='queue'?'primary':''}">🧠 Review Queue <span>${review.dueCount}</span></button><button data-notebook-view="review" class="${view==='review'?'primary':''}">📖 Difficult <span>${difficult}</span></button><button data-notebook-view="stickies" class="${view==='stickies'?'primary':''}">🗒️ Notes <span>${stickies}</span></button></nav>${view==='queue'?renderNotebookReviewQueue():view==='stickies'?renderNotebookStickies():renderNotebookReview()}`;}
   function statPercent(){return state.analytics.answered?Math.round(state.analytics.correct/state.analytics.answered*100):0;}
-  function renderStatistics(){const days=(state.practiceDates||state.studyDates||[]).length,stage=selectedStageIndex(),placementAction=placementTestAlreadyCompleted()?'':'<button id="openStatsPlacementBtn" type="button">🧭 Take Placement Test</button>',weakest=['vocabulary','kanji','grammar','reading','listening'].sort((a,b)=>(state.analytics[a]||0)-(state.analytics[b]||0))[0];return `<div class="stats-feature-grid"><div class="metric-card"><span>Nugget balance</span><strong class="viz-stat-value">${totalStoneValue().toLocaleString()}</strong></div><div class="metric-card"><span>Practice health</span><strong class="viz-stat-value">${Number(state.hearts||0)}/${Number(state.maxHearts||0)}</strong></div><div class="metric-card"><span>Player level</span><strong class="viz-stat-value">${Number(state.level||1)}</strong></div><div class="metric-card"><span>Answer streak</span><strong class="viz-stat-value">${Number(state.streak||0)}</strong></div><div class="metric-card"><span>Total questions</span><strong class="viz-stat-value">${state.analytics.answered.toLocaleString()}</strong></div><div class="metric-card"><span>Overall accuracy</span><strong class="viz-stat-value">${statPercent()}%</strong></div><div class="metric-card"><span>Study days</span><strong class="viz-stat-value">${days}</strong></div><div class="metric-card"><span>Best streak</span><strong class="viz-stat-value">${Number(state.bestStreak||0)}</strong></div></div><div class="feature-section"><div class="viz-callout"><strong>Current mine:</strong> ${stages[stage]?.label||'Course'} · ${Math.round(stageMastery(stage))}% mastery.</div><button id="openStatsCalendarBtn" class="primary" type="button">📅 Open Practice Calendar</button>${placementAction}<h3>Practice distribution</h3>${['vocabulary','kanji','grammar','reading','listening'].map(k=>`<div class="stat-row"><span>${k[0].toUpperCase()+k.slice(1)}</span><strong>${Number(state.analytics[k]||0).toLocaleString()}</strong></div>`).join('')}<div class="viz-callout"><strong>Recommended focus:</strong> ${weakest[0].toUpperCase()+weakest.slice(1)} has received the least practice so far.</div><h3>Current progression</h3>${stages.map((s,i)=>`<div class="stat-row"><span>${s.label}</span><strong>${Math.round(stageMastery(i))}% mastery · ${Number(state.stageXp[i]||0).toLocaleString()} XP</strong></div>`).join('')}</div>`;}
+  function statisticsCourseContext(){
+    const names={en:'English',es:'Spanish',ru:'Russian',ja:'Japanese',ko:'Korean',zh:'Mandarin Chinese',it:'Italian',fr:'French',de:'German',pt:'Brazilian Portuguese',vi:'Vietnamese',th:'Thai',tr:'Turkish',id:'Indonesian',pl:'Polish',el:'Greek',uk:'Ukrainian'};
+    let settings={};try{settings=window.LanguageMinerCourseCloud?.exportCurrent?.()||{};}catch{}
+    const learning=names[settings.learning]?settings.learning:'ja';if(learning==='ja')return null;
+    const language=names[learning],progress=settings.progress?.[learning]&&typeof settings.progress[learning]==='object'?settings.progress[learning]:{},travel=settings.purposes?.[learning]==='travel',selected=Math.max(0,Math.min(6,Math.round(Number(progress.selectedMine)||0))),answered=Math.max(0,Number(progress.answered)||0),correct=Math.max(0,Number(progress.correct)||0),counts=progress.sectionAnswers&&typeof progress.sectionAnswers==='object'?progress.sectionAnswers:{};
+    const sections=travel?[['travel','Travel phrases']]:[['alphabet','Alphabet'],['vocabulary','Vocabulary'],['grammar','Grammar'],['sentences','Sentences']],distribution=sections.map(([id,label])=>({id,label,count:Math.max(0,Number(counts[id])||0)})),classified=distribution.reduce((sum,item)=>sum+item.count,0),earlier=Math.max(0,answered-classified),weakest=[...distribution].sort((a,b)=>a.count-b.count)[0]||{label:travel?'Travel phrases':'Alphabet'},placement=settings.placements?.[learning];
+    const levels=(travel?[0]:Array.from({length:7},(_,index)=>index)).map(index=>{const xp=Math.max(0,Number(progress.mineXpByMine?.[index])||0),required=250,completed=progress.bossDefeatedByMine?.[index]===true||Number(progress.bossBestByMine?.[index])>=100,mastery=completed?100:Math.min(99,Math.round(xp/required*100));return {label:travel?`${language} Travel Course`:`${language} Level ${index+1}`,xp,mastery};});
+    return {learning,language,travel,selected,answered,correct,accuracy:answered?Math.round(correct/answered*100):0,distribution,earlier,weakest,levels,current:levels[travel?0:selected]||levels[0],placementComplete:!!placement};
+  }
+  function renderStatistics(){
+    const days=(state.practiceDates||state.studyDates||[]).length,course=statisticsCourseContext(),stage=selectedStageIndex(),answered=course?course.answered:Number(state.analytics.answered||0),accuracy=course?course.accuracy:statPercent(),placementAction=course?(course.placementComplete?'':`<button id="openStatsPlacementBtn" data-course-language="${course.learning}" type="button">🌐 Set up ${v3Esc(course.language)} course</button>`):(placementTestAlreadyCompleted()?'':'<button id="openStatsPlacementBtn" type="button">🧭 Take Placement Test</button>'),distribution=course?course.distribution:['vocabulary','kanji','grammar','reading','listening'].map(id=>({id,label:id[0].toUpperCase()+id.slice(1),count:Number(state.analytics[id]||0)})),weakest=course?course.weakest:[...distribution].sort((a,b)=>a.count-b.count)[0],currentLabel=course?course.current?.label:(stages[stage]?.label||'Course'),currentMastery=course?course.current?.mastery:Math.round(stageMastery(stage)),progression=course?course.levels.map(level=>`<div class="stat-row"><span>${v3Esc(level.label)}</span><strong>${level.mastery}% progress · ${level.xp.toLocaleString()} XP</strong></div>`).join(''):stages.map((s,i)=>`<div class="stat-row"><span>${s.label}</span><strong>${Math.round(stageMastery(i))}% mastery · ${Number(state.stageXp[i]||0).toLocaleString()} XP</strong></div>`).join('');
+    return `<div class="stats-feature-grid"><div class="metric-card"><span>Nugget balance</span><strong class="viz-stat-value">${totalStoneValue().toLocaleString()}</strong></div><div class="metric-card"><span>Practice health</span><strong class="viz-stat-value">${Number(state.hearts||0)}/${Number(state.maxHearts||0)}</strong></div><div class="metric-card"><span>Player level</span><strong class="viz-stat-value">${Number(state.level||1)}</strong></div><div class="metric-card"><span>Answer streak</span><strong class="viz-stat-value">${Number(state.streak||0)}</strong></div><div class="metric-card"><span>Total questions</span><strong class="viz-stat-value">${answered.toLocaleString()}</strong></div><div class="metric-card"><span>Overall accuracy</span><strong class="viz-stat-value">${accuracy}%</strong></div><div class="metric-card"><span>Study days</span><strong class="viz-stat-value">${days}</strong></div><div class="metric-card"><span>Best streak</span><strong class="viz-stat-value">${Number(state.bestStreak||0)}</strong></div></div><div class="feature-section"><div class="viz-callout"><strong>Current mine:</strong> ${v3Esc(currentLabel)} · ${currentMastery}% ${course?'progress':'mastery'}.</div><button id="openStatsCalendarBtn" class="primary" type="button">📅 Open Practice Calendar</button>${placementAction}<h3>Practice distribution</h3>${distribution.map(item=>`<div class="stat-row"><span>${v3Esc(item.label)}</span><strong>${item.count.toLocaleString()}</strong></div>`).join('')}${course?.earlier?`<div class="stat-row"><span>Earlier course activity</span><strong>${course.earlier.toLocaleString()}</strong></div>`:''}<div class="viz-callout"><strong>Recommended focus:</strong> ${v3Esc(weakest?.label||'Vocabulary')} has received the least recorded practice so far.</div><h3>Current progression</h3>${progression}</div>`;
+  }
   function backupPayload(){const profiles=readProfiles();const profile=profiles.find(p=>p.id===activeProfileId);return {format:'JapaneseMinerBackup',version:'4.0',exportedAt:new Date().toISOString(),profile:{name:profile?.name||'Player',id:activeProfileId},state};}
   function downloadBackup(){const blob=new Blob([JSON.stringify(backupPayload(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`language-miner-${(document.getElementById('activePlayerName')?.textContent||'player').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-backup.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
   function importBackup(file){const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);if(data.format!=='JapaneseMinerBackup'||!data.state)throw new Error('Invalid Language Miner backup.');if(!confirm('Replace this profile’s current progress with the imported backup?'))return;state=normalizeState(data.state);repairTutorAccessState();ensureV38();save();render();closeFeatureCenter();setMessage('Account backup imported successfully.','correct');}catch(e){alert(e.message||'The backup could not be imported.');}};reader.readAsText(file);}
@@ -3064,7 +3189,7 @@ if(state?.colorTheme)document.body.dataset.theme=state.colorTheme;
     document.getElementById('openPrivacySafetyBtn')?.addEventListener('click',()=>window.LanguageMinerLegal?.open?.());
     document.getElementById('openPatreonSupportBtn')?.addEventListener('click',()=>window.openJapaneseMinerPatreon?.());
     document.getElementById('openStatsCalendarBtn')?.addEventListener('click',()=>{closeFeatureCenter();openStudyCalendar();});
-    document.getElementById('openStatsPlacementBtn')?.addEventListener('click',()=>{closeFeatureCenter();openPlacementOnboarding(false);});
+    document.getElementById('openStatsPlacementBtn')?.addEventListener('click',event=>{const language=event.currentTarget?.dataset?.courseLanguage;closeFeatureCenter();if(language)document.getElementById('lmChangeLanguageBtn')?.click();else openPlacementOnboarding(false);});
     if(tab==='profile')window.refreshJapaneseMinerCompanionDisplays?.();
   }
 
@@ -3675,6 +3800,7 @@ function finishJlptReviewCheckpoint(reason="completed"){
   const elapsedTimeMs=normalizeAssessmentTimeMs(quiz.finishedAt-Number(quiz.startedAt||quiz.finishedAt)),previousFastest=normalizeAssessmentTimeMs(previous.fastestTimeMs),eligibleForRecord=reason==='completed'&&quiz.passed&&Number(quiz.answeredCount)===JLPT_REVIEW_QUIZ_QUESTION_COUNT,newFastest=eligibleForRecord&&(!previousFastest||elapsedTimeMs<previousFastest),fastestTimeMs=newFastest?elapsedTimeMs:previousFastest;
   quiz.elapsedTimeMs=elapsedTimeMs;quiz.newFastest=newFastest;quiz.fastestTimeMs=fastestTimeMs;
   state.jlptReviewCheckpoints[key]={best:Math.max(Number(previous.best)||0,quiz.score),lastScore:quiz.score,attempts:Number(previous.attempts||0)+1,passed:previous.passed===true||quiz.passed,passedAt:quiz.passed?Date.now():Number(previous.passedAt||0),fastestTimeMs,fastestAt:newFastest?quiz.finishedAt:Number(previous.fastestAt||0)};
+  recordLearningAssessment({group:'reviewQuiz',type:`${vocabularyCourseLabel(quiz.stage)} ${jlptSectionSpec(quiz.section).name} Review Quiz`,course:'Japanese',level:vocabularyCourseLabel(quiz.stage),section:jlptSectionSpec(quiz.section).name,lessons:`${quiz.evenLesson-1}–${quiz.evenLesson}`,score:quiz.score,correct:quiz.correct,total:JLPT_REVIEW_QUIZ_QUESTION_COUNT,answered:quiz.answeredCount,passed:quiz.passed,completedAt:quiz.finishedAt,durationMs:elapsedTimeMs,finishReason:reason});
   const nextExists=!!jlptSectionLevels(quiz.stage,quiz.section)[quiz.evenLesson];
   save();renderAcademy();setMessage(quiz.passed?(nextExists?`Review quiz passed with ${quiz.score}%. Lesson ${quiz.evenLesson+1} is now available.`:`Final lesson-pair review passed with ${quiz.score}%.`):`Review quiz score: ${quiz.score}%. Reach 75% to continue.`,quiz.passed?"correct":"wrong");return true;
 }
@@ -3730,7 +3856,7 @@ renderAcademy=function(){
   const COURSE_STORAGE_PREFIX='lm_multilingual_functional_preview_v1:';
   const PARENT_TEACHER_LINK_KEY='lm_parent_teacher_links_v1';
   const LANGUAGE_NAMES={en:'English',es:'Spanish',ru:'Russian',ja:'Japanese',ko:'Korean',zh:'Mandarin Chinese',it:'Italian',fr:'French',de:'German',pt:'Brazilian Portuguese',vi:'Vietnamese',th:'Thai',tr:'Turkish',id:'Indonesian',pl:'Polish',el:'Greek',uk:'Ukrainian'};
-  const SECTION_NAMES={vocabulary:'Vocabulary',grammar:'Grammar',reading:'Reading',listening:'Listening',sentences:'Sentences'};
+  const SECTION_NAMES={alphabet:'Alphabet',vocabulary:'Vocabulary',kanji:'Kanji',grammar:'Grammar',reading:'Reading',listening:'Listening',sentences:'Sentences',travel:'Travel phrases'};
   const safeNumber=value=>Number.isFinite(Number(value))?Number(value):0;
   const safeTime=value=>Math.max(0,Math.round(safeNumber(value)));
   const safeDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||''))?String(value):'';
@@ -3770,47 +3896,76 @@ renderAcademy=function(){
     const dates=studyDateKeys(source).filter(Boolean),times={};
     if(source.studyTimeByDate&&typeof source.studyTimeByDate==='object'&&!Array.isArray(source.studyTimeByDate))Object.entries(source.studyTimeByDate).forEach(([key,value])=>{const date=safeDate(key),milliseconds=safeTime(value);if(date&&milliseconds)times[date]=milliseconds;});
     Object.keys(times).forEach(key=>{if(!dates.includes(key))dates.push(key);});dates.sort();
-    const days=dates.map(date=>({date,milliseconds:times[date]||0}));
-    return {currentStreak:calculatePracticeStreak(source),bestStreak:Math.max(safeNumber(source.bestStreak),calculatePracticeStreak(source)),totalStudyDays:dates.length,totalMilliseconds:Object.values(times).reduce((sum,value)=>sum+value,0),days:days.slice(-120),recentDays:days.slice(-14).reverse()};
+    const days=dates.map(date=>({date,milliseconds:times[date]||0})),today=dateKey(),yesterday=dateKey(new Date(Date.now()-86400000)),currentStreak=calculatePracticeStreak(source),lastStudyDate=dates[dates.length-1]||'',last7=dates.filter(date=>dayDifference(date,today)>=0&&dayDifference(date,today)<7),last30=dates.filter(date=>dayDifference(date,today)>=0&&dayDifference(date,today)<30),timedDays=Object.values(times).filter(value=>value>0).length,totalMilliseconds=Object.values(times).reduce((sum,value)=>sum+value,0);
+    return {currentStreak,bestStreak:Math.max(safeNumber(source.bestStreak),currentStreak),streakMaintained:dates.includes(today),streakAtRisk:currentStreak>0&&!dates.includes(today)&&dates.includes(yesterday),lastStudyDate,totalStudyDays:dates.length,timedDays,totalMilliseconds,averageDailyMilliseconds:timedDays?Math.round(totalMilliseconds/timedDays):0,activeDaysLast7:last7.length,activeDaysLast30:last30.length,days:days.slice(-180),recentDays:days.slice(-30).reverse()};
   }
   function dueSummary(source){
     const entries=source.v5?.srs&&typeof source.v5.srs==='object'&&!Array.isArray(source.v5.srs)?Object.values(source.v5.srs):[],now=Date.now();
     const due=entries.filter(record=>record&&safeTime(record.dueAt)<=now),upcoming=entries.map(record=>safeTime(record?.dueAt)).filter(time=>time>now).sort((a,b)=>a-b);
     return {dueCount:due.length,scheduledCount:entries.length,nextDueAt:upcoming[0]||0,completedReviews:Math.max(0,safeNumber(source.v5?.reviewed))};
   }
+  function summarizeLessons(lessons){
+    const total=lessons.length,completed=lessons.filter(lesson=>lesson.completed).length,inProgress=lessons.filter(lesson=>lesson.unlocked&&!lesson.completed&&lesson.mastery>0).length,available=lessons.filter(lesson=>lesson.unlocked&&!lesson.completed&&lesson.mastery===0).length,locked=lessons.filter(lesson=>!lesson.unlocked).length,averageMastery=total?Math.round(lessons.reduce((sum,lesson)=>sum+lesson.mastery,0)/total):0;
+    return {items:lessons,counts:{total,completed,inProgress,available,locked},completionPercent:total?Math.round(completed/total*100):0,averageMastery};
+  }
+  function japaneseLessonSummary(source){
+    const lessons=[],cleared=new Set((Array.isArray(source.clearedStages)?source.clearedStages:[]).map(Number)),stageOpen=stage=>stage===0||stage<=safeNumber(source.placementUnlockedThrough)||cleared.has(stage-1),itemMastery=id=>Math.max(0,Math.min(100,safeNumber(source.n5AcademyMastery?.[id])));
+    for(let stage=0;stage<Math.min(2,stages.length);stage++){
+      const families=kanaFamiliesForStage(stage),passedStage=cleared.has(stage)||safeNumber(source.placementUnlockedThrough)>stage;let previousComplete=true;
+      families.forEach((family,index)=>{const values=family.entries.map(([character])=>masteryFromStat(source.kanaStats?.[character],25)),mastery=values.length?Math.round(values.reduce((sum,value)=>sum+value,0)/values.length):0,required=KANA_FAMILY_UNLOCK_MASTERY,unlocked=stageOpen(stage)&&(index===0||passedStage||previousComplete),masteredItems=values.filter(value=>value>=required).length,completed=mastery>=required;lessons.push({id:`ja:${stage}:alphabet:${index}`,course:'Japanese',level:stages[stage]?.label||`Level ${stage+1}`,stage,section:'Alphabet',lesson:index+1,name:family.name,mastery,required,masteredItems,totalItems:values.length,completed,unlocked});previousComplete=completed;});
+    }
+    for(let stage=2;stage<stages.length;stage++){
+      JLPT_SECTION_SPECS.forEach(spec=>{const levels=jlptSectionLevels(stage,spec.id);levels.forEach((items,index)=>{const values=items.map(item=>itemMastery(item.masteryId)),mastery=values.length?Math.round(values.reduce((sum,value)=>sum+value,0)/values.length):0,previous=index?lessons.find(lesson=>lesson.id===`ja:${stage}:${spec.id}:${index-1}`):null,checkpoint=index>0&&index%2===0?source.jlptReviewCheckpoints?.[`${stage}:${spec.id}:${index}`]:null,unlocked=stageOpen(stage)&&(index===0||(previous?.completed===true&&(index%2!==0||checkpoint?.passed===true))),masteredItems=values.filter(value=>value>=JLPT_VOCABULARY_UNLOCK_MASTERY).length;lessons.push({id:`ja:${stage}:${spec.id}:${index}`,course:'Japanese',level:stages[stage]?.label||`Level ${stage+1}`,stage,section:spec.name,lesson:index+1,name:`${spec.name} Lesson ${index+1}`,mastery,required:JLPT_VOCABULARY_UNLOCK_MASTERY,masteredItems,totalItems:values.length,completed:mastery>=JLPT_VOCABULARY_UNLOCK_MASTERY,unlocked});});});
+    }
+    return summarizeLessons(lessons);
+  }
+  function splitReportItems(values,count){const result=[],base=Math.floor(values.length/count),extra=values.length%count;let offset=0;for(let index=0;index<count;index++){const size=base+(index<extra?1:0);result.push(values.slice(offset,offset+size));offset+=size;}return result;}
+  function multilingualLessonSummary(settings,learning,progress){
+    const lessons=[],data=window.LANGUAGE_MINER_MULTILINGUAL_COURSE_DATA||{},mastery=(section,item)=>Math.max(0,Math.min(100,safeNumber(progress.courseMastery?.[`${section}:${item?.id??item?.symbol??''}`]))),defeated=progress.bossDefeatedByMine&&typeof progress.bossDefeatedByMine==='object'?progress.bossDefeatedByMine:{},travel=settings.purposes?.[learning]==='travel';
+    if(travel){const values=(data.sentences||[]).filter(item=>[1,2,3,4,7,11].includes(Number(item.topic)));for(let offset=0;offset<values.length;offset+=10){const items=values.slice(offset,offset+10),scores=items.map(item=>mastery('travel',item)),value=scores.length?Math.round(scores.reduce((sum,score)=>sum+score,0)/scores.length):0;lessons.push({id:`${learning}:0:travel:${offset/10}`,course:LANGUAGE_NAMES[learning],level:'Travel course',stage:0,section:'Travel phrases',lesson:offset/10+1,name:`Travel Lesson ${offset/10+1}`,mastery:value,required:75,masteredItems:scores.filter(score=>score>=75).length,totalItems:items.length,completed:value>=75,unlocked:offset===0||lessons[lessons.length-1]?.completed===true});}return summarizeLessons(lessons);}
+    const alphabetEntries=Object.entries(progress.courseMastery||{}).filter(([key])=>key.startsWith('alphabet:')),alphabetScores=alphabetEntries.map(([,value])=>Math.max(0,Math.min(100,safeNumber(value))));if(alphabetScores.length){const value=Math.round(alphabetScores.reduce((sum,score)=>sum+score,0)/alphabetScores.length);lessons.push({id:`${learning}:0:alphabet:0`,course:LANGUAGE_NAMES[learning],level:'Level 1',stage:0,section:'Alphabet',lesson:1,name:'Alphabet Lesson',mastery:value,required:75,masteredItems:alphabetScores.filter(score=>score>=75).length,totalItems:alphabetScores.length,completed:value>=75,unlocked:true});}
+    for(let mine=1;mine<=6;mine++){
+      const mineOpen=defeated[mine-1]===true;[['vocabulary',25],['grammar',10],['sentences',10]].forEach(([section,size])=>{const stageItems=splitReportItems(data[section]||[],6)[mine-1]||[],sectionLessons=[];for(let offset=0;offset<stageItems.length;offset+=size)sectionLessons.push(stageItems.slice(offset,offset+size));sectionLessons.forEach((items,index)=>{const scores=items.map(item=>mastery(section,item)),value=scores.length?Math.round(scores.reduce((sum,score)=>sum+score,0)/scores.length):0,previous=index?lessons.find(lesson=>lesson.id===`${learning}:${mine}:${section}:${index-1}`):null,checkpoint=index>0&&index%2===0?progress.reviewCheckpoints?.[`${mine}:${section}:${index}`]:null,unlocked=mineOpen&&(index===0||(previous?.completed===true&&(index%2!==0||checkpoint?.passed===true)));lessons.push({id:`${learning}:${mine}:${section}:${index}`,course:LANGUAGE_NAMES[learning],level:`Level ${mine+1}`,stage:mine,section:SECTION_NAMES[section],lesson:index+1,name:`${SECTION_NAMES[section]} Lesson ${index+1}`,mastery:value,required:75,masteredItems:scores.filter(score=>score>=75).length,totalItems:items.length,completed:value>=75,unlocked});});});
+    }
+    return summarizeLessons(lessons);
+  }
   function japaneseCourseSummary(source){
     const selected=Math.max(0,Math.min(stages.length-1,Math.round(safeNumber(source.selectedStage)))),cleared=new Set((Array.isArray(source.clearedStages)?source.clearedStages:[]).map(Number));
     const levels=stages.map((stage,index)=>{const xp=Math.max(0,safeNumber(source.stageXp?.[index])),mastery=stateStageMastery(source,index),completed=cleared.has(index)||(xp>=STAGE_XP_REQUIREMENTS[index]&&mastery>=STAGE_MASTERY_REQUIREMENTS[index]),unlocked=index===0||index<=safeNumber(source.placementUnlockedThrough)||cleared.has(index-1);return {index,name:stage.name,label:stage.label,xp,xpRequired:STAGE_XP_REQUIREMENTS[index],mastery,masteryRequired:STAGE_MASTERY_REQUIREMENTS[index],completed,unlocked,selected:index===selected};});
     const overall=Math.round(levels.reduce((sum,level)=>sum+Math.min(100,(Math.min(1,level.xp/Math.max(1,level.xpRequired))*50)+(Math.min(1,level.mastery/Math.max(1,level.masteryRequired))*50)),0)/levels.length);
-    return {known:'en',learning:'ja',knownName:'English',learningName:'Japanese',selectedLevel:selected,selectedLabel:levels[selected]?.name||'Hiragana Mine',overallPercent:overall,levels};
+    const lessons=japaneseLessonSummary(source);return {known:'en',learning:'ja',knownName:'English',learningName:'Japanese',selectedLevel:selected,selectedLabel:levels[selected]?.name||'Hiragana Mine',overallPercent:overall,levels,lessons};
   }
   function multilingualCourseSummary(settings){
     const known=LANGUAGE_NAMES[settings.known]?settings.known:'en',learning=LANGUAGE_NAMES[settings.learning]?settings.learning:'ja',progress=settings.progress?.[learning]&&typeof settings.progress[learning]==='object'?settings.progress[learning]:{},selected=Math.max(0,Math.min(6,Math.round(safeNumber(progress.selectedMine)))),defeated=progress.bossDefeatedByMine&&typeof progress.bossDefeatedByMine==='object'?progress.bossDefeatedByMine:{};
     const levels=Array.from({length:7},(_,index)=>{const xp=Math.max(0,safeNumber(progress.mineXpByMine?.[index])),completed=defeated[index]===true||safeNumber(progress.bossBestByMine?.[index])>=100,unlocked=index===0||defeated[index-1]===true;return {index,name:`${LANGUAGE_NAMES[learning]} Level ${index+1}`,label:`Level ${index+1}`,xp,xpRequired:STAGE_XP_REQUIREMENTS[index],mastery:0,masteryRequired:0,completed,unlocked,selected:index===selected};});
     const answered=Math.max(0,safeNumber(progress.answered)),correct=Math.max(0,safeNumber(progress.correct)),overall=Math.round(levels.reduce((sum,level)=>sum+(level.completed?100:Math.min(95,level.xp/Math.max(1,level.xpRequired)*100)),0)/levels.length);
-    return {known,learning,knownName:LANGUAGE_NAMES[known],learningName:LANGUAGE_NAMES[learning],selectedLevel:selected,selectedLabel:levels[selected].name,overallPercent:overall,answered,correct,levels};
+    const lessons=multilingualLessonSummary(settings,learning,progress);return {known,learning,knownName:LANGUAGE_NAMES[known],learningName:LANGUAGE_NAMES[learning],selectedLevel:selected,selectedLabel:levels[selected].name,overallPercent:overall,answered,correct,levels,lessons};
   }
   function assessmentSummary(source,settings){
-    const history=[],fastest={placement:0,reviewQuiz:0,guardian:0};
-    const add=(record)=>{history.push(record);if(record.fastestTimeMs&&(!fastest[record.group]||record.fastestTimeMs<fastest[record.group]))fastest[record.group]=record.fastestTimeMs;};
+    const history=[],fastest={placement:0,reviewQuiz:0,guardian:0,practiceTest:0},recordedTypes=new Set(),add=(record,legacy=false)=>{const normalized={...record,legacy,difficulty:['easy','hard','placement'].includes(String(record.difficulty))?String(record.difficulty):'not-recorded'};history.push(normalized);recordedTypes.add(`${normalized.group}:${normalized.type}`.toLowerCase());if(normalized.durationMs&&normalized.passed&&(!fastest[normalized.group]||normalized.durationMs<fastest[normalized.group]))fastest[normalized.group]=normalized.durationMs;if(normalized.fastestTimeMs&&(!fastest[normalized.group]||normalized.fastestTimeMs<fastest[normalized.group]))fastest[normalized.group]=normalized.fastestTimeMs;};
+    normalizeLearningReport(source.learningReport).assessmentAttempts.forEach(record=>add({group:record.group,type:record.type,course:record.course,result:record.passed?'Passed':'Not passed',passed:record.passed,score:record.score,correct:record.correct,total:record.total,answered:record.answered,attempts:1,completedAt:record.completedAt,durationMs:record.durationMs,fastestTimeMs:record.passed?record.durationMs:0,difficulty:record.difficulty,level:record.level,section:record.section,lessons:record.lessons,finishReason:record.finishReason}));
+    const addLegacy=record=>{if(!recordedTypes.has(`${record.group}:${record.type}`.toLowerCase()))add(record,true);};
     const placement=source.placementResult&&typeof source.placementResult==='object'?source.placementResult:null;
-    if(placement)add({group:'placement',type:'Placement test',course:'Japanese',result:'Completed',score:safeNumber(placement.score),total:safeNumber(placement.total),attempts:1,completedAt:safeTime(placement.completedAt||placement.finishedAt),fastestTimeMs:safeTime(placement.fastestTimeMs||placement.elapsedTimeMs)});
-    Object.entries(source.jlptReviewCheckpoints||{}).forEach(([key,record])=>{if(!record||typeof record!=='object')return;const parts=key.split(':'),stage=stages[Math.max(0,Math.min(6,safeNumber(parts[0])))]?.label||'Course',section=SECTION_NAMES[parts[1]]||String(parts[1]||'Review'),lessons=safeNumber(parts[2]);add({group:'reviewQuiz',type:`${stage} ${section} Review`,course:'Japanese',result:record.passed?'Passed':'Attempted',score:safeNumber(record.best||record.lastScore),total:100,attempts:Math.max(1,safeNumber(record.attempts)),completedAt:safeTime(record.passedAt||record.fastestAt),fastestTimeMs:safeTime(record.fastestTimeMs)});});
-    Object.entries(source.v5?.bossFastestTimes||{}).forEach(([index,time])=>add({group:'guardian',type:`${stages[Math.max(0,Math.min(6,safeNumber(index)))]?.label||'Course'} Guardian`,course:'Japanese',result:'Perfect',score:100,total:100,attempts:1,completedAt:0,fastestTimeMs:safeTime(time)}));
+    if(placement)addLegacy({group:'placement',type:'Japanese placement test',course:'Japanese',result:'Completed',score:safeNumber(placement.overall??placement.score),correct:0,total:0,answered:0,attempts:1,completedAt:safeTime(placement.completedAt||placement.finishedAt||placement.date),fastestTimeMs:safeTime(placement.fastestTimeMs||placement.elapsedTimeMs),difficulty:'placement'});
+    Object.entries(source.jlptReviewCheckpoints||{}).forEach(([key,record])=>{if(!record||typeof record!=='object')return;const parts=key.split(':'),stage=stages[Math.max(0,Math.min(6,safeNumber(parts[0])))]?.label||'Course',section=SECTION_NAMES[parts[1]]||String(parts[1]||'Review'),lessons=safeNumber(parts[2]);addLegacy({group:'reviewQuiz',type:`${stage} ${section} Review Quiz`,course:'Japanese',result:record.passed?'Passed':'Attempted',score:safeNumber(record.best||record.lastScore),correct:0,total:0,answered:0,attempts:Math.max(1,safeNumber(record.attempts)),completedAt:safeTime(record.passedAt||record.fastestAt),fastestTimeMs:safeTime(record.fastestTimeMs),level:stage,section,lessons:`${lessons-1}–${lessons}`});});
+    Object.entries(source.v5?.bossFastestTimes||{}).forEach(([index,time])=>{const level=stages[Math.max(0,Math.min(6,safeNumber(index)))]?.label||'Course';addLegacy({group:'guardian',type:`${level} Guardian Test`,course:'Japanese',result:'Passed',score:100,correct:25,total:25,answered:25,attempts:1,completedAt:0,fastestTimeMs:safeTime(time),level});});
     const learning=LANGUAGE_NAMES[settings.learning]?settings.learning:'ja';
     if(learning!=='ja'){
       const language=LANGUAGE_NAMES[learning],placementRecord=settings.placements?.[learning];
-      if(placementRecord&&typeof placementRecord==='object')add({group:'placement',type:'Placement test',course:language,result:'Completed',score:safeNumber(placementRecord.score),total:safeNumber(placementRecord.total),attempts:1,completedAt:safeTime(placementRecord.completedAt),fastestTimeMs:safeTime(placementRecord.fastestTimeMs||placementRecord.elapsedTimeMs)});
+      if(placementRecord&&typeof placementRecord==='object')addLegacy({group:'placement',type:`${language} placement test`,course:language,result:'Completed',score:placementRecord.total?Math.round(safeNumber(placementRecord.score)/safeNumber(placementRecord.total)*100):safeNumber(placementRecord.score),correct:safeNumber(placementRecord.score),total:safeNumber(placementRecord.total),answered:safeNumber(placementRecord.total),attempts:1,completedAt:safeTime(placementRecord.completedAt),fastestTimeMs:safeTime(placementRecord.fastestTimeMs||placementRecord.elapsedTimeMs),difficulty:'placement'});
       const progress=settings.progress?.[learning]||{};
-      Object.entries(progress.reviewCheckpoints||{}).forEach(([key,record])=>{if(!record||typeof record!=='object')return;add({group:'reviewQuiz',type:`Level ${safeNumber(key.split(':')[0])+1} Review`,course:language,result:record.passed?'Passed':'Attempted',score:safeNumber(record.best||record.lastScore),total:100,attempts:Math.max(1,safeNumber(record.attempts)),completedAt:safeTime(record.passedAt||record.fastestAt),fastestTimeMs:safeTime(record.fastestTimeMs)});});
-      Object.entries(progress.bossFastestByMine||{}).forEach(([index,time])=>add({group:'guardian',type:`Level ${safeNumber(index)+1} Guardian`,course:language,result:'Perfect',score:100,total:100,attempts:1,completedAt:0,fastestTimeMs:safeTime(time)}));
+      Object.entries(progress.reviewCheckpoints||{}).forEach(([key,record])=>{if(!record||typeof record!=='object')return;const parts=key.split(':'),level=safeNumber(parts[0])+1,section=SECTION_NAMES[parts[1]]||'Course',even=safeNumber(parts[2]);addLegacy({group:'reviewQuiz',type:`${language} Level ${level} ${section} Review Quiz`,course:language,result:record.passed?'Passed':'Attempted',score:safeNumber(record.best||record.lastScore),correct:0,total:0,answered:0,attempts:Math.max(1,safeNumber(record.attempts)),completedAt:safeTime(record.passedAt||record.fastestAt),fastestTimeMs:safeTime(record.fastestTimeMs),level:`Level ${level}`,section,lessons:even?`${even-1}–${even}`:''});});
+      Object.entries(progress.bossFastestByMine||{}).forEach(([index,time])=>{const level=`Level ${safeNumber(index)+1}`;addLegacy({group:'guardian',type:`${language} ${level} Guardian Test`,course:language,result:'Passed',score:100,correct:25,total:25,answered:25,attempts:1,completedAt:0,fastestTimeMs:safeTime(time),level});});
     }
-    history.sort((a,b)=>(b.completedAt||b.fastestTimeMs)-(a.completedAt||a.fastestTimeMs));
-    return {history:history.slice(0,100),fastest};
+    history.sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));const scored=history.filter(record=>Number.isFinite(Number(record.score))),passedCount=history.filter(record=>record.result==='Passed'||record.result==='Completed'||record.result==='Perfect').length,easyCount=history.filter(record=>record.difficulty==='easy').length,hardCount=history.filter(record=>record.difficulty==='hard').length;
+    return {history:history.slice(0,LEARNING_REPORT_MAX_ATTEMPTS),fastest,attemptCount:history.reduce((sum,record)=>sum+Math.max(1,safeNumber(record.attempts)),0),passedCount,averageScore:scored.length?Math.round(scored.reduce((sum,record)=>sum+safeNumber(record.score),0)/scored.length):0,easyCount,hardCount,modeUnknownCount:history.filter(record=>record.difficulty==='not-recorded').length};
+  }
+  function gradingSummary(questions,course,assessments,activity,reviews){
+    const components=[],assessmentAvailable=assessments.history.length>0,lessonMastery=safeNumber(course.lessons?.averageMastery),lessonCompletion=safeNumber(course.lessons?.completionPercent);if(assessmentAvailable)components.push({id:'assessments',label:'Quiz & test average',score:assessments.averageScore,weight:50});if(course.lessons?.counts?.total)components.push({id:'lessons',label:'Lesson mastery',score:lessonMastery,weight:30});if(questions.answered)components.push({id:'practice',label:'Practice accuracy',score:questions.accuracy,weight:20});const weight=components.reduce((sum,item)=>sum+item.weight,0),available=weight>0,score=available?Math.round(components.reduce((sum,item)=>sum+item.score*item.weight,0)/weight):0,letter=!available?'—':score>=90?'A':score>=80?'B':score>=70?'C':score>=60?'D':'F',flags=[];if(!activity.lastStudyDate)flags.push({level:'attention',text:'No study activity has been recorded yet.'});else if(activity.activeDaysLast7===0)flags.push({level:'attention',text:'No active study day was recorded in the last 7 days.'});else if(activity.streakAtRisk)flags.push({level:'watch',text:'The current streak is at risk unless the learner studies today.'});if(questions.answered>=10&&questions.accuracy<75)flags.push({level:'attention',text:`Practice accuracy is ${questions.accuracy}%, below the 75% progression target.`});if(assessmentAvailable&&assessments.averageScore<75)flags.push({level:'attention',text:`Assessment average is ${assessments.averageScore}%, below the 75% quiz target.`});if(reviews.dueCount>0)flags.push({level:'watch',text:`${reviews.dueCount} Smart Review item${reviews.dueCount===1?' is':'s are'} due.`});if(course.lessons?.counts?.inProgress)flags.push({level:'info',text:`${course.lessons.counts.inProgress} lesson${course.lessons.counts.inProgress===1?' is':'s are'} currently in progress.`});if(!flags.length)flags.push({level:'good',text:'No immediate learning risks are visible in the recorded data.'});return {available,score,letter,components,lessonCompletion,flags,formula:'50% quizzes/tests · 30% lesson mastery · 20% practice accuracy (available evidence is reweighted when a category has no data).'};
   }
   function summarize(profile,sourceValue,settingsValue,cloudUpdatedAt=0){
     const source=normalizeState(clone(sourceValue&&typeof sourceValue==='object'?sourceValue:{})),settings=clone(settingsValue&&typeof settingsValue==='object'?settingsValue:{}),analytics=source.analytics&&typeof source.analytics==='object'?source.analytics:{},coreAnswered=Math.max(0,safeNumber(analytics.answered)),coreCorrect=Math.max(0,safeNumber(analytics.correct)),course=settings.learning!=='ja'?multilingualCourseSummary(settings):japaneseCourseSummary(source),answered=course.learning==='ja'?coreAnswered:Math.max(coreAnswered,safeNumber(course.answered)),correct=course.learning==='ja'?coreCorrect:Math.max(coreCorrect,safeNumber(course.correct)),activity=activitySummary(source),reviews=dueSummary(source),assessments=assessmentSummary(source,settings);
-    const summary={profile:{id:String(profile.id),name:String(profile.name||'Player')},generatedAt:Date.now(),cloudUpdatedAt:safeTime(cloudUpdatedAt),level:Math.max(1,safeNumber(source.level)||1),questions:{answered,correct,accuracy:answered?Math.round(correct/answered*100):0,distribution:{vocabulary:Math.max(0,safeNumber(analytics.vocabulary)),grammar:Math.max(0,safeNumber(analytics.grammar)),reading:Math.max(0,safeNumber(analytics.reading)),listening:Math.max(0,safeNumber(analytics.listening)),kanji:Math.max(0,safeNumber(analytics.kanji))}},activity,reviews,course,assessments};
+    const questionsSummary={answered,correct,accuracy:answered?Math.round(correct/answered*100):0,distribution:{vocabulary:Math.max(0,safeNumber(analytics.vocabulary)),grammar:Math.max(0,safeNumber(analytics.grammar)),reading:Math.max(0,safeNumber(analytics.reading)),listening:Math.max(0,safeNumber(analytics.listening)),kanji:Math.max(0,safeNumber(analytics.kanji))}},summary={profile:{id:String(profile.id),name:String(profile.name||'Player')},generatedAt:Date.now(),cloudUpdatedAt:safeTime(cloudUpdatedAt),level:Math.max(1,safeNumber(source.level)||1),questions:questionsSummary,activity,reviews,course,assessments};summary.grading=gradingSummary(questionsSummary,course,assessments,activity,reviews);
     return deepFreeze(summary);
   }
   function snapshot(profileId){

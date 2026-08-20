@@ -1,6 +1,6 @@
 # Legal-readiness deployment checklist
 
-Build: v6.4.138
+Build: v6.4.157
 
 ## Implemented in source
 
@@ -11,6 +11,7 @@ Build: v6.4.138
 - Existing accounts must accept the current policy versions before continuing.
 - A Privacy & Safety center provides data inventory, JSON export, privacy requests, and permanent deletion.
 - Parent/Teacher links remain student-approved and read-only.
+- Parent/Teacher gradebook reports expose only whitelisted learning summaries, assessment history, lesson mastery, active study time, and streak data.
 - Educational-framework and non-affiliation disclaimers are visible.
 - Privacy Policy, Terms, third-party notices, asset register, claims register, and preliminary mark screen are included.
 
@@ -22,6 +23,8 @@ From the configured Supabase project directory:
 supabase db push
 supabase functions deploy account-delete
 ```
+
+`supabase db push` must include both `202608180001_cross_device_parent_teacher_links.sql` and `202608200001_parent_teacher_gradebook_reports.sql`. The latter refreshes the RPC signatures and PostgREST schema cache used by the Parent/Teacher Center.
 
 The deletion function requires the standard project `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` secrets available to Supabase Edge Functions. Confirm that authenticated calls can delete only the caller's own account.
 

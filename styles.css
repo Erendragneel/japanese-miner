@@ -219,9 +219,21 @@ body.stats-open{overflow:hidden}
 
 .auth-overlay{position:fixed;inset:0;z-index:200;background:linear-gradient(180deg,#090e1aee,#111a2bee);display:grid;place-items:center;padding:18px}
 .auth-overlay.hidden,.auth-overlay.auth-dismissed,.auth-overlay[hidden]{display:none!important;visibility:hidden!important;pointer-events:none!important}
+body.auth-session-locked .app,
+body.auth-session-locked #placementOverlay,
+body.auth-session-locked #lmMultilingualOverlay,
+body.auth-session-locked #v6CoachDock,
+body.auth-session-locked #v5CompanionFloat,
+body.auth-session-locked #heartRecoveryHud,
+body.auth-session-locked #lmCharacterMilestone,
+body.auth-session-locked #v5Treasure{
+  display:none!important;visibility:hidden!important;pointer-events:none!important
+}
 .auth-card{width:min(94vw,520px);max-height:min(92vh,820px);overflow:auto;background:#182033;border:1px solid #3b496c;border-radius:20px;padding:22px;box-shadow:0 24px 70px #000b}
 .auth-card h2{margin:0 0 6px;font-size:27px}
 .auth-card p{color:var(--muted);margin:0 0 16px;line-height:1.45}
+.auth-install-entry{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 16px;padding:13px;border:1px solid #55c9a7;border-radius:15px;background:linear-gradient(135deg,#153c35,#172640 62%,#2d2859)}
+.auth-install-entry>div{display:grid;gap:3px;min-width:0}.auth-install-entry span{color:#7deac1;font-size:9px;font-weight:950;letter-spacing:.12em}.auth-install-entry h3{margin:0;font-size:17px}.auth-install-entry p{margin:0;color:#c2cee2;font-size:12px;line-height:1.4}.auth-install-entry .install-app-btn{flex:0 0 auto;min-width:140px;border-color:#69dfb8;background:linear-gradient(135deg,#176a55,#3478f6);color:#fff;font-weight:900}.auth-install-entry .install-app-btn:disabled{opacity:.6}
 .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
 .auth-field{display:grid;gap:6px;margin:10px 0}
 .auth-field label{font-size:13px;color:var(--muted);font-weight:700}
@@ -235,7 +247,6 @@ body.stats-open{overflow:hidden}
 .account-chip{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .account-chip span{background:#10172a;border:1px solid #2c3757;border-radius:999px;padding:7px 10px;font-weight:800}
 .account-chip button{padding:8px 10px}
-.account-chip .header-install-btn{border-color:#72e7bd;background:linear-gradient(135deg,#167c68,#2f76d5);color:#fff;box-shadow:0 7px 18px rgba(33,128,127,.3);font-weight:900}
 .install-help-overlay{position:fixed;inset:0;z-index:12000;display:none;place-items:center;padding:18px;background:#030611eb;backdrop-filter:blur(10px)}
 .install-help-overlay.open{display:grid}.install-help-overlay>section{position:relative;width:min(540px,100%);padding:27px;border:2px solid #70dfba;border-radius:24px;background:radial-gradient(circle at 100% 0,#6555bd55,transparent 35%),linear-gradient(145deg,#172841,#0f1729);box-shadow:0 30px 90px #000c}.install-help-overlay>section>span{color:#79ecc3;font-size:10px;font-weight:950;letter-spacing:.13em}.install-help-overlay h2{margin:6px 50px 8px 0}.install-help-overlay p,.install-help-overlay li{color:#c9d4e8;line-height:1.55}.install-help-overlay ol{padding-left:22px}.install-help-overlay li+li{margin-top:7px}.install-help-overlay section>div{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:18px}.install-help-overlay a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 15px;border:1px solid #73e7bd;border-radius:12px;background:linear-gradient(135deg,#208f72,#277fd2);color:#fff;font-weight:900;text-decoration:none}.install-help-close{position:absolute;right:15px;top:15px;width:44px;height:44px;padding:0;font-size:25px}.install-help-done{min-height:46px}
 .profile-list{display:grid;gap:8px;margin:12px 0 2px;max-height:170px;overflow:auto}
@@ -264,6 +275,7 @@ body.stats-open{overflow:hidden}
 .developer-only{position:relative;z-index:3;min-height:44px;touch-action:manipulation;pointer-events:auto;cursor:pointer;background:linear-gradient(135deg,#7857d9,#b989ff);border-color:#c9b8ff}
 .account-chip #developerBtn{isolation:isolate;-webkit-tap-highlight-color:rgba(201,184,255,.34)}
 @media(max-width:700px){
+  .auth-install-entry{align-items:stretch;flex-direction:column}.auth-install-entry .install-app-btn{width:100%}
   .app>header>.account-chip{position:relative;z-index:20;display:flex;flex-wrap:wrap;overflow:visible;overscroll-behavior:auto;-webkit-overflow-scrolling:auto;touch-action:pan-y}
   .app>header>.account-chip #developerBtn{z-index:24;flex:1 1 110px;min-width:110px;min-height:48px;pointer-events:auto!important}
 }
@@ -542,6 +554,21 @@ body[data-mine="1"] .cave-scene{background:radial-gradient(ellipse,#55295f,#2417
 .mine[data-mine-wallpaper="aurora-cavern"] .cave-arch{border-color:#5a503a}.mine[data-mine-wallpaper="aurora-cavern"] .cave-depth{background:radial-gradient(ellipse at 50% 62%,#79612f,#2d1e08 64%)}.mine[data-mine-wallpaper="aurora-cavern"] .cave-crystal{filter:hue-rotate(185deg) saturate(1.8) drop-shadow(0 0 11px #ffd96c)}
 .mine[data-mine-wallpaper="galaxy-depths"] .cave-scene{background:radial-gradient(ellipse at 50% 48%,#9b617b 0 9%,#643a55 35%,#210b19 72%)}
 .mine[data-mine-wallpaper="galaxy-depths"] .cave-arch{border-color:#604552}.mine[data-mine-wallpaper="galaxy-depths"] .cave-depth{background:radial-gradient(ellipse at 50% 62%,#89536c,#311124 64%)}.mine[data-mine-wallpaper="galaxy-depths"] .cave-crystal{filter:hue-rotate(300deg) saturate(1.25) drop-shadow(0 0 11px #ff9fc7)}
+/* v6.4.156 — twelve original illustrated mine wallpapers */
+.mine[data-mine-wallpaper^="art-"] .cave-scene{background:linear-gradient(180deg,#02071118,#0207113d),var(--mine-wallpaper-image) center/cover no-repeat}
+.mine[data-mine-wallpaper^="art-"] .cave-scene>i{display:none}
+.mine[data-mine-wallpaper="art-azure-passage"]{--mine-wallpaper-image:url(wallpaper-mine-azure-passage-v1.png)}
+.mine[data-mine-wallpaper="art-amethyst-dream"]{--mine-wallpaper-image:url(wallpaper-mine-amethyst-dream-v1.png)}
+.mine[data-mine-wallpaper="art-moonlit-ice"]{--mine-wallpaper-image:url(wallpaper-mine-moonlit-ice-v1.png)}
+.mine[data-mine-wallpaper="art-sapphire-river"]{--mine-wallpaper-image:url(wallpaper-mine-sapphire-river-v1.png)}
+.mine[data-mine-wallpaper="art-emerald-moss"]{--mine-wallpaper-image:url(wallpaper-mine-emerald-moss-v1.png)}
+.mine[data-mine-wallpaper="art-rose-quartz"]{--mine-wallpaper-image:url(wallpaper-mine-rose-quartz-v1.png)}
+.mine[data-mine-wallpaper="art-golden-topaz"]{--mine-wallpaper-image:url(wallpaper-mine-golden-topaz-v1.png)}
+.mine[data-mine-wallpaper="art-ruby-forge"]{--mine-wallpaper-image:url(wallpaper-mine-ruby-forge-v1.png)}
+.mine[data-mine-wallpaper="art-aurora-prism"]{--mine-wallpaper-image:url(wallpaper-mine-aurora-prism-v1.png)}
+.mine[data-mine-wallpaper="art-celestial-galaxy"]{--mine-wallpaper-image:url(wallpaper-mine-celestial-galaxy-v1.png)}
+.mine[data-mine-wallpaper="art-opal-hollow"]{--mine-wallpaper-image:url(wallpaper-mine-opal-hollow-v1.png)}
+.mine[data-mine-wallpaper="art-ancient-lantern"]{--mine-wallpaper-image:url(wallpaper-mine-ancient-lantern-v1.png)}
 @media(max-width:600px){.cave-arch{border-width:34px;border-bottom-width:20px}.theme-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mine{min-height:410px}}
 
 /* v6.4.106 consolidated Tier 1 Mine Cosmetics hub */
@@ -563,6 +590,13 @@ body[data-wallpaper="aurora"]{background:radial-gradient(ellipse at 18% -10%,#5d
 body[data-wallpaper="ocean"]{background:radial-gradient(circle at 13% 22%,#d9ffff77 0 8px,transparent 9px),radial-gradient(circle at 70% 18%,#fff8 0 4px,transparent 5px),radial-gradient(circle at 84% 62%,#c7ffff66 0 12px,transparent 13px),radial-gradient(circle at 28% 78%,#fff5 0 6px,transparent 7px),linear-gradient(180deg,#098bc9,#075385 50%,#062d58)}
 body[data-wallpaper="confetti"]{background:linear-gradient(125deg,transparent 78%,#ffdc68 79% 85%,transparent 86%) 0 0/75px 75px,linear-gradient(35deg,transparent 78%,#62f1cc 79% 85%,transparent 86%) 20px 12px/90px 90px,radial-gradient(circle,#ff75a8 0 5px,transparent 6px) 40px 30px/105px 105px,linear-gradient(135deg,#5133a0,#bd3f88)}
 body[data-wallpaper="emoji"]{background:linear-gradient(135deg,#fb6fab,#7053df 55%,#287dc1)}body[data-wallpaper="emoji"]:before{content:"😀  ⭐  💎  🔥  🌸  🎉  😺  🌈  🥳  ✨  💖  ⛏️  😀  ⭐  💎  🔥  🌸  🎉  😺  🌈  🥳  ✨  💖  ⛏️  😀  ⭐  💎  🔥  🌸  🎉  😺  🌈  🥳  ✨  💖  ⛏️";position:fixed;inset:-20px;z-index:0;font-size:42px;line-height:2.2;word-spacing:24px;opacity:.22;transform:rotate(-8deg);pointer-events:none;overflow:hidden}body[data-wallpaper="emoji"] .app{position:relative;z-index:1}
+body[data-wallpaper="moonstone-cathedral"],body[data-wallpaper="amethyst-crown"],body[data-wallpaper="emerald-geode"],body[data-wallpaper="sapphire-ice"],body[data-wallpaper="sunstone-ember"]{background-repeat:no-repeat;background-position:center center;background-size:cover;background-attachment:fixed}
+body[data-wallpaper="moonstone-cathedral"]{background-color:#17120e;background-image:linear-gradient(180deg,#04070d24,#04070d7a),url(wallpaper-moonstone-cathedral-v1.png)}
+body[data-wallpaper="amethyst-crown"]{background-color:#11081d;background-image:linear-gradient(180deg,#05030a24,#05030a78),url(wallpaper-amethyst-crown-v1.png)}
+body[data-wallpaper="emerald-geode"]{background-color:#06140e;background-image:linear-gradient(180deg,#020a0724,#020a0778),url(wallpaper-emerald-geode-v1.png)}
+body[data-wallpaper="sapphire-ice"]{background-color:#06172a;background-image:linear-gradient(180deg,#02081424,#02081470),url(wallpaper-sapphire-ice-v1.png)}
+body[data-wallpaper="sunstone-ember"]{background-color:#170a03;background-image:linear-gradient(180deg,#09030024,#09030078),url(wallpaper-sunstone-ember-v1.png)}
+@media(max-width:800px){body[data-wallpaper="moonstone-cathedral"],body[data-wallpaper="amethyst-crown"],body[data-wallpaper="emerald-geode"],body[data-wallpaper="sapphire-ice"],body[data-wallpaper="sunstone-ember"]{background-attachment:scroll}}
 
 /* v4.4 anime-inspired, fully customizable miner */
 .miner-avatar{width:190px;height:270px;--outline:#171827;--hair-light:color-mix(in srgb,var(--hair) 62%,white);--shirt-dark:color-mix(in srgb,var(--shirt) 72%,black)}

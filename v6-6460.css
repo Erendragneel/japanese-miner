@@ -241,6 +241,9 @@ button,.panel,.v5-card,.cosmetic-card{transition:transform .16s ease,border-colo
 /* v6.3.0 character-native wardrobe: real transparent images, no tint effects. */
 .native-wardrobe-layers{position:absolute;inset:0;z-index:3;overflow:hidden;pointer-events:none}
 .native-cosmetic-layer{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:contain;object-position:center bottom;mix-blend-mode:normal;opacity:1}
+/* Optional wardrobe slots stay in the DOM so asynchronously loaded artwork can
+   populate them, but an image without a source must not draw a broken-image box. */
+.native-cosmetic-layer:not([src]),.native-cosmetic-layer[src=""]{display:none!important}
 .native-wardrobe-layers .rendered-accessory{position:absolute;display:block;mix-blend-mode:normal!important;opacity:1!important}
 .preview-avatar[data-preview-key="hairStyle"] .native-wardrobe-layers{display:none!important}
 .preview-avatar[data-preview-key="hairColor"] .native-cosmetic-layer:not(.native-hair-layer),

@@ -1,58 +1,5 @@
-create table if not exists public.parent_teacher_links (
-  id uuid primary key default gen_random_uuid(),
-  adult_user_id uuid not null references auth.users(id) on delete cascade,
-  student_user_id uuid not null references auth.users(id) on delete cascade,
-  status text not null default 'pending' check (status in ('pending', 'approved', 'declined')),
-  requested_at timestamptz not null default now(),
-  responded_at timestamptz,
-  updated_at timestamptz not null default now(),
-  constraint parent_teacher_links_different_accounts check (adult_user_id <> student_user_id),
-  constraint parent_teacher_links_unique_pair unique (adult_user_id, student_user_id)
-);
-
-alter table public.parent_teacher_links enable row level security;
-revoke all on table public.parent_teacher_links from public, anon, authenticated;
-
-create or replace function public.request_student_link(p_student_email text)
-returns table (
-  id uuid,
-  adult_user_id uuid,
-  student_user_id uuid,
-  status text,
-  requested_at timestamptz,
-  responded_at timestamptz
-)
-language plpgsql
-security definer
-set search_path = public, auth
-as $$
-declare
-  v_adult_id uuid := (select auth.uid());
-  v_student_id uuid;
-  v_link public.parent_teacher_links%rowtype;
-begin
-  if v_adult_id is null then raise exception 'Authentication required' using errcode = '42501'; end if;
-  select users.id into v_student_id
-  from auth.users as users
-  where lower(users.email) = lower(trim(coalesce(p_student_email, '')))
-  limit 1;
-  if v_student_id is null then raise exception 'No learner account matches that exact email address' using errcode = 'P0002'; end if;
-  if v_student_id = v_adult_id then raise exception 'Use a different learner account' using errcode = '22023'; end if;
-
-  insert into public.parent_teacher_links as links
-    (adult_user_id, student_user_id, status, requested_at, responded_at, updated_at)
-  values (v_adult_id, v_student_id, 'pending', now(), null, now())
-  on conflict (adult_user_id, student_user_id) do update set
-    status = case when links.status = 'declined' then 'pending' else links.status end,
-    requested_at = case when links.status = 'declined' then now() else links.requested_at end,
-    responded_at = case when links.status = 'declined' then null else links.responded_at end,
-    updated_at = now()
-  returning * into v_link;
-
-  return query select v_link.id, v_link.adult_user_id, v_link.student_user_id,
-    v_link.status, v_link.requested_at, v_link.responded_at;
-end;
-$$;
+-- Refresh the learner-link RPCs and expose only the additional whitelisted
+-- gradebook fields needed by the read-only Parent/Teacher Center.
 
 create or replace function public.list_parent_teacher_links()
 returns table (
@@ -86,45 +33,6 @@ as $$
   order by links.updated_at desc;
 $$;
 
-create or replace function public.respond_student_link(p_link_id uuid, p_approve boolean)
-returns table (id uuid, status text, responded_at timestamptz)
-language plpgsql
-security definer
-set search_path = public, auth
-as $$
-declare
-  v_link public.parent_teacher_links%rowtype;
-begin
-  update public.parent_teacher_links as links
-  set status = case when p_approve is true then 'approved' else 'declined' end,
-      responded_at = now(), updated_at = now()
-  where links.id = p_link_id
-    and links.student_user_id = (select auth.uid())
-    and links.status = 'pending'
-  returning * into v_link;
-  if v_link.id is null then raise exception 'Pending learner request not found' using errcode = 'P0002'; end if;
-  return query select v_link.id, v_link.status, v_link.responded_at;
-end;
-$$;
-
-create or replace function public.remove_parent_teacher_link(p_link_id uuid)
-returns table (id uuid, removed boolean)
-language plpgsql
-security definer
-set search_path = public, auth
-as $$
-declare
-  v_id uuid;
-begin
-  delete from public.parent_teacher_links as links
-  where links.id = p_link_id
-    and (select auth.uid()) in (links.adult_user_id, links.student_user_id)
-  returning links.id into v_id;
-  if v_id is null then raise exception 'Learner link not found' using errcode = 'P0002'; end if;
-  return query select v_id, true;
-end;
-$$;
-
 create or replace function public.load_linked_learner_progress(p_student_user_id uuid)
 returns table (
   user_id uuid,
@@ -146,6 +54,7 @@ declare
   v_safe_jlpt_reviews jsonb := '{}'::jsonb;
   v_safe_placements jsonb := '{}'::jsonb;
   v_safe_progress jsonb := '{}'::jsonb;
+  v_safe_assessments jsonb := '[]'::jsonb;
   v_user_id uuid;
   v_display_name text;
   v_revision bigint := 0;
@@ -180,6 +89,17 @@ begin
   into v_safe_jlpt_reviews
   from jsonb_each(case when jsonb_typeof(v_state -> 'jlptReviewCheckpoints') = 'object' then v_state -> 'jlptReviewCheckpoints' else '{}'::jsonb end) as item;
 
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', item.value -> 'id', 'group', item.value -> 'group', 'type', item.value -> 'type',
+    'course', item.value -> 'course', 'level', item.value -> 'level', 'section', item.value -> 'section',
+    'lessons', item.value -> 'lessons', 'difficulty', item.value -> 'difficulty', 'score', item.value -> 'score',
+    'correct', item.value -> 'correct', 'total', item.value -> 'total', 'answered', item.value -> 'answered',
+    'passed', item.value -> 'passed', 'completedAt', item.value -> 'completedAt',
+    'durationMs', item.value -> 'durationMs', 'finishReason', item.value -> 'finishReason'
+  )), '[]'::jsonb)
+  into v_safe_assessments
+  from jsonb_array_elements(case when jsonb_typeof(v_state #> '{learningReport,assessmentAttempts}') = 'array' then v_state #> '{learningReport,assessmentAttempts}' else '[]'::jsonb end) as item;
+
   select coalesce(jsonb_object_agg(item.key, jsonb_build_object(
     'score', item.value -> 'score', 'total', item.value -> 'total', 'completedAt', item.value -> 'completedAt',
     'elapsedTimeMs', item.value -> 'elapsedTimeMs', 'fastestTimeMs', item.value -> 'fastestTimeMs',
@@ -209,10 +129,12 @@ begin
       'placementUnlockedThrough', v_state -> 'placementUnlockedThrough', 'kanaStats', v_state -> 'kanaStats',
       'questionStats', v_state -> 'questionStats', 'n5AcademyMastery', v_state -> 'n5AcademyMastery',
       'kanaFamilyLevel', v_state -> 'kanaFamilyLevel', 'jlptVocabularyLevel', v_state -> 'jlptVocabularyLevel',
-      'jlptSectionLevel', v_state -> 'jlptSectionLevel', 'learningReport', v_state -> 'learningReport',
+      'jlptSectionLevel', v_state -> 'jlptSectionLevel',
+      'learningReport', jsonb_build_object('assessmentAttempts', v_safe_assessments),
       'placementResult', jsonb_build_object(
-        'overall', v_state #> '{placementResult,overall}', 'score', v_state #> '{placementResult,score}', 'total', v_state #> '{placementResult,total}',
-        'completedAt', v_state #> '{placementResult,completedAt}', 'finishedAt', v_state #> '{placementResult,finishedAt}',
+        'overall', v_state #> '{placementResult,overall}', 'score', v_state #> '{placementResult,score}',
+        'total', v_state #> '{placementResult,total}', 'completedAt', v_state #> '{placementResult,completedAt}',
+        'finishedAt', v_state #> '{placementResult,finishedAt}', 'date', v_state #> '{placementResult,date}',
         'elapsedTimeMs', v_state #> '{placementResult,elapsedTimeMs}', 'fastestTimeMs', v_state #> '{placementResult,fastestTimeMs}'
       ),
       'jlptReviewCheckpoints', v_safe_jlpt_reviews,
@@ -226,17 +148,11 @@ begin
 end;
 $$;
 
-revoke all on function public.request_student_link(text) from public, anon;
 revoke all on function public.list_parent_teacher_links() from public, anon;
-revoke all on function public.respond_student_link(uuid, boolean) from public, anon;
-revoke all on function public.remove_parent_teacher_link(uuid) from public, anon;
 revoke all on function public.load_linked_learner_progress(uuid) from public, anon;
-
-grant execute on function public.request_student_link(text) to authenticated;
 grant execute on function public.list_parent_teacher_links() to authenticated;
-grant execute on function public.respond_student_link(uuid, boolean) to authenticated;
-grant execute on function public.remove_parent_teacher_link(uuid) to authenticated;
 grant execute on function public.load_linked_learner_progress(uuid) to authenticated;
 
-comment on table public.parent_teacher_links is
-  'Learner-approved read-only links. Progress is exposed only through a whitelisted authenticated RPC.';
+-- PostgREST normally reloads automatically after a migration; this explicit
+-- notification repairs the stale schema-cache condition shown by older builds.
+notify pgrst, 'reload schema';

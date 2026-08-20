@@ -19,9 +19,8 @@
   function syncInstallButtons(){
     const state=installState();
     document.querySelectorAll('[data-language-miner-install]').forEach(button=>{
-      const header=button.id==='headerInstallBtn';button.textContent=state.installed?'✓ App Installed':header?'💻 Install':'📲 Install App';
+      button.textContent=state.installed?'✓ App Installed':'📲 Install App';
       button.disabled=state.installed;
-      if(header)button.hidden=state.installed;
       button.dataset.installReady=String(state.ready);
       button.dataset.installState=state.installed?'installed':state.ready?'ready':state.appleMobile?'ios-help':state.secure?'browser-help':'secure-site-required';
       button.title=state.installed?'Language Miner is already installed':state.ready?'Install Language Miner on this device':state.appleMobile?'Show iPhone or iPad installation steps':'Show installation steps for this browser';

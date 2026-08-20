@@ -7,7 +7,8 @@
   const isInstalled=()=>window.matchMedia?.('(display-mode: standalone)')?.matches||window.navigator.standalone===true;
   const isAppleMobile=()=>/iphone|ipad|ipod/i.test(window.navigator.userAgent)||window.navigator.platform==='MacIntel'&&window.navigator.maxTouchPoints>1;
   const publicUrl=()=>String(window.LANGUAGE_MINER_PUBLIC_URL||document.querySelector('meta[name="language-miner-share-url"]')?.content||'https://erendragneel.github.io/language-miner/').trim();
-  function installState(){return {installed:isInstalled(),ready:!!installPrompt,appleMobile:isAppleMobile(),secure:window.isSecureContext!==false,publicUrl:publicUrl()};}
+  const isLocalPreview=()=>/^(localhost|127(?:\.\d+){3}|\[::1\])$/i.test(location.hostname);
+  function installState(){return {installed:isInstalled(),ready:!!installPrompt&&!isLocalPreview(),appleMobile:isAppleMobile(),secure:window.isSecureContext!==false,localPreview:isLocalPreview(),publicUrl:publicUrl()};}
   function installStatusText(state=installState()){
     if(state.installed)return 'Language Miner is installed from the current website.';
     if(state.ready)return 'Language Miner is ready to install from '+state.publicUrl;
@@ -18,8 +19,9 @@
   function syncInstallButtons(){
     const state=installState();
     document.querySelectorAll('[data-language-miner-install]').forEach(button=>{
-      button.textContent=state.installed?'✓ App Installed':'📲 Install App';
+      const header=button.id==='headerInstallBtn';button.textContent=state.installed?'✓ App Installed':header?'💻 Install':'📲 Install App';
       button.disabled=state.installed;
+      if(header)button.hidden=state.installed;
       button.dataset.installReady=String(state.ready);
       button.dataset.installState=state.installed?'installed':state.ready?'ready':state.appleMobile?'ios-help':state.secure?'browser-help':'secure-site-required';
       button.title=state.installed?'Language Miner is already installed':state.ready?'Install Language Miner on this device':state.appleMobile?'Show iPhone or iPad installation steps':'Show installation steps for this browser';
@@ -34,11 +36,18 @@
       :'To install Language Miner: open '+state.publicUrl+' in Chrome, Edge, or Samsung Internet. Open the browser menu, choose Install app or Add to Home screen, then confirm Install.';
     const panel=document.getElementById('v6InstallInstructions');
     if(panel){panel.hidden=false;const copy=panel.querySelector('p'),link=panel.querySelector('a');if(copy)copy.textContent=instructions;if(link)link.href=state.publicUrl;panel.scrollIntoView?.({behavior:'smooth',block:'nearest'});}
+    let help=document.getElementById('languageMinerInstallHelp');
+    if(!help){
+      help=document.createElement('div');help.id='languageMinerInstallHelp';help.className='install-help-overlay';help.setAttribute('aria-hidden','true');help.innerHTML='<section role="dialog" aria-modal="true" aria-labelledby="installHelpTitle"><button class="install-help-close" type="button" aria-label="Close">×</button><span>DESKTOP &amp; HOME-SCREEN APP</span><h2 id="installHelpTitle">💻 Install Language Miner</h2><p class="install-help-copy"></p><ol><li>Open the official Language Miner website.</li><li>In Chrome or Edge, choose <strong>Install app</strong> from the address bar or browser menu.</li><li>Confirm <strong>Install</strong>. Language Miner will get its own desktop and Start menu icon.</li></ol><div><a class="install-help-open" target="_blank" rel="noopener">Open official website</a><button class="install-help-done" type="button">Done</button></div></section>';
+      document.body.appendChild(help);const close=()=>{help.classList.remove('open');help.setAttribute('aria-hidden','true');};help.querySelector('.install-help-close').onclick=close;help.querySelector('.install-help-done').onclick=close;help.addEventListener('click',event=>{if(event.target===help)close();});
+    }
+    help.querySelector('.install-help-copy').textContent=state.localPreview?'This preview is running only on this computer. Open the official secure website first so the installed app continues working after the preview closes.':instructions;
+    help.querySelector('.install-help-open').href=state.publicUrl;help.classList.add('open');help.setAttribute('aria-hidden','false');
     message(instructions,true);
   }
   async function requestInstall(){
     const state=installState();if(state.installed){syncInstallButtons();return {outcome:'installed'};}
-    if(!installPrompt){showInstallInstructions();syncInstallButtons();return {outcome:'instructions'};}
+    if(state.localPreview||!installPrompt){showInstallInstructions();syncInstallButtons();return {outcome:'instructions'};}
     const prompt=installPrompt;installPrompt=null;
     try{
       await prompt.prompt();

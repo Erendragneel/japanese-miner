@@ -69,16 +69,15 @@
   clip-path:inset(0 0 23% 0);
 }
 
-/* Holiday sets are complete wardrobe layers. Preserve the player's selected
-   face and hair from the base portrait while replacing everything below the
-   neckline with the seasonal render. */
+/* Holiday sets are complete character renders. Hide every normal portrait and
+   wardrobe layer beneath them so heads, arms, hands, shoes, and accessories
+   cannot overlap the finished seasonal outfit. The saved normal character is
+   unchanged and returns as soon as the set is unequipped. */
 .miner-avatar[data-holiday-special]:not([data-holiday-special="none"])>.avatar-render{
-  clip-path:inset(0 0 80.85% 0);
+  display:none!important;
+  clip-path:none!important;
 }
-.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .native-shirt-layer,
-.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .native-pants-layer,
-.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .native-gloves-layer,
-.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .native-shoes-layer,
+.miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .native-cosmetic-layer:not(.native-holiday-layer),
 .miner-avatar[data-holiday-special]:not([data-holiday-special="none"]) .portrait-accessory-images{
   display:none!important;
 }

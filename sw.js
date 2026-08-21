@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.157-language-aware-polish-final5';
+const CACHE_NAME='language-miner-v6.4.159-patreon-feature-videos';
 const APP_SHELL=[
   './',
   './index.html',
@@ -14,6 +14,7 @@ const APP_SHELL=[
   './character-animations.css',
   './arcade-expansion.css',
   './patreon-heart-videos.css',
+  './patreon-heart-video-media.css',
   './legal-compliance.css',
   './legal-policy.css',
   './privacy.html',
@@ -32,6 +33,9 @@ const APP_SHELL=[
   './v6.js',
   './arcade-games.js',
   './patreon-heart-videos.js',
+  './patreon-tier-1-feature-reel.mp4',
+  './patreon-tier-2-feature-reel.mp4',
+  './patreon-tier-3-feature-reel.mp4',
   './recovery-6460.js',
   './patreon-config.js',
   './cloud-auth.js',
@@ -46,10 +50,10 @@ const APP_SHELL=[
   './character-animations.js',
   './manifest.webmanifest',
   './anime-miner-v1.png',
-  './avatar-holiday-lantern-yukata-layer-v1.png',
-  './avatar-holiday-cozy-christmas-layer-v1.png',
-  './avatar-holiday-santa-celebration-layer-v1.png',
-  './avatar-holiday-summer-matsuri-layer-v1.png',
+  './avatar-holiday-lantern-yukata-v1.png',
+  './avatar-holiday-cozy-christmas-v1.png',
+  './avatar-holiday-santa-celebration-v1.png',
+  './avatar-holiday-summer-matsuri-v1.png',
   './settlement-village-map-v1.png',
   './language-miner-logo.png',
   './wallpaper-moonstone-cathedral-v1.png',

@@ -1,4 +1,4 @@
-// Language Miner v6.4.153 - optional in-game Patreon tier videos can restore one missing heart every six hours.
+// Language Miner v6.4.159 - real 24-second Patreon feature reels can restore one missing heart every six hours.
 (() => {
   'use strict';
 
@@ -8,6 +8,7 @@
       name: 'Supporter',
       title: 'Supporter Spotlight',
       image: 'patreon-tier-1-supporter.png',
+      video: 'patreon-tier-1-feature-reel.mp4',
       accent: '#70f2c8',
       slides: [
         ['TIER 1 · SUPPORTER', 'Help new lessons and accessibility improvements reach more learners.'],
@@ -20,6 +21,7 @@
       name: 'Companion Keeper',
       title: 'Companion Keeper Spotlight',
       image: 'patreon-tier-2-companion-keeper.png',
+      video: 'patreon-tier-2-feature-reel.mp4',
       accent: '#8bb8ff',
       slides: [
         ['TIER 2 · COMPANION KEEPER', 'Meet the companions that celebrate practice, progress, and persistence.'],
@@ -32,6 +34,7 @@
       name: 'Settlement Founder',
       title: 'Settlement Founder Spotlight',
       image: 'patreon-tier-3-settlement-founder.png',
+      video: 'patreon-tier-3-feature-reel.mp4',
       accent: '#d89cff',
       slides: [
         ['TIER 3 · SETTLEMENT FOUNDER', 'Help expand settlements, arcade activities, and larger learning adventures.'],
@@ -117,6 +120,8 @@
   function stopWatching(cancelSession = true){
     if(watchTimer) clearInterval(watchTimer);
     watchTimer = null;
+    const video = document.getElementById('patreonTierVideo');
+    if(video) video.pause();
     if(cancelSession && activeSession?.sessionId) api()?.cancel?.(activeSession.sessionId);
     activeSession = null;
     watchedMs = 0;
@@ -139,14 +144,14 @@
   function videoMarkup(tier, durationMs){
     return `<section class="patreon-tier-video" style="--tier-accent:${tier.accent}">
       <div class="patreon-tier-video-frame">
-        <img src="${tier.image}" alt="" aria-hidden="true">
-        <div class="patreon-tier-video-sheen"></div>
-        <div class="patreon-tier-video-caption" aria-live="polite"><span id="patreonVideoKicker"></span><strong id="patreonVideoCaption"></strong></div>
-        <div class="patreon-tier-video-brand"><b>P</b><span>LANGUAGE MINER × PATREON</span></div>
+        <video id="patreonTierVideo" poster="${tier.image}" preload="auto" playsinline autoplay muted disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback" aria-label="${escapeHtml(tier.name)} Patreon tier feature video">
+          <source src="${tier.video}" type="video/mp4">
+          Your browser cannot play this Patreon feature video.
+        </video>
       </div>
       <div class="patreon-tier-video-progress" role="progressbar" aria-label="Video progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="patreonVideoProgress"></i></div>
       <div class="patreon-tier-video-meta"><strong>${escapeHtml(tier.title)}</strong><span id="patreonVideoTime">${Math.ceil(durationMs / 1000)} seconds remaining</span></div>
-      <p class="patreon-tier-video-note">Keep this video visible until it finishes. Closing it gives no reward.</p>
+      <p class="patreon-tier-video-note">Keep this 24-second video visible until it finishes. Tap the video to pause or resume. Closing it gives no reward.</p>
       <button id="patreonVideoCancel" type="button">Stop video · no reward</button>
     </section>`;
   }
@@ -192,19 +197,19 @@
 
   function tickVideo(tier){
     if(!activeSession) return;
-    const now = performance.now();
-    if(document.visibilityState === 'visible') watchedMs += Math.max(0, Math.min(250, now - lastTickAt));
-    lastTickAt = now;
-    const progress = Math.min(1, watchedMs / activeSession.durationMs);
+    const video = document.getElementById('patreonTierVideo');
+    if(!video) return;
+    if(document.visibilityState !== 'visible' && !video.paused) video.pause();
+    const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? video.duration * 1000 : 24000;
+    watchedMs = Math.min(durationMs, Math.max(0, Number(video.currentTime || 0) * 1000));
+    const progress = Math.min(1, watchedMs / durationMs);
     const progressElement = document.getElementById('patreonVideoProgress');
     const progressRoot = progressElement?.parentElement;
     if(progressElement) progressElement.style.width = `${progress * 100}%`;
     if(progressRoot) progressRoot.setAttribute('aria-valuenow', String(Math.round(progress * 100)));
-    const remaining = Math.max(0, Math.ceil((activeSession.durationMs - watchedMs) / 1000));
+    const remaining = Math.max(0, Math.ceil((durationMs - watchedMs) / 1000));
     const time = document.getElementById('patreonVideoTime');
     if(time) time.textContent = remaining ? `${remaining} second${remaining === 1 ? '' : 's'} remaining` : 'Completing reward…';
-    updateSlide(tier, progress);
-    if(progress >= 1) completeVideo(tier);
   }
 
   function startVideo(tierNumber){
@@ -219,6 +224,17 @@
     const content = document.getElementById('patreonHeartVideoContent');
     content.innerHTML = videoMarkup(tier, started.durationMs);
     content.querySelector('#patreonVideoCancel')?.addEventListener('click', closeOverlay);
+    const video = content.querySelector('#patreonTierVideo');
+    video?.addEventListener('click', () => video.paused ? video.play().catch(() => {}) : video.pause());
+    video?.addEventListener('ended', () => completeVideo(tier), {once:true});
+    video?.addEventListener('error', () => {
+      const note = content.querySelector('.patreon-tier-video-note');
+      if(note) note.textContent = 'The feature video could not load. Please close this window and try again; no reward has been used.';
+    });
+    video?.play().catch(() => {
+      const note = content.querySelector('.patreon-tier-video-note');
+      if(note) note.textContent = 'Tap the video to begin. The full 24 seconds must play before the heart is awarded.';
+    });
     tickVideo(tier);
     watchTimer = setInterval(() => tickVideo(tier), 100);
   }

@@ -1,7 +1,7 @@
 // Language Miner v6.0 â€” The Polish Update
 (()=>{
 'use strict';
-const VERSION='6.4.157-language-aware-polish-final5', SNAPSHOT_PREFIX='jm_v6_snapshots_', FEEDBACK_INBOX_KEY='jm_v6_admin_feedback_inbox', FEEDBACK_INBOX_LIMIT=200;
+const VERSION='6.4.159-patreon-feature-videos', SNAPSHOT_PREFIX='jm_v6_snapshots_', FEEDBACK_INBOX_KEY='jm_v6_admin_feedback_inbox', FEEDBACK_INBOX_LIMIT=200;
 let deferredInstallPrompt=null,installEventsBound=false,verifiedSupporterTier=0,verifiedSupporterEntitlement={tier:0,connected:false,source:'none'};
 const TOUR=[
  {section:'Getting started',icon:'â›ï¸',title:'Welcome to Language Miner',text:'Answer Japanese questions, build independently tracked practice mastery, collect scientific gemstones, and progress from Hiragana through JLPT N1-oriented practice.',tips:['Create or sign in to a player profile so every feature uses the same save.','Tap New Question or the mine rock to begin the selected course route.','Use the round menu button at the bottom-right whenever you need another game area.']},
@@ -332,7 +332,7 @@ function openPatreon(){
  if(box)box.innerHTML=`<section class="supporter-tier-list" aria-label="Patreon membership benefits">
   <article class="supporter-tier tier-one">
    <div class="supporter-tier-media"><img src="patreon-tier-1-supporter.png?v=6.4.126-parent-teacher-center" alt="Supporter tier: one dollar per month" width="1254" height="1254"></div>
-   <div class="supporter-tier-copy"><span>🟩 TIER 1 · SUPPORTER · $1 / MONTH</span><h3>Cosmetics and community</h3><p>Access character outfits, hair, hats, accessories, rock skins, mine backgrounds, pickaxe skins, full-page wallpapers, color themes, and achievement titles. Purchased cosmetics stay in the player's Bag. Community extras include the Discord role, behind-the-scenes posts, development updates, polls, and optional Supporter credits.</p></div>
+   <div class="supporter-tier-copy"><span>🟩 TIER 1 · SUPPORTER · $1 / MONTH</span><h3>Cosmetics, animated poses, and community</h3><p>Access the linked character pose pack, character outfits, hair, hats, accessories, rock skins, mine backgrounds, pickaxe skins, full-page wallpapers, color themes, and achievement titles. Poses automatically react to mining, answers, celebrations, lessons, arcade play, and settlement work. Purchased cosmetics stay in the player's Bag. Community extras include the Discord role, behind-the-scenes posts, development updates, polls, and optional Supporter credits.</p></div>
   </article>
   <article class="supporter-tier tier-two">
    <div class="supporter-tier-media"><img src="patreon-tier-2-companion-keeper.png?v=6.4.126-parent-teacher-center" alt="Companion Keeper tier: three dollars per month" width="1254" height="1254"></div>

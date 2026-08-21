@@ -1,4 +1,22 @@
-# Language Miner v6.4.157
+# Language Miner v6.4.159
+
+## v6.4.159 real Patreon feature videos
+
+- Replaced the three animated Patreon poster slides with three real MP4 feature reels captured from the live admin build.
+- Every Supporter, Companion Keeper, and Settlement Founder video is exactly 24 seconds long and clearly labels the tier's active in-game benefits.
+- Tier 1 demonstrates the animated miner, character customization, and Mine Cosmetics; Tier 2 demonstrates the eleven-companion collection, wardrobes, and active bonuses; Tier 3 demonstrates the settlement map, permanent upgrades, Study Arcade library, and Memory Mine in play.
+- The heart reward now waits for the real video to finish, pauses if the game tab becomes hidden, prevents seeking, and retains all missing-heart, player-profile, and six-hour cooldown checks.
+- Added offline caching and responsive playback for all three feature reels.
+
+## v6.4.158 character-aware writing and assessment-safe animations
+
+- Writing Practice now changes its numbered guide for the selected course character instead of showing the same three arrows for every character; the opening Kanji lesson includes distinct, ordered guides for 人, 日, 月, 火, 水, 木, 金, and 土.
+- The lesson-partner decorator is now idempotent, removes stale duplicates, and never inserts a character card into an active review quiz, placement assessment, Perfect Gate, boss, or timed test.
+- Added a CSS assessment safety guard so interactive character actors, the study-guide dock, and the floating menu cannot cover answer buttons, questions, timers, or assessment results even while the page is re-rendering; every assessment retains its own visible Quit control.
+- Enlarged the mine character across phone, tablet, and desktop layouts while preserving its lower-center position beneath the challenge copy.
+- Moved the mine pickaxe out of its floating circle and into the character's hand, with the mining swing anchored at the grip.
+- Patreon Tier 1 and higher now unlock a linked character pose pack for ready, mining, victory, retry, celebration, wave, study, arcade, and settlement animation states.
+- Holiday Specials now render as one complete replacement outfit; the normal portrait, head, arms, hands, footwear, accessories, and recolor layers stay hidden underneath and return unchanged when the outfit is unequipped.
 
 ## v6.4.157 language-aware polish and fair cosmetic prices
 

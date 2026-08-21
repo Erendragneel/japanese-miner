@@ -1,4 +1,4 @@
-// Functional multilingual entry flow layered onto Language Miner v6.4.94.
+// Language Miner v6.4.169 multilingual lessons with clue-safe native pronunciation.
 (()=>{
   'use strict';
   const LANGUAGES={
@@ -109,7 +109,7 @@
     return source.split('|').map(entry=>{const [symbol,name,spoken]=entry.split('~');return {symbol,name,spoken:spoken||name||symbol};});
   }
   const ALPHABET_SYSTEMS={
-    en:{name:'English Alphabet',summary:'26 letters · A–Z',units:alphabetUnits('A~ay|B~bee|C~cee|D~dee|E~ee|F~ef|G~gee|H~aitch|I~eye|J~jay|K~kay|L~el|M~em|N~en|O~oh|P~pee|Q~cue|R~ar|S~ess|T~tee|U~you|V~vee|W~double-u|X~ex|Y~why|Z~zee')},
+    en:{name:'English Alphabet',summary:'26 letters · A–Z',units:alphabetUnits('A~ay~A|B~bee~B|C~cee~C|D~dee~D|E~ee~E|F~ef~F|G~gee~G|H~aitch~H|I~eye~I|J~jay~J|K~kay~K|L~el~L|M~em~M|N~en~N|O~oh~O|P~pee~P|Q~cue~Q|R~ar~R|S~ess~S|T~tee~T|U~you~U|V~vee~V|W~double-u~W|X~ex~X|Y~why~Y|Z~zee~Z')},
     es:{name:'Spanish Alphabet',summary:'27 letters · includes Ñ',units:alphabetUnits('A~a|B~be|C~ce|D~de|E~e|F~efe|G~ge|H~hache|I~i|J~jota|K~ka|L~ele|M~eme|N~ene|Ñ~eñe|O~o|P~pe|Q~cu|R~erre|S~ese|T~te|U~u|V~uve|W~uve doble|X~equis|Y~ye|Z~zeta')},
     ru:{name:'Russian Cyrillic Alphabet',summary:'33 Cyrillic letters',units:alphabetUnits('А~а|Б~бэ|В~вэ|Г~гэ|Д~дэ|Е~е|Ё~ё|Ж~жэ|З~зэ|И~и|Й~и краткое|К~ка|Л~эл|М~эм|Н~эн|О~о|П~пэ|Р~эр|С~эс|Т~тэ|У~у|Ф~эф|Х~ха|Ц~цэ|Ч~че|Ш~ша|Щ~ща|Ъ~твёрдый знак|Ы~ы|Ь~мягкий знак|Э~э|Ю~ю|Я~я')},
     ko:{name:'Korean Hangul Alphabet',summary:'14 consonants · 10 vowels',units:alphabetUnits('ㄱ~기역|ㄴ~니은|ㄷ~디귿|ㄹ~리을|ㅁ~미음|ㅂ~비읍|ㅅ~시옷|ㅇ~이응|ㅈ~지읒|ㅊ~치읓|ㅋ~키읔|ㅌ~티읕|ㅍ~피읖|ㅎ~히읗|ㅏ~아|ㅑ~야|ㅓ~어|ㅕ~여|ㅗ~오|ㅛ~요|ㅜ~우|ㅠ~유|ㅡ~으|ㅣ~이')},
@@ -252,6 +252,25 @@
   Object.entries(ADDITIONAL_PACKS.alphabetPromptTemplates||{}).forEach(([languageId,template])=>{
     ALPHABET_PROMPTS[languageId]=(name,target)=>String(template).replace(/\{name\}/g,name).replace(/\{target\}/g,target);
   });
+  const ALPHABET_LISTEN_PROMPTS={
+    en:target=>`Listen, then choose the ${target} symbol you hear.`,
+    es:target=>`Escucha y elige el símbolo de ${target} que oyes.`,
+    ru:target=>`Прослушайте и выберите символ языка ${target}, который вы услышали.`,
+    ja:target=>`音声を聞いて、聞こえた${target}の文字を選んでください。`,
+    ko:target=>`소리를 듣고 들린 ${target} 문자를 선택하세요.`,
+    zh:target=>`请听发音，然后选择你听到的${target}字符。`,
+    it:target=>`Ascolta e scegli il simbolo ${target} che senti.`,
+    fr:target=>`Écoutez, puis choisissez le symbole en ${target} que vous entendez.`,
+    de:target=>`Höre zu und wähle das gehörte Zeichen auf ${target}.`,
+    pt:target=>`Ouça e escolha o símbolo em ${target} que você ouviu.`,
+    vi:target=>`Hãy nghe và chọn ký tự ${target} bạn nghe được.`,
+    th:target=>`ฟังแล้วเลือกสัญลักษณ์ ${target} ที่คุณได้ยิน`,
+    tr:target=>`Dinleyin ve duyduğunuz ${target} sembolünü seçin.`,
+    id:target=>`Dengarkan, lalu pilih simbol ${target} yang Anda dengar.`,
+    pl:target=>`Posłuchaj i wybierz usłyszany symbol języka ${target}.`,
+    el:target=>`Ακούστε και επιλέξτε το σύμβολο ${target} που ακούτε.`,
+    uk:target=>`Прослухайте та виберіть символ мови ${target}, який ви почули.`
+  };
   Object.assign(POST_GUIDE_TRANSLATIONS,ADDITIONAL_PACKS.guides||{});
   Object.assign(GUIDE_REVIEW_SKIP_TIPS,ADDITIONAL_PACKS.guideTips||{});
 
@@ -504,7 +523,7 @@
     const stage=document.getElementById('stageName'),quickStage=document.getElementById('quickStage');if(stage)stage.textContent=label;if(quickStage)quickStage.textContent=label;
   }
   function speakLanguage(text,languageId){
-    if(!text)return false;const language=(LANGUAGES[languageId]||LANGUAGES.en).voice;if(window.LanguageMinerSpeech?.speak)return window.LanguageMinerSpeech.speak(text,language);if(!('speechSynthesis'in window))return false;speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=language;utterance.rate=.95;speechSynthesis.speak(utterance);return true;
+    if(!text)return false;const language=(LANGUAGES[languageId]||LANGUAGES.en).voice;if(window.LanguageMinerSpeech?.pronounce)return window.LanguageMinerSpeech.pronounce(text,language);if(window.LanguageMinerSpeech?.speak)return window.LanguageMinerSpeech.speak(text,language);if(!('speechSynthesis'in window))return false;speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=language;utterance.rate=.95;speechSynthesis.speak(utterance);return true;
   }
   function speakTarget(text){speakLanguage(text,learning);}
   window.LanguageMinerCourseVoice=Object.freeze({test:()=>{speakTarget(FOUNDATION_CONCEPTS[0].forms[learning]);return true;},currentLanguage:()=>learning});
@@ -518,7 +537,7 @@
     const system=ALPHABET_SYSTEMS[learning],units=courseSectionLessons('alphabet',selectedCourseMine)[Number(lesson)]||system.units,previous=activePreviewQuestion?.unit?.symbol;
     const optionLimit=window.japaneseMinerQuizDifficulty?.()==='hard'?4:3,unit=shuffled(units.filter(item=>item.symbol!==previous))[0]||units[0],options=[unit.symbol];
     for(const item of shuffled(units.length>=optionLimit?units:system.units)){if(!options.includes(item.symbol))options.push(item.symbol);if(options.length===optionLimit)break;}
-    return {mode:'alphabet',sourceSection:'alphabet',item:unit,unit,answer:unit.symbol,label:unit.name,spoken:unit.spoken,options:shuffled(options)};
+    return {mode:'alphabet',sourceSection:'alphabet',promptKind:'audio-recognition',item:unit,unit,answer:unit.symbol,label:unit.name,spoken:unit.spoken,options:shuffled(options)};
   }
   function makeMeaningQuestion(section,lesson=selectedCourseLesson){
     const sourceSection=section==='boss'?shuffled(['vocabulary','grammar','sentences'])[0]:section;
@@ -642,6 +661,7 @@
   }
   function courseQuestionPrompt(question,target){
     if(question.prompt)return question.prompt;
+    if(question.promptKind==='audio-recognition')return (ALPHABET_LISTEN_PROMPTS[known]||ALPHABET_LISTEN_PROMPTS.en)(targetName());
     if(question.mode==='alphabet'||question.sourceSection==='alphabet')return (ALPHABET_PROMPTS[known]||ALPHABET_PROMPTS.en)(question.label,targetName());
     return (QUESTION_PROMPTS[known]||QUESTION_PROMPTS.en)(question.meaning,targetName());
   }
@@ -671,7 +691,7 @@
     const question=activePreviewQuestion,selected=button.dataset.lmCourseAnswer,correct=selected===question.answer,buttons=[...document.querySelectorAll('[data-lm-course-answer]')];
     if(question?.mode==='boss'){answerCourseBossQuestion(button);return;}
     buttons.forEach(item=>{item.disabled=true;if(item.dataset.lmCourseAnswer===question.answer)item.classList.add('correct');else if(item===button)item.classList.add('wrong');});const economy=recordCourseMastery(question,correct);
-    const feedback=document.getElementById('lmCourseFeedback');if(feedback){feedback.className=`lm-course-feedback ${correct?'correct':'wrong'}`;feedback.innerHTML=correct?`✓ ${escapeHtml(ui('correct'))} — <strong>${escapeHtml(question.answer)}</strong>${economy?.treasureAmount?`<span class="lm-inline-reward">🪙 +${Number(economy.treasureAmount).toLocaleString()} Nuggets</span>`:''}`:escapeHtml(ui('notQuite',{answer:question.answer}));}
+    const feedback=document.getElementById('lmCourseFeedback'),alphabetAnswer=question.promptKind==='audio-recognition'?`${question.answer} — ${question.label}`:question.answer;if(feedback){feedback.className=`lm-course-feedback ${correct?'correct':'wrong'}`;feedback.innerHTML=correct?`✓ ${escapeHtml(ui('correct'))} — <strong>${escapeHtml(alphabetAnswer)}</strong>${economy?.treasureAmount?`<span class="lm-inline-reward">🪙 +${Number(economy.treasureAmount).toLocaleString()} Nuggets</span>`:''}`:escapeHtml(ui('notQuite',{answer:alphabetAnswer}));}
     activePreviewQuestion=null;syncMultilingualQuickMineButton();speakTarget(question.spoken||question.answer);
   }
   function advanceCourseQuestion(){

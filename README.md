@@ -1,4 +1,13 @@
-# Language Miner v6.4.168
+# Language Miner v6.4.169
+
+## v6.4.169 native pronunciation and clue-safe alphabet questions
+
+- Reviewed the pronunciation routes for all 17 supported learning languages and corrected the 16 non-Japanese courses so every request uses its canonical language and regional locale, including American English, Spain Spanish, German, Mandarin, Brazilian Portuguese, and the eight additional language packs.
+- Left the Japanese learning course's existing pronunciation tuning and native question system unchanged, as requested.
+- Fixed voice selection so a preferred voice gender can no longer override the requested regional accent, and limited extreme pitch/rate styles to pronunciation-safe ranges.
+- Redesigned alphabet listening questions so they no longer print the phonetic answer in the prompt. They now ask the learner to listen and choose the symbol; the written letter name appears only after grading.
+- English alphabet audio now sends the actual letter symbol to the American English voice instead of a phonetic respelling such as “ef,” while the post-answer explanation still shows the letter name.
+- Applied the same native-language pronunciation service to regular lessons, Writing Practice, Echo Cavern, Crystal Memory Match, voice tests, and character speech.
 
 ## v6.4.168 tap the miner to swing
 

@@ -1,4 +1,4 @@
-// Language Miner v6.4.168 — staged overhead mining swing triggered from the rock or mine character.
+// Language Miner v6.4.169 — staged mining swing plus locale-safe character speech.
 (()=>{
 'use strict';
 
@@ -123,7 +123,7 @@ function play(name,options={}){
 function speakPhrase(text,language){
   const current=gameState();if(current?.voiceEnabled===false||typeof speechSynthesis==='undefined'||typeof SpeechSynthesisUtterance==='undefined')return;
   try{if(typeof silentTestingActive==='function'&&silentTestingActive())return;}catch{}
-  try{speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=VOICE_TAGS[language]||VOICE_TAGS.en;utterance.rate=.88;speechSynthesis.speak(utterance);}catch{}
+  try{const tag=VOICE_TAGS[language]||VOICE_TAGS.en;if(window.LanguageMinerSpeech?.pronounce){window.LanguageMinerSpeech.pronounce(text,tag,.88);return;}speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=tag;utterance.rate=.88;speechSynthesis.speak(utterance);}catch{}
 }
 function touchReaction(actor){
   const language=currentKnown(),phrases=PHRASES[language]||PHRASES.en,phrase=phrases[phraseIndex++%phrases.length];

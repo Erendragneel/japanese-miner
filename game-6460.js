@@ -1377,30 +1377,31 @@ const MALE_VOICE_HINT=/\bmale\b|\bman\b|\bboy\b|ichiro|otoya|hattori|keita|takum
 const NATURAL_VOICE_HINT=/natural|neural|premium|enhanced|online|studio|wavenet|siri/i;
 const ROBOTIC_VOICE_HINT=/espeak|compact|festival/i;
 const VOICE_LANGUAGE_PROFILES={
-  en:{tag:'en-US',preferred:['en-US','en-GB','en-AU','en-CA'],rate:.98},
-  es:{tag:'es-ES',preferred:['es-ES','es-MX','es-US','es-AR'],rate:.97},
-  ru:{tag:'ru-RU',preferred:['ru-RU'],rate:.94},
-  ja:{tag:'ja-JP',preferred:['ja-JP'],rate:.90},
-  ko:{tag:'ko-KR',preferred:['ko-KR'],rate:.92},
-  zh:{tag:'zh-CN',preferred:['zh-CN','zh-TW','zh-HK'],rate:.90},
-  it:{tag:'it-IT',preferred:['it-IT'],rate:.97},
-  fr:{tag:'fr-FR',preferred:['fr-FR','fr-CA'],rate:.96},
-  de:{tag:'de-DE',preferred:['de-DE','de-AT','de-CH'],rate:.96},
-  pt:{tag:'pt-BR',preferred:['pt-BR','pt-PT'],rate:.96},
-  vi:{tag:'vi-VN',preferred:['vi-VN'],rate:.92},
-  th:{tag:'th-TH',preferred:['th-TH'],rate:.88},
-  tr:{tag:'tr-TR',preferred:['tr-TR'],rate:.95},
-  id:{tag:'id-ID',preferred:['id-ID'],rate:.96},
-  pl:{tag:'pl-PL',preferred:['pl-PL'],rate:.94},
-  el:{tag:'el-GR',preferred:['el-GR'],rate:.94},
-  uk:{tag:'uk-UA',preferred:['uk-UA'],rate:.94}
+  en:{label:'English',tag:'en-US',preferred:['en-US','en-GB','en-AU','en-CA'],rate:.98,sample:'Welcome to your English lesson.'},
+  es:{label:'Spanish',tag:'es-ES',preferred:['es-ES','es-MX','es-US','es-AR'],rate:.97,sample:'Bienvenido a tu lección de español.'},
+  ru:{label:'Russian',tag:'ru-RU',preferred:['ru-RU'],rate:.94,sample:'Добро пожаловать на урок русского языка.'},
+  ja:{label:'Japanese',tag:'ja-JP',preferred:['ja-JP'],rate:.90,sample:'日本語のレッスンへようこそ。'},
+  ko:{label:'Korean',tag:'ko-KR',preferred:['ko-KR'],rate:.92,sample:'한국어 수업에 오신 것을 환영합니다.'},
+  zh:{label:'Mandarin Chinese',tag:'zh-CN',preferred:['zh-CN','zh-TW','zh-HK'],rate:.90,sample:'欢迎来到中文课程。'},
+  it:{label:'Italian',tag:'it-IT',preferred:['it-IT'],rate:.97,sample:'Benvenuto alla lezione di italiano.'},
+  fr:{label:'French',tag:'fr-FR',preferred:['fr-FR','fr-CA'],rate:.96,sample:'Bienvenue à votre leçon de français.'},
+  de:{label:'German',tag:'de-DE',preferred:['de-DE','de-AT','de-CH'],rate:.96,sample:'Willkommen zu deiner Deutschstunde.'},
+  pt:{label:'Brazilian Portuguese',tag:'pt-BR',preferred:['pt-BR','pt-PT'],rate:.96,sample:'Bem-vindo à sua aula de português.'},
+  vi:{label:'Vietnamese',tag:'vi-VN',preferred:['vi-VN'],rate:.92,sample:'Chào mừng bạn đến với bài học tiếng Việt.'},
+  th:{label:'Thai',tag:'th-TH',preferred:['th-TH'],rate:.88,sample:'ยินดีต้อนรับสู่บทเรียนภาษาไทย'},
+  tr:{label:'Turkish',tag:'tr-TR',preferred:['tr-TR'],rate:.95,sample:'Türkçe dersine hoş geldiniz.'},
+  id:{label:'Indonesian',tag:'id-ID',preferred:['id-ID'],rate:.96,sample:'Selamat datang di pelajaran bahasa Indonesia.'},
+  pl:{label:'Polish',tag:'pl-PL',preferred:['pl-PL'],rate:.94,sample:'Witamy na lekcji języka polskiego.'},
+  el:{label:'Greek',tag:'el-GR',preferred:['el-GR'],rate:.94,sample:'Καλώς ήρθατε στο μάθημα ελληνικών.'},
+  uk:{label:'Ukrainian',tag:'uk-UA',preferred:['uk-UA'],rate:.94,sample:'Ласкаво просимо на урок української мови.'}
 };
+const VOICE_LANGUAGE_ALIASES={english:'en-US',spanish:'es-ES',russian:'ru-RU',japanese:'ja-JP',korean:'ko-KR',chinese:'zh-CN',mandarin:'zh-CN',italian:'it-IT',french:'fr-FR',german:'de-DE',portuguese:'pt-BR','brazilian portuguese':'pt-BR',vietnamese:'vi-VN',thai:'th-TH',turkish:'tr-TR',indonesian:'id-ID',polish:'pl-PL',greek:'el-GR',ukrainian:'uk-UA'};
 let languageMinerVoices=[];
 function refreshLanguageMinerVoices(){if('speechSynthesis'in window)languageMinerVoices=speechSynthesis.getVoices();}
 if('speechSynthesis'in window){refreshLanguageMinerVoices();speechSynthesis.addEventListener?.('voiceschanged',refreshLanguageMinerVoices);}
-function normalizedVoiceTag(languageTag){return String(languageTag||'ja-JP').replace('_','-').toLowerCase();}
+function normalizedVoiceTag(languageTag){return String(languageTag||'ja-JP').trim().replace(/_/g,'-').toLowerCase();}
 function voiceLanguageProfile(languageTag){
-  const requested=normalizedVoiceTag(languageTag),base=requested.split('-')[0],profile=VOICE_LANGUAGE_PROFILES[base]||{tag:languageTag||'ja-JP',preferred:[languageTag||'ja-JP'],rate:.95};
+  const raw=normalizedVoiceTag(languageTag),aliased=normalizedVoiceTag(VOICE_LANGUAGE_ALIASES[raw]||raw),base=aliased.split('-')[0],profile=VOICE_LANGUAGE_PROFILES[base]||{label:base.toUpperCase(),tag:languageTag||'ja-JP',preferred:[languageTag||'ja-JP'],rate:.95,sample:''},requested=aliased.includes('-')?aliased:normalizedVoiceTag(profile.tag);
   return {...profile,base,requested,preferred:profile.preferred.map(normalizedVoiceTag)};
 }
 function voiceQualityScore(voice){
@@ -1420,30 +1421,38 @@ function voiceCandidates(languageTag){
     return {voice,index,score:localeScore+voiceQualityScore(voice)};
   }).sort((a,b)=>b.score-a.score||a.index-b.index).map(entry=>entry.voice);
 }
-function styledVoice(candidates,gender){
-  const hint=gender==='male'?MALE_VOICE_HINT:FEMALE_VOICE_HINT,opposite=gender==='male'?FEMALE_VOICE_HINT:MALE_VOICE_HINT;return candidates.find(voice=>hint.test(voice.name))||candidates.find(voice=>!opposite.test(voice.name))||candidates[0]||null;
+function styledVoice(candidates,gender,languageTag){
+  const profile=voiceLanguageProfile(languageTag),exact=candidates.filter(voice=>normalizedVoiceTag(voice.lang)===profile.requested),primary=candidates.filter(voice=>normalizedVoiceTag(voice.lang)===profile.preferred[0]),pool=exact.length?exact:primary.length?primary:candidates,hint=gender==='male'?MALE_VOICE_HINT:FEMALE_VOICE_HINT,opposite=gender==='male'?FEMALE_VOICE_HINT:MALE_VOICE_HINT;
+  return pool.find(voice=>hint.test(voice.name))||pool.find(voice=>!opposite.test(voice.name))||pool[0]||null;
 }
 function voiceTuning(rate=state.voiceRate,languageTag='ja-JP'){
   const style=state.voiceStyle||'natural',gender=state.voiceGender||'female',stylePreset=VOICE_STYLE_PRESETS[style]||VOICE_STYLE_PRESETS.natural,profile=voiceLanguageProfile(languageTag),userTempo=Math.max(.65,Math.min(1.25,(Number(rate)||.85)/.85));
-  return {style,gender,language:profile.tag,pitch:Math.max(.35,Math.min(1.9,stylePreset.pitch)),rate:Math.max(.5,Math.min(1.4,profile.rate*userTempo*stylePreset.rate)),volume:stylePreset.volume};
+  if(profile.base==='ja')return {style,gender,language:profile.tag,pitch:Math.max(.35,Math.min(1.9,stylePreset.pitch)),rate:Math.max(.5,Math.min(1.4,profile.rate*userTempo*stylePreset.rate)),volume:stylePreset.volume};
+  const pronunciationPitch=1+(stylePreset.pitch-1)*.12,pronunciationStyleRate=1+(stylePreset.rate-1)*.35;
+  return {style,gender,language:profile.tag,pitch:Math.max(.9,Math.min(1.1,pronunciationPitch)),rate:Math.max(.68,Math.min(1.16,profile.rate*userTempo*pronunciationStyleRate)),volume:stylePreset.volume};
 }
 function syncVoiceTuningLabel(){
-  const label=document.getElementById('voiceTuningLabel');if(!label)return;const tuning=voiceTuning();label.textContent=`${tuning.gender==='male'?'Male':'Female'} · ${tuning.style[0].toUpperCase()+tuning.style.slice(1)} · Pitch ${tuning.pitch.toFixed(2)} · Tempo ${tuning.rate.toFixed(2)}× · Volume ${Math.round(tuning.volume*100)}%`;
+  const label=document.getElementById('voiceTuningLabel');if(!label)return;const learningLanguage=window.LanguageMinerCourseVoice?.currentLanguage?.()||'ja',tuning=voiceTuning(state.voiceRate,learningLanguage);label.textContent=`${tuning.gender==='male'?'Male':'Female'} · ${tuning.style[0].toUpperCase()+tuning.style.slice(1)} · Pitch ${tuning.pitch.toFixed(2)} · Tempo ${tuning.rate.toFixed(2)}× · Volume ${Math.round(tuning.volume*100)}%`;
 }
 function configureLanguageMinerUtterance(utterance,languageTag,rate=state.voiceRate){
-  const requestedTag=languageTag||'ja-JP',tuning=voiceTuning(rate,requestedTag),voice=styledVoice(voiceCandidates(requestedTag),tuning.gender);utterance.lang=voice?.lang||requestedTag;utterance.rate=tuning.rate;utterance.pitch=tuning.pitch;utterance.volume=tuning.volume;if(voice)utterance.voice=voice;return utterance;
+  const profile=voiceLanguageProfile(languageTag),tuning=voiceTuning(rate,profile.tag),voice=styledVoice(voiceCandidates(profile.tag),tuning.gender,profile.tag);utterance.lang=voice?.lang||profile.tag;utterance.rate=tuning.rate;utterance.pitch=tuning.pitch;utterance.volume=tuning.volume;if(voice)utterance.voice=voice;return utterance;
 }
+let lastLanguageMinerSpeechRequest=null;
 function speakLanguageMinerText(text,languageTag='ja-JP',rate=state.voiceRate){
-  if(silentTestingActive()||!state.voiceEnabled)return false;if(!('speechSynthesis'in window)){setMessage('Speech is not supported in this browser.','wrong');return false;}const clean=stripMarkup(text).trim();if(!clean)return false;speechSynthesis.cancel();const utterance=configureLanguageMinerUtterance(new SpeechSynthesisUtterance(clean),languageTag,rate);speechSynthesis.speak(utterance);return true;
+  if(silentTestingActive()||!state.voiceEnabled)return false;if(!('speechSynthesis'in window)){setMessage('Speech is not supported in this browser.','wrong');return false;}const clean=stripMarkup(text).trim();if(!clean)return false;const profile=voiceLanguageProfile(languageTag);speechSynthesis.cancel();const utterance=configureLanguageMinerUtterance(new SpeechSynthesisUtterance(clean),profile.tag,rate);lastLanguageMinerSpeechRequest={text:clean,language:profile.base,requestedTag:profile.tag,resolvedTag:utterance.lang,voice:utterance.voice?.name||'',voiceLanguage:utterance.voice?.lang||'',rate:utterance.rate,pitch:utterance.pitch};document.documentElement.dataset.lmSpeechRequested=profile.tag;document.documentElement.dataset.lmSpeechLanguage=utterance.lang;document.documentElement.dataset.lmSpeechText=clean;speechSynthesis.speak(utterance);return true;
 }
 window.LanguageMinerSpeech=Object.freeze({
   speak:speakLanguageMinerText,
+  pronounce:speakLanguageMinerText,
   gender:()=>state.voiceGender,
   style:()=>state.voiceStyle,
   styles:()=>Object.keys(VOICE_STYLE_PRESETS),
+  languages:()=>Object.keys(VOICE_LANGUAGE_PROFILES),
+  audit:()=>Object.entries(VOICE_LANGUAGE_PROFILES).map(([id,profile])=>{const voice=styledVoice(voiceCandidates(profile.tag),state.voiceGender,profile.tag);return {id,label:profile.label,requestedTag:profile.tag,selectedVoice:voice?.name||'',selectedTag:voice?.lang||profile.tag,nativeVoiceAvailable:Boolean(voice),sample:profile.sample};}),
+  lastRequest:()=>lastLanguageMinerSpeechRequest?{...lastLanguageMinerSpeechRequest}:null,
   settings:(languageTag='ja-JP')=>({...voiceTuning(state.voiceRate,languageTag)}),
-  profile:(languageTag='ja-JP')=>{const profile=voiceLanguageProfile(languageTag);return {tag:profile.tag,base:profile.base,preferred:[...profile.preferred],rate:profile.rate};},
-  voiceFor:(languageTag='ja-JP')=>{const voice=styledVoice(voiceCandidates(languageTag),state.voiceGender);return voice?{name:voice.name,lang:voice.lang,localService:Boolean(voice.localService),default:Boolean(voice.default)}:null;}
+  profile:(languageTag='ja-JP')=>{const profile=voiceLanguageProfile(languageTag);return {label:profile.label,tag:profile.tag,base:profile.base,requested:profile.requested,preferred:[...profile.preferred],rate:profile.rate,sample:profile.sample};},
+  voiceFor:(languageTag='ja-JP')=>{const profile=voiceLanguageProfile(languageTag),voice=styledVoice(voiceCandidates(profile.tag),state.voiceGender,profile.tag);return voice?{name:voice.name,lang:voice.lang,localService:Boolean(voice.localService),default:Boolean(voice.default)}:null;}
 });
 function japaneseSpeechText(q=state.active){
   if(!q)return '日本語を勉強しましょう。';

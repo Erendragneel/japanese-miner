@@ -1,4 +1,13 @@
-# Language Miner v6.4.171
+# Language Miner v6.4.172
+
+## v6.4.172 hearing-syllable progression repair
+
+- Fixed the non-Japanese alphabet/hearing lessons shown in the supplied recording so the home progress bar now displays real mine XP out of the actual 250-XP Guardian requirement instead of an unrelated mastery average.
+- Correct answers now always move the XP display forward, including when the learner revisits a symbol that already has high mastery.
+- Hearing questions prioritize the least-practiced symbols in the active lesson, preventing random repeats of mastered letters from stalling lesson mastery and the next lesson unlock.
+- Added a visible Next Question button after every answer and a Continue to Lesson button as soon as the following alphabet lesson is unlocked.
+- Hearing clues play automatically when a matching native-language device voice is available. If it is not, the question safely changes to readable letter-name mode so a missing voice cannot trap the learner.
+- Applied the repair to every non-Japanese language course while leaving the existing Japanese learning course unchanged.
 
 ## v6.4.171 strict native-language voice engine
 

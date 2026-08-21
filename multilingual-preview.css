@@ -185,6 +185,10 @@
 .lm-inline-reward{display:inline-block;margin-left:7px;padding:3px 7px;border:1px solid #e8c45f;border-radius:999px;background:#4a371b;color:#fff0a0;font-size:11px;font-weight:950;white-space:nowrap}
 .lm-next-course-question{display:block;margin:13px 0 0 auto;border:0;background:linear-gradient(100deg,#328cf6,#7656ff);color:#fff}
 .lm-next-course-question[hidden]{display:none}
+.lm-hearing-fallback{margin:0 0 12px;padding:10px 12px;border:1px solid #e4bd5d;border-radius:12px;background:#3a301c;color:#fff0b3;font-size:13px;font-weight:750;line-height:1.45}
+.lm-course-answer-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:9px;margin-top:12px}
+.lm-course-answer-actions .lm-next-course-question{margin:0}
+.lm-continue-course-lesson{min-height:48px;padding:10px 14px;border:1px solid #68e4ba;border-radius:13px;background:linear-gradient(100deg,#17866f,#2e77cc);color:#fff;font-weight:900;cursor:pointer}
 .lm-placement-test-shell{display:grid;gap:14px}
 .lm-placement-test-top{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#c7d5ec;font-weight:900}
 .lm-placement-test-top span{color:#7de8c5}
@@ -215,5 +219,6 @@
 .lesson-preview-skip:hover{border-color:#ffe482;background:linear-gradient(145deg,#655027,#374063);color:#fff}
 @media(max-width:760px){.app>header{min-height:310px;padding:10px;background-position:center;background-size:auto 100%}.app>header>.account-chip{gap:6px;padding:7px}.app>header>.account-chip button{padding:7px 8px}.lm-multilingual-overlay{align-items:stretch;padding:0}.lm-multilingual-card{width:100%;max-height:100dvh;border-radius:0;padding:19px 15px}.lm-language-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.lm-language-dropdown-screen{padding-top:0}.lm-language-dropdown-block{padding:15px}.lm-language-select-wrap select{min-height:58px;font-size:15px}.lm-guide-grid,.lm-placement-options{grid-template-columns:1fr}.lm-title-row{gap:7px}.lm-course-indicator,.lm-change-language{font-size:12px}.lm-flow-actions{flex-direction:column-reverse}.lm-flow-actions button{width:100%}.lm-answer-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.lesson-preview-skip{align-self:stretch;width:100%;margin:0}}
+@media(max-width:600px){.lm-course-answer-actions{display:grid;grid-template-columns:1fr}.lm-course-answer-actions button{width:100%}}
 @media(max-width:600px){.lm-expedition-mine.world-region,.lm-expedition-mine.world-region:nth-of-type(even){width:100%;margin:0;padding:13px 12px;border-radius:18px}.lm-mine-summary{grid-template-columns:56px minmax(0,1fr) 44px;gap:9px}.lm-expedition-mine .region-scenery{min-width:50px;font-size:31px}.lm-expedition-mine .region-scenery small{font-size:8px}.lm-expedition-mine .region-label strong{font-size:17px}.lm-expedition-mine .region-label span{font-size:10px}.lm-mine-dropdown{width:43px;height:43px;font-size:19px}.lm-mine-lesson-grid{grid-template-columns:1fr;max-height:390px}.lm-mine-lesson{min-height:79px}}
 @media(max-width:430px){.lm-language-grid{grid-template-columns:1fr}.lm-flow-icon{width:46px;height:46px;flex-basis:46px}.lm-flow-close{width:42px;height:42px}.lm-title-row{align-items:flex-start}.lm-course-indicator,.lm-change-language{min-height:34px;padding:6px 10px}.lm-post-guide-page{grid-template-columns:1fr;min-height:0;padding:17px}.lm-post-guide-icon{width:58px;height:58px;border-radius:16px;font-size:31px}.lm-post-guide-page p{font-size:16px}}

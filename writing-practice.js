@@ -27,6 +27,20 @@ const HIRAGANA='あ:a|い:i|う:u|え:e|お:o|か:ka|き:ki|く:ku|け:ke|こ:ko
 const KATAKANA='ア:a|イ:i|ウ:u|エ:e|オ:o|カ:ka|キ:ki|ク:ku|ケ:ke|コ:ko|サ:sa|シ:shi|ス:su|セ:se|ソ:so|タ:ta|チ:chi|ツ:tsu|テ:te|ト:to|ナ:na|ニ:ni|ヌ:nu|ネ:ne|ノ:no|ハ:ha|ヒ:hi|フ:fu|ヘ:he|ホ:ho|マ:ma|ミ:mi|ム:mu|メ:me|モ:mo|ヤ:ya|ユ:yu|ヨ:yo|ラ:ra|リ:ri|ル:ru|レ:re|ロ:ro|ワ:wa|ヲ:wo|ン:n';
 const FALLBACK_HAN='一:one|二:two|三:three|人:person|日:sun / day|月:moon / month|火:fire|水:water|木:tree|金:gold|土:earth|山:mountain|川:river|口:mouth|目:eye|耳:ear|手:hand|上:above|下:below|中:middle|大:big|小:small|学:study|生:life|先:ahead|時:time|本:book|語:language|年:year|今:now|天:sky|気:spirit';
 const HANGUL_BLOCKS='가:ga|나:na|다:da|라:ra|마:ma|바:ba|사:sa|아:a|자:ja|차:cha|카:ka|타:ta|파:pa|하:ha';
+const STROKE_NUMBERS=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+const CHARACTER_STROKE_GUIDES=Object.freeze({
+ '一':[{x:24,y:49,arrow:'→',text:'Draw the horizontal stroke from left to right.'}],
+ '二':[{x:27,y:35,arrow:'→',text:'Draw the short upper line left to right.'},{x:20,y:64,arrow:'→',text:'Finish with the longer lower line.'}],
+ '三':[{x:28,y:27,arrow:'→',text:'Draw the short top line.'},{x:31,y:50,arrow:'→',text:'Draw the middle line.'},{x:19,y:73,arrow:'→',text:'Finish with the longest bottom line.'}],
+ '人':[{x:43,y:18,arrow:'↙',text:'Sweep from the top down to the left.'},{x:50,y:26,arrow:'↘',text:'Return near the top and sweep down-right.'}],
+ '日':[{x:24,y:20,arrow:'↓',text:'Draw the left side downward.'},{x:34,y:17,arrow:'→↓',text:'Draw the top, then turn down the right side.'},{x:35,y:50,arrow:'→',text:'Draw the inner line left to right.'},{x:34,y:77,arrow:'→',text:'Close the box along the bottom.'}],
+ '月':[{x:23,y:18,arrow:'↓',text:'Draw the curved left side downward.'},{x:37,y:16,arrow:'→↓',text:'Draw the top, turn down, and finish the outer hook.'},{x:37,y:45,arrow:'→',text:'Draw the first inner line.'},{x:36,y:65,arrow:'→',text:'Draw the second inner line.'}],
+ '火':[{x:27,y:28,arrow:'↘',text:'Place the short left dot.'},{x:65,y:27,arrow:'↙',text:'Place the short right-falling stroke.'},{x:48,y:20,arrow:'↙',text:'Sweep the long center stroke down-left.'},{x:55,y:39,arrow:'↘',text:'Finish with the long right sweep.'}],
+ '水':[{x:49,y:17,arrow:'↓↖',text:'Draw the center vertical stroke and hook.'},{x:24,y:42,arrow:'↙',text:'Draw the left falling stroke.'},{x:59,y:25,arrow:'↙',text:'Turn and sweep through the upper-right section.'},{x:61,y:47,arrow:'↘',text:'Finish with the lower-right sweep.'}],
+ '木':[{x:23,y:41,arrow:'→',text:'Draw the horizontal line.'},{x:49,y:16,arrow:'↓',text:'Draw the center vertical line.'},{x:43,y:43,arrow:'↙',text:'Sweep down-left from the center.'},{x:55,y:45,arrow:'↘',text:'Finish with the down-right sweep.'}],
+ '金':[{x:45,y:11,arrow:'↙',text:'Sweep from the top down-left.'},{x:52,y:16,arrow:'↘',text:'Sweep from the top down-right.'},{x:33,y:34,arrow:'→',text:'Draw the upper horizontal line.'},{x:33,y:49,arrow:'→',text:'Draw the middle horizontal line.'},{x:50,y:34,arrow:'↓',text:'Draw the center vertical line.'},{x:31,y:61,arrow:'↘',text:'Place the lower-left dot.'},{x:67,y:61,arrow:'↙',text:'Place the lower-right stroke.'},{x:27,y:76,arrow:'→',text:'Finish with the bottom horizontal line.'}],
+ '土':[{x:29,y:37,arrow:'→',text:'Draw the short upper horizontal line.'},{x:49,y:18,arrow:'↓',text:'Draw the vertical line through the center.'},{x:20,y:70,arrow:'→',text:'Finish with the long bottom line.'}]
+});
 
 let overlay=null,activeLanguage='ja',tracks=[],trackIndex=0,lessonIndex=0,itemIndex=0,guideVisible=true,directionPreview=true,strokes=[],drawing=null,statusMessage='',statusWrong=false;
 const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
@@ -67,6 +81,16 @@ function restoreSelection(){
  const track=currentTrack();lessonIndex=Math.min(Math.max(0,Number(last.lesson)||0),lessonCount(track)-1);itemIndex=Math.min(Math.max(0,Number(last.item)||0),lessonEntries(track,lessonIndex).length-1);
 }
 function savePosition(){const practice=profilePractice();practice.last={track:currentTrack()?.id||'',lesson:lessonIndex,item:itemIndex};persist();}
+function directionGuide(item){
+ const symbol=String(item?.symbol||''),specific=CHARACTER_STROKE_GUIDES[symbol];
+ if(specific)return{specific:true,steps:specific};
+ return{specific:false,steps:[{x:22,y:18,arrow:'↓',text:c('directionRuleOne')},{x:68,y:43,arrow:'→',text:c('directionRuleTwo')},{x:64,y:72,arrow:'↘',text:c('directionRuleThree')}]};
+}
+function directionGuideMarkup(item,guide){
+ const markers=guide.steps.map((step,index)=>`<i class="stroke-arrow" style="--stroke-x:${Number(step.x)||50}%;--stroke-y:${Number(step.y)||50}%;--stroke-delay:${(index*.22).toFixed(2)}s">${STROKE_NUMBERS[index]||index+1} ${escapeHtml(step.arrow)}</i>`).join('');
+ const steps=guide.steps.map(step=>`<li>${escapeHtml(step.text)}</li>`).join('');
+ return `<div class="writing-direction-guide-heading"><strong>${escapeHtml(c('watchDirections'))}</strong><small>${guide.specific?`${guide.steps.length} ${guide.steps.length===1?'stroke':'strokes'} · ${escapeHtml(item?.symbol||'')}`:'General writing-order guide'}</small></div><div class="writing-direction-glyph ${guide.steps.length>5?'many-strokes':''}" aria-hidden="true"><span>${escapeHtml(item?.symbol||'')}</span>${markers}</div><ol class="writing-direction-steps ${guide.steps.length>4?'compact':''}">${steps}</ol>`;
+}
 function makeShell(){
  if(overlay)return;
  overlay=document.createElement('div');overlay.id='languageMinerWritingPractice';overlay.className='writing-practice-overlay';overlay.setAttribute('aria-hidden','true');overlay.innerHTML='<section class="writing-practice-panel" role="dialog" aria-modal="true" aria-labelledby="writingPracticeTitle"><div id="writingPracticeContent"></div></section>';
@@ -79,7 +103,7 @@ function addMenuButton(){
  button.innerHTML=`<span>✍️</span><strong>${escapeHtml(c('menu'))}</strong><small>${escapeHtml(c('menuDesc'))}</small>`;button.onclick=open;
 }
 function render(){
- makeShell();const content=document.getElementById('writingPracticeContent'),info=languageInfo(),track=currentTrack(),lesson=lessonEntries(),item=currentItem(),practice=profilePractice(),total=totalCount(),done=completedCount();
+ makeShell();const content=document.getElementById('writingPracticeContent'),info=languageInfo(),track=currentTrack(),lesson=lessonEntries(),item=currentItem(),guide=directionGuide(item),practice=profilePractice(),total=totalCount(),done=completedCount();
  const percent=total?Math.round(done/total*100):0;
  content.innerHTML=`
   <header class="writing-practice-head"><button type="button" data-writing-close="menu">← ${escapeHtml(c('back'))}</button><div><span>✍️ ${escapeHtml(info.flag||'')} ${escapeHtml(info.native||info.name)}</span><h2 id="writingPracticeTitle">${escapeHtml(c('title'))}</h2><p>${escapeHtml(c('subtitle'))}</p></div><button class="writing-practice-x" type="button" data-writing-close aria-label="${escapeHtml(c('close'))}">×</button></header>
@@ -93,7 +117,7 @@ function render(){
    <main class="writing-practice-workspace">
     <div class="writing-current-character"><div><small>${escapeHtml(track.name)} · ${escapeHtml(c('lesson'))} ${lessonIndex+1}</small><h3>${escapeHtml(item?.symbol||'')}</h3><p>${escapeHtml(item?.name||'')}</p></div><button type="button" data-writing-listen>🔊 ${escapeHtml(c('listen'))}</button></div>
     <p class="writing-instructions">${escapeHtml(c('instructions'))}</p>
-    <div class="writing-pad ${guideVisible?'guide-visible':'guide-hidden'} ${directionPreview?'direction-preview-active':''}"><div class="writing-grid-lines"></div><div class="writing-guide-glyph" aria-hidden="true">${escapeHtml(item?.symbol||'')}</div><canvas id="writingPracticeCanvas" aria-label="${escapeHtml(c('title'))}"></canvas>${directionPreview?`<div class="writing-direction-preview" role="dialog" aria-label="${escapeHtml(c('watchDirections'))}"><strong>${escapeHtml(c('watchDirections'))}</strong><div class="writing-direction-glyph" aria-hidden="true"><span>${escapeHtml(item?.symbol||'')}</span><i class="stroke-arrow stroke-one">① ↓</i><i class="stroke-arrow stroke-two">② →</i><i class="stroke-arrow stroke-three">③ ↘</i></div><ol><li>${escapeHtml(c('directionRuleOne'))}</li><li>${escapeHtml(c('directionRuleTwo'))}</li><li>${escapeHtml(c('directionRuleThree'))}</li></ol><button type="button" data-writing-start>${escapeHtml(c('startWriting'))}</button></div>`:''}</div>
+    <div class="writing-pad ${guideVisible?'guide-visible':'guide-hidden'} ${directionPreview?'direction-preview-active':''}"><div class="writing-grid-lines"></div><div class="writing-guide-glyph" aria-hidden="true">${escapeHtml(item?.symbol||'')}</div><canvas id="writingPracticeCanvas" aria-label="${escapeHtml(c('title'))}"></canvas>${directionPreview?`<div class="writing-direction-preview" role="dialog" aria-label="${escapeHtml(c('watchDirections'))}">${directionGuideMarkup(item,guide)}<button type="button" data-writing-start>${escapeHtml(c('startWriting'))}</button></div>`:''}</div>
     <div class="writing-practice-actions"><button type="button" data-writing-directions>↻ ${escapeHtml(c('showDirections'))}</button><button type="button" data-writing-guide>${escapeHtml(guideVisible?c('hideGuide'):c('showGuide'))}</button><button type="button" data-writing-undo ${strokes.length?'':'disabled'}>↶ ${escapeHtml(c('undo'))}</button><button type="button" data-writing-clear ${strokes.length?'':'disabled'}>✕ ${escapeHtml(c('clear'))}</button><button class="primary" type="button" data-writing-complete ${directionPreview?'disabled':''}>✓ ${escapeHtml(c('complete'))}</button></div>
     <div class="writing-practice-status ${statusMessage?'show':''} ${statusWrong?'wrong':''}" aria-live="polite">${escapeHtml(statusMessage)}</div>
    </main>

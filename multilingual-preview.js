@@ -1,4 +1,4 @@
-// Language Miner v6.4.170 multilingual lessons with permanent completed-mine replay.
+// Language Miner v6.4.171 multilingual lessons with strict native-language voices.
 (()=>{
   'use strict';
   const LANGUAGES={
@@ -524,7 +524,7 @@
     const stage=document.getElementById('stageName'),quickStage=document.getElementById('quickStage');if(stage)stage.textContent=label;if(quickStage)quickStage.textContent=label;
   }
   function speakLanguage(text,languageId){
-    if(!text)return false;const language=(LANGUAGES[languageId]||LANGUAGES.en).voice;if(window.LanguageMinerSpeech?.pronounce)return window.LanguageMinerSpeech.pronounce(text,language);if(window.LanguageMinerSpeech?.speak)return window.LanguageMinerSpeech.speak(text,language);if(!('speechSynthesis'in window))return false;speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=language;utterance.rate=.95;speechSynthesis.speak(utterance);return true;
+    if(!text)return false;const language=(LANGUAGES[languageId]||LANGUAGES.en).voice;if(window.LanguageMinerSpeech?.pronounce)return window.LanguageMinerSpeech.pronounce(text,language);if(window.LanguageMinerSpeech?.speak)return window.LanguageMinerSpeech.speak(text,language);return false;
   }
   function speakTarget(text){speakLanguage(text,learning);}
   window.LanguageMinerCourseVoice=Object.freeze({test:()=>{speakTarget(FOUNDATION_CONCEPTS[0].forms[learning]);return true;},currentLanguage:()=>learning});
@@ -789,7 +789,7 @@
     window.LanguageMinerI18n?.setLocale?.(known,{known,learning});
     if(indicator)indicator.innerHTML=`${LANGUAGES[known].flag} ${escapeHtml(LANGUAGES[known].native)} <b>→</b> ${LANGUAGES[learning].flag} ${escapeHtml(LANGUAGES[learning].native)}`;
     const voiceToggleLabel=document.querySelector('#voiceToggle + .form-check-label');if(voiceToggleLabel)voiceToggleLabel.textContent=ui('voice',{language:targetName()});
-    const accentLabel=document.getElementById('voiceAccentLabel');if(accentLabel)accentLabel.textContent=ui('nativeAccent',{accent:LANGUAGES[learning].accent,code:LANGUAGES[learning].voice});
+    const accentLabel=document.getElementById('voiceAccentLabel');if(accentLabel){const availability=window.LanguageMinerSpeech?.availability?.(LANGUAGES[learning].voice);accentLabel.textContent=`${ui('nativeAccent',{accent:LANGUAGES[learning].accent,code:LANGUAGES[learning].voice})}${availability?.status==='ready'?` · ${availability.selectedVoice.name}`:availability?.status==='missing'?' · Native device voice required':' · Loading native voice…'}`;accentLabel.dataset.voiceStatus=availability?.status||'loading';}
     if(learning==='ja'&&lastAppliedLearning&&lastAppliedLearning!=='ja')window.render?.();
     hideOriginalJapanesePlacementForOtherCourses();updateCourseChrome();lastAppliedLearning=learning;lastAppliedPurpose=purpose;
   }
@@ -894,7 +894,7 @@
     overlay=document.createElement('div');overlay.id='lmMultilingualOverlay';overlay.className='lm-multilingual-overlay';overlay.setAttribute('aria-hidden','true');overlay.innerHTML=`<section class="lm-multilingual-card" role="dialog" aria-modal="true" aria-labelledby="lmFlowTitle"><header class="lm-flow-head"><div id="lmFlowIcon" class="lm-flow-icon">🌐</div><div class="lm-flow-copy"><h2 id="lmFlowTitle">Choose your Language Miner course</h2><p id="lmFlowCopy"></p></div><button id="lmFlowClose" class="lm-flow-close" type="button" aria-label="Close language setup">×</button></header><div class="lm-flow-progress" aria-label="Language setup progress"><i class="active"></i><i></i><i></i></div><div id="lmFlowContent"></div></section>`;document.body.appendChild(overlay);
     toast=document.createElement('div');toast.className='lm-preview-toast';toast.setAttribute('role','status');document.body.appendChild(toast);
     content=document.getElementById('lmFlowContent');title=document.getElementById('lmFlowTitle');copy=document.getElementById('lmFlowCopy');icon=document.getElementById('lmFlowIcon');indicator=document.getElementById('lmCourseIndicator');changeButton=document.getElementById('lmChangeLanguageBtn');
-    document.getElementById('lmFlowClose').addEventListener('click',closeFlow);changeButton?.addEventListener('click',openFlow);document.addEventListener('click',handleCourseControls,true);document.addEventListener('click',scheduleGuideAfterJapanesePlacement);window.openLanguageMinerTranslatedGuide=()=>{openPostPlacementGuide(true);return true;};ensureExpeditionHubObserver();applyCourse();
+    document.getElementById('lmFlowClose').addEventListener('click',closeFlow);changeButton?.addEventListener('click',openFlow);document.addEventListener('click',handleCourseControls,true);document.addEventListener('click',scheduleGuideAfterJapanesePlacement);window.addEventListener('language-miner-native-voices-changed',applyCourse);window.openLanguageMinerTranslatedGuide=()=>{openPostPlacementGuide(true);return true;};ensureExpeditionHubObserver();applyCourse();
     const timer=setInterval(()=>{if(!signedIn())return;applyCourse();if(!openedAutomatically&&!localStorage.getItem(STORAGE_PREFIX+accountKey())){openedAutomatically=true;openFlow();}else if(!openedAutomatically){openedAutomatically=true;}clearInterval(timer);},350);
     setInterval(()=>{if(signedIn()&&!overlay.classList.contains('open'))applyCourse();},800);
     window.addEventListener('lm-cloud-session-changed',()=>{openedAutomatically=false;});

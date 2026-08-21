@@ -1,4 +1,4 @@
-// Language Miner v6.4.170 — staged mining swing plus locale-safe character speech.
+// Language Miner v6.4.171 — staged mining swing plus strict native-language character speech.
 (()=>{
 'use strict';
 
@@ -123,7 +123,7 @@ function play(name,options={}){
 function speakPhrase(text,language){
   const current=gameState();if(current?.voiceEnabled===false||typeof speechSynthesis==='undefined'||typeof SpeechSynthesisUtterance==='undefined')return;
   try{if(typeof silentTestingActive==='function'&&silentTestingActive())return;}catch{}
-  try{const tag=VOICE_TAGS[language]||VOICE_TAGS.en;if(window.LanguageMinerSpeech?.pronounce){window.LanguageMinerSpeech.pronounce(text,tag,.88);return;}speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=tag;utterance.rate=.88;speechSynthesis.speak(utterance);}catch{}
+  try{const tag=VOICE_TAGS[language]||language;if(tag&&window.LanguageMinerSpeech?.pronounce)window.LanguageMinerSpeech.pronounce(text,tag,.88);}catch{}
 }
 function touchReaction(actor){
   const language=currentKnown(),phrases=PHRASES[language]||PHRASES.en,phrase=phrases[phraseIndex++%phrases.length];

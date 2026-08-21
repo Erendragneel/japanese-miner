@@ -1400,9 +1400,20 @@ const VOICE_LANGUAGE_PROFILES={
   uk:{label:'Ukrainian',tag:'uk-UA',preferred:['uk-UA'],rate:.94,sample:'Ласкаво просимо на урок української мови.'}
 };
 const VOICE_LANGUAGE_ALIASES={english:'en-US',spanish:'es-ES',russian:'ru-RU',japanese:'ja-JP',korean:'ko-KR',chinese:'zh-CN',mandarin:'zh-CN',italian:'it-IT',french:'fr-FR',german:'de-DE',portuguese:'pt-BR','brazilian portuguese':'pt-BR',vietnamese:'vi-VN',thai:'th-TH',turkish:'tr-TR',indonesian:'id-ID',polish:'pl-PL',greek:'el-GR',ukrainian:'uk-UA'};
-let languageMinerVoices=[];
-function refreshLanguageMinerVoices(){if('speechSynthesis'in window)languageMinerVoices=speechSynthesis.getVoices();}
-if('speechSynthesis'in window){refreshLanguageMinerVoices();speechSynthesis.addEventListener?.('voiceschanged',refreshLanguageMinerVoices);}
+let languageMinerVoices=[],languageMinerVoiceSignature='',languageMinerVoiceEnumerationSettled=false,pendingLanguageMinerSpeech=null,languageMinerVoiceWaitTimer=0;
+function refreshLanguageMinerVoices(){
+  if(!('speechSynthesis'in window))return languageMinerVoices;
+  const voices=speechSynthesis.getVoices(),signature=voices.map(voice=>`${voice.name}|${voice.lang}|${voice.voiceURI}`).join('\n'),changed=signature!==languageMinerVoiceSignature;
+  languageMinerVoices=voices;languageMinerVoiceSignature=signature;
+  if(voices.length)languageMinerVoiceEnumerationSettled=true;
+  if(changed){document.documentElement.dataset.lmNativeVoiceCount=String(voices.length);window.dispatchEvent(new CustomEvent('language-miner-native-voices-changed',{detail:{count:voices.length}}));}
+  return voices;
+}
+if('speechSynthesis'in window){
+  refreshLanguageMinerVoices();
+  speechSynthesis.addEventListener?.('voiceschanged',()=>{languageMinerVoiceEnumerationSettled=true;refreshLanguageMinerVoices();window.dispatchEvent(new CustomEvent('language-miner-native-voices-changed',{detail:{count:languageMinerVoices.length,settled:true}}));flushPendingLanguageMinerSpeech();});
+  setTimeout(()=>{languageMinerVoiceEnumerationSettled=true;refreshLanguageMinerVoices();window.dispatchEvent(new CustomEvent('language-miner-native-voices-changed',{detail:{count:languageMinerVoices.length,settled:true}}));flushPendingLanguageMinerSpeech();},1800);
+}
 function normalizedVoiceTag(languageTag){return String(languageTag||'ja-JP').trim().replace(/_/g,'-').toLowerCase();}
 function voiceLanguageProfile(languageTag){
   const raw=normalizedVoiceTag(languageTag),aliased=normalizedVoiceTag(VOICE_LANGUAGE_ALIASES[raw]||raw),base=aliased.split('-')[0],profile=VOICE_LANGUAGE_PROFILES[base]||{label:base.toUpperCase(),tag:languageTag||'ja-JP',preferred:[languageTag||'ja-JP'],rate:.95,sample:''},requested=aliased.includes('-')?aliased:normalizedVoiceTag(profile.tag);
@@ -1431,19 +1442,44 @@ function styledVoice(candidates,gender,languageTag){
 }
 function voiceTuning(rate=state.voiceRate,languageTag='ja-JP'){
   const style=state.voiceStyle||'natural',gender=state.voiceGender||'female',stylePreset=VOICE_STYLE_PRESETS[style]||VOICE_STYLE_PRESETS.natural,profile=voiceLanguageProfile(languageTag),userTempo=Math.max(.65,Math.min(1.25,(Number(rate)||.85)/.85));
-  if(profile.base==='ja')return {style,gender,language:profile.tag,pitch:Math.max(.35,Math.min(1.9,stylePreset.pitch)),rate:Math.max(.5,Math.min(1.4,profile.rate*userTempo*stylePreset.rate)),volume:stylePreset.volume};
-  const pronunciationPitch=1+(stylePreset.pitch-1)*.12,pronunciationStyleRate=1+(stylePreset.rate-1)*.35;
-  return {style,gender,language:profile.tag,pitch:Math.max(.9,Math.min(1.1,pronunciationPitch)),rate:Math.max(.68,Math.min(1.16,profile.rate*userTempo*pronunciationStyleRate)),volume:stylePreset.volume};
+  // Keep every pronunciation inside a narrow, accent-safe tuning range.
+  // This preserves the native voice's prosody instead of making it sound like
+  // an English voice whose pitch and tempo were artificially transformed.
+  const accentSafePitch=1+(stylePreset.pitch-1)*.04,accentSafeRate=1+(stylePreset.rate-1)*.16;
+  return {style,gender,language:profile.tag,pitch:Math.max(.96,Math.min(1.04,accentSafePitch)),rate:Math.max(.72,Math.min(1.12,profile.rate*userTempo*accentSafeRate)),volume:Math.max(.72,Math.min(1,stylePreset.volume))};
 }
 function syncVoiceTuningLabel(){
   const label=document.getElementById('voiceTuningLabel');if(!label)return;const learningLanguage=window.LanguageMinerCourseVoice?.currentLanguage?.()||'ja',tuning=voiceTuning(state.voiceRate,learningLanguage);label.textContent=`${tuning.gender==='male'?'Male':'Female'} · ${tuning.style[0].toUpperCase()+tuning.style.slice(1)} · Pitch ${tuning.pitch.toFixed(2)} · Tempo ${tuning.rate.toFixed(2)}× · Volume ${Math.round(tuning.volume*100)}%`;
 }
-function configureLanguageMinerUtterance(utterance,languageTag,rate=state.voiceRate){
-  const profile=voiceLanguageProfile(languageTag),tuning=voiceTuning(rate,profile.tag),voice=styledVoice(voiceCandidates(profile.tag),tuning.gender,profile.tag);utterance.lang=voice?.lang||profile.tag;utterance.rate=tuning.rate;utterance.pitch=tuning.pitch;utterance.volume=tuning.volume;if(voice)utterance.voice=voice;return utterance;
+function configureLanguageMinerUtterance(utterance,languageTag,rate=state.voiceRate,nativeVoice=null){
+  const profile=voiceLanguageProfile(languageTag),tuning=voiceTuning(rate,profile.tag),voice=nativeVoice||styledVoice(voiceCandidates(profile.tag),tuning.gender,profile.tag);utterance.lang=profile.tag;utterance.rate=tuning.rate;utterance.pitch=tuning.pitch;utterance.volume=tuning.volume;if(voice)utterance.voice=voice;return utterance;
 }
 let lastLanguageMinerSpeechRequest=null;
+function nativeVoiceAvailability(languageTag='ja-JP'){
+  const profile=voiceLanguageProfile(languageTag),candidates=voiceCandidates(profile.tag),exact=candidates.filter(voice=>normalizedVoiceTag(voice.lang)===profile.requested),selected=styledVoice(candidates,state.voiceGender,profile.tag),status=selected?'ready':languageMinerVoiceEnumerationSettled?'missing':'loading';
+  return {status,label:profile.label,requestedTag:profile.tag,installedVoiceCount:languageMinerVoices.length,sameLanguageVoiceCount:candidates.length,exactLocaleVoiceCount:exact.length,selectedVoice:selected?{name:selected.name,lang:selected.lang,localService:Boolean(selected.localService),default:Boolean(selected.default)}:null};
+}
+function nativeVoiceUnavailable(profile,text=''){
+  const message=`A native ${profile.label} voice is not installed on this device. Install or enable the ${profile.tag} text-to-speech voice in your device settings, then reopen Language Miner.`;
+  document.documentElement.dataset.lmSpeechStatus='missing-native-voice';document.documentElement.dataset.lmSpeechRequested=profile.tag;delete document.documentElement.dataset.lmSpeechLanguage;delete document.documentElement.dataset.lmSpeechVoice;setMessage(message,'wrong');
+  lastLanguageMinerSpeechRequest={text,language:profile.base,requestedTag:profile.tag,resolvedTag:'',voice:'',voiceLanguage:'',rate:0,pitch:1,status:'missing-native-voice'};
+  window.dispatchEvent(new CustomEvent('language-miner-native-voice-missing',{detail:{language:profile.base,label:profile.label,tag:profile.tag,message}}));return false;
+}
+function deliverLanguageMinerSpeech(request,mayWait=true){
+  const profile=voiceLanguageProfile(request.languageTag),nativeVoice=styledVoice(voiceCandidates(profile.tag),state.voiceGender,profile.tag);
+  if(!nativeVoice){
+    if(mayWait&&!languageMinerVoiceEnumerationSettled){pendingLanguageMinerSpeech=request;document.documentElement.dataset.lmSpeechStatus='waiting-for-native-voice';clearTimeout(languageMinerVoiceWaitTimer);languageMinerVoiceWaitTimer=setTimeout(()=>{languageMinerVoiceEnumerationSettled=true;refreshLanguageMinerVoices();flushPendingLanguageMinerSpeech();},1800);return true;}
+    return nativeVoiceUnavailable(profile,request.text);
+  }
+  pendingLanguageMinerSpeech=null;clearTimeout(languageMinerVoiceWaitTimer);languageMinerVoiceWaitTimer=0;
+  const utterance=configureLanguageMinerUtterance(new SpeechSynthesisUtterance(request.text),profile.tag,request.rate,nativeVoice);
+  lastLanguageMinerSpeechRequest={text:request.text,language:profile.base,requestedTag:profile.tag,resolvedTag:utterance.lang,voice:nativeVoice.name||'',voiceLanguage:nativeVoice.lang||'',rate:utterance.rate,pitch:utterance.pitch,status:'native'};
+  document.documentElement.dataset.lmSpeechStatus='native';document.documentElement.dataset.lmSpeechRequested=profile.tag;document.documentElement.dataset.lmSpeechLanguage=utterance.lang;document.documentElement.dataset.lmSpeechVoice=nativeVoice.name||'';document.documentElement.dataset.lmSpeechText=request.text;
+  speechSynthesis.cancel();speechSynthesis.speak(utterance);return true;
+}
+function flushPendingLanguageMinerSpeech(){const request=pendingLanguageMinerSpeech;if(!request)return false;pendingLanguageMinerSpeech=null;return deliverLanguageMinerSpeech(request,false);}
 function speakLanguageMinerText(text,languageTag='ja-JP',rate=state.voiceRate){
-  if(silentTestingActive()||!state.voiceEnabled)return false;if(!('speechSynthesis'in window)){setMessage('Speech is not supported in this browser.','wrong');return false;}const clean=stripMarkup(text).trim();if(!clean)return false;const profile=voiceLanguageProfile(languageTag);speechSynthesis.cancel();const utterance=configureLanguageMinerUtterance(new SpeechSynthesisUtterance(clean),profile.tag,rate);lastLanguageMinerSpeechRequest={text:clean,language:profile.base,requestedTag:profile.tag,resolvedTag:utterance.lang,voice:utterance.voice?.name||'',voiceLanguage:utterance.voice?.lang||'',rate:utterance.rate,pitch:utterance.pitch};document.documentElement.dataset.lmSpeechRequested=profile.tag;document.documentElement.dataset.lmSpeechLanguage=utterance.lang;document.documentElement.dataset.lmSpeechText=clean;speechSynthesis.speak(utterance);return true;
+  if(silentTestingActive()||!state.voiceEnabled)return false;if(!('speechSynthesis'in window)){setMessage('Speech is not supported in this browser.','wrong');return false;}const clean=stripMarkup(text).trim();if(!clean)return false;return deliverLanguageMinerSpeech({text:clean,languageTag,rate});
 }
 window.LanguageMinerSpeech=Object.freeze({
   speak:speakLanguageMinerText,
@@ -1452,8 +1488,10 @@ window.LanguageMinerSpeech=Object.freeze({
   style:()=>state.voiceStyle,
   styles:()=>Object.keys(VOICE_STYLE_PRESETS),
   languages:()=>Object.keys(VOICE_LANGUAGE_PROFILES),
-  audit:()=>Object.entries(VOICE_LANGUAGE_PROFILES).map(([id,profile])=>{const voice=styledVoice(voiceCandidates(profile.tag),state.voiceGender,profile.tag);return {id,label:profile.label,requestedTag:profile.tag,selectedVoice:voice?.name||'',selectedTag:voice?.lang||profile.tag,nativeVoiceAvailable:Boolean(voice),sample:profile.sample};}),
+  audit:()=>Object.entries(VOICE_LANGUAGE_PROFILES).map(([id,profile])=>{const availability=nativeVoiceAvailability(profile.tag);return {id,label:profile.label,requestedTag:profile.tag,selectedVoice:availability.selectedVoice?.name||'',selectedTag:availability.selectedVoice?.lang||'',nativeVoiceAvailable:availability.status==='ready',status:availability.status,sameLanguageVoiceCount:availability.sameLanguageVoiceCount,exactLocaleVoiceCount:availability.exactLocaleVoiceCount,sample:profile.sample};}),
   lastRequest:()=>lastLanguageMinerSpeechRequest?{...lastLanguageMinerSpeechRequest}:null,
+  availability:nativeVoiceAvailability,
+  refresh:refreshLanguageMinerVoices,
   settings:(languageTag='ja-JP')=>({...voiceTuning(state.voiceRate,languageTag)}),
   profile:(languageTag='ja-JP')=>{const profile=voiceLanguageProfile(languageTag);return {label:profile.label,tag:profile.tag,base:profile.base,requested:profile.requested,preferred:[...profile.preferred],rate:profile.rate,sample:profile.sample};},
   voiceFor:(languageTag='ja-JP')=>{const profile=voiceLanguageProfile(languageTag),voice=styledVoice(voiceCandidates(profile.tag),state.voiceGender,profile.tag);return voice?{name:voice.name,lang:voice.lang,localService:Boolean(voice.localService),default:Boolean(voice.default)}:null;}

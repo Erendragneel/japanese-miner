@@ -1,4 +1,13 @@
-# Language Miner v6.4.170
+# Language Miner v6.4.171
+
+## v6.4.171 strict native-language voice engine
+
+- Rebuilt pronunciation routing for all 17 supported learning languages so a spoken request must use a voice whose language matches the course; an English voice can no longer be substituted for Japanese or any other non-English course.
+- Voice discovery now waits for the browser or device voice list to finish loading before speaking, preventing the early English-default fallback heard on some phones and tablets.
+- Exact regional voices remain preferred (for example `ja-JP`, `de-DE`, `es-ES`, and `pt-BR`), with only same-language regional variants eligible as a fallback.
+- Pronunciation styles now use accent-safe pitch and tempo ranges so the native voice's prosody is preserved instead of being artificially transformed.
+- Lesson audio, Writing Practice, arcade listening games, course voice tests, and character speech all use the same protected native-voice route.
+- When a device does not have the requested native text-to-speech voice installed, Language Miner explains which locale is missing instead of playing the phrase with an English accent.
 
 ## v6.4.170 permanent completed-mine lesson replay
 

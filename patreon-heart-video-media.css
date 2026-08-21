@@ -1,4 +1,4 @@
-/* Language Miner v6.4.159 — real Patreon feature reels. */
+/* Language Miner v6.4.164 — narrated Patreon feature reels. */
 .patreon-tier-video-frame > video {
   position: absolute;
   inset: 0;
@@ -13,8 +13,41 @@
   display: none;
 }
 
+.patreon-tier-video-sound {
+  position: absolute;
+  z-index: 4;
+  right: 14px;
+  bottom: 14px;
+  min-width: 116px;
+  min-height: 42px;
+  padding: 9px 13px;
+  border: 1px solid color-mix(in srgb, var(--tier-accent), white 28%);
+  border-radius: 999px;
+  background: #07101de6;
+  box-shadow: 0 7px 22px #000b;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 850;
+  backdrop-filter: blur(8px);
+}
+
+.patreon-tier-video-sound:hover,
+.patreon-tier-video-sound:focus-visible {
+  border-color: #fff;
+  background: #152442f2;
+}
+
 @media (max-width: 760px) {
   .patreon-tier-video-frame > video {
     object-fit: contain;
+  }
+
+  .patreon-tier-video-sound {
+    right: 8px;
+    bottom: 8px;
+    min-width: 104px;
+    min-height: 38px;
+    padding: 7px 10px;
+    font-size: 0.74rem;
   }
 }

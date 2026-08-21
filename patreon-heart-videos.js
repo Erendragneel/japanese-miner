@@ -1,4 +1,4 @@
-// Language Miner v6.4.159 - real 24-second Patreon feature reels can restore one missing heart every six hours.
+// Language Miner v6.4.164 - narrated 24-second Patreon feature reels can restore one missing heart every six hours.
 (() => {
   'use strict';
 
@@ -92,7 +92,7 @@
         <img src="${tier.image}" alt="${escapeHtml(tier.name)} Patreon tier artwork">
         <span>VIDEO ${tier.tier} · TIER ${tier.tier}</span>
         <strong>${escapeHtml(tier.title)}</strong>
-        <small>Watch video · earn 1 heart</small>
+        <small>🔊 Watch with sound · earn 1 heart</small>
       </button>`).join('')}
     </div>`;
   }
@@ -144,14 +144,15 @@
   function videoMarkup(tier, durationMs){
     return `<section class="patreon-tier-video" style="--tier-accent:${tier.accent}">
       <div class="patreon-tier-video-frame">
-        <video id="patreonTierVideo" poster="${tier.image}" preload="auto" playsinline autoplay muted disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback" aria-label="${escapeHtml(tier.name)} Patreon tier feature video">
+        <video id="patreonTierVideo" poster="${tier.image}" preload="auto" playsinline disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback" tabindex="0" aria-label="${escapeHtml(tier.name)} Patreon tier feature video with narration and background music">
           <source src="${tier.video}" type="video/mp4">
           Your browser cannot play this Patreon feature video.
         </video>
+        <button id="patreonVideoSound" class="patreon-tier-video-sound" type="button" aria-pressed="false" aria-label="Mute narration and background music">🔊 Sound on</button>
       </div>
       <div class="patreon-tier-video-progress" role="progressbar" aria-label="Video progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="patreonVideoProgress"></i></div>
       <div class="patreon-tier-video-meta"><strong>${escapeHtml(tier.title)}</strong><span id="patreonVideoTime">${Math.ceil(durationMs / 1000)} seconds remaining</span></div>
-      <p class="patreon-tier-video-note">Keep this 24-second video visible until it finishes. Tap the video to pause or resume. Closing it gives no reward.</p>
+      <p class="patreon-tier-video-note">Narration and background music are on. Keep this 24-second video visible until it finishes. Tap the video to pause or resume. Closing it gives no reward.</p>
       <button id="patreonVideoCancel" type="button">Stop video · no reward</button>
     </section>`;
   }
@@ -225,7 +226,33 @@
     content.innerHTML = videoMarkup(tier, started.durationMs);
     content.querySelector('#patreonVideoCancel')?.addEventListener('click', closeOverlay);
     const video = content.querySelector('#patreonTierVideo');
+    const soundButton = content.querySelector('#patreonVideoSound');
+    const updateSoundButton = () => {
+      if(!video || !soundButton) return;
+      const muted = video.muted || video.volume === 0;
+      soundButton.textContent = muted ? '🔇 Sound off' : '🔊 Sound on';
+      soundButton.setAttribute('aria-pressed', String(muted));
+      soundButton.setAttribute('aria-label', muted ? 'Turn on narration and background music' : 'Mute narration and background music');
+    };
+    if(video){
+      video.muted = false;
+      video.defaultMuted = false;
+      video.volume = 0.9;
+    }
     video?.addEventListener('click', () => video.paused ? video.play().catch(() => {}) : video.pause());
+    video?.addEventListener('keydown', event => {
+      if(event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      video.paused ? video.play().catch(() => {}) : video.pause();
+    });
+    video?.addEventListener('volumechange', updateSoundButton);
+    soundButton?.addEventListener('click', event => {
+      event.stopPropagation();
+      if(!video) return;
+      video.muted = !video.muted;
+      if(!video.muted && video.volume === 0) video.volume = 0.9;
+      updateSoundButton();
+    });
     video?.addEventListener('ended', () => completeVideo(tier), {once:true});
     video?.addEventListener('error', () => {
       const note = content.querySelector('.patreon-tier-video-note');
@@ -233,8 +260,9 @@
     });
     video?.play().catch(() => {
       const note = content.querySelector('.patreon-tier-video-note');
-      if(note) note.textContent = 'Tap the video to begin. The full 24 seconds must play before the heart is awarded.';
+      if(note) note.textContent = 'Tap the video to begin with narration and background music. The full 24 seconds must play before the heart is awarded.';
     });
+    updateSoundButton();
     tickVideo(tier);
     watchTimer = setInterval(() => tickVideo(tier), 100);
   }

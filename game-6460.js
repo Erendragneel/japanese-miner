@@ -690,6 +690,10 @@ function hiraganaMastered(){ return stageMasteryComplete(0); }
 function katakanaUnlocked(){ return stageComplete(0); }
 function isStageUnlocked(i){
   if(i===0) return true;
+  const cleared=new Set((Array.isArray(state.clearedStages)?state.clearedStages:[]).map(Number));
+  // Once a mine has been completed, it and the route that completion opened
+  // stay available for replay even if later practice changes current mastery.
+  if(cleared.has(i)||cleared.has(i-1)) return true;
   if(Number(state.placementUnlockedThrough||0)>=i) return true;
   return stageComplete(i-1);
 }
@@ -3342,8 +3346,10 @@ function jlptVocabularyLevelQuestions(stage,index){
 }
 function jlptVocabularyLevelUnlocked(stage,index){
   stage=Number(stage);index=Number(index);
-  if(index<=0)return isStageUnlocked(stage);
-  return isStageUnlocked(stage)&&jlptVocabularyLevelMastery(stage,index-1)>=JLPT_VOCABULARY_UNLOCK_MASTERY&&(index%2!==0||jlptReviewCheckpointPassed(stage,"vocabulary",index));
+  if(!isStageUnlocked(stage))return false;
+  if(state.clearedStages?.includes(stage)||state.v5?.bossDefeated?.includes(stage))return true;
+  if(index<=0)return true;
+  return jlptVocabularyLevelMastery(stage,index-1)>=JLPT_VOCABULARY_UNLOCK_MASTERY&&(index%2!==0||jlptReviewCheckpointPassed(stage,"vocabulary",index));
 }
 function highestUnlockedJlptVocabularyLevel(stage){
   const levels=jlptVocabularyLevels(stage);let highest=0;
@@ -3597,8 +3603,10 @@ function jlptSectionLevelQuestions(stage,section,index){
 function jlptSectionLevelUnlocked(stage,section,index){
   if(section==="vocabulary")return jlptVocabularyLevelUnlocked(stage,index);
   stage=Number(stage);index=Number(index);
-  if(index<=0)return isStageUnlocked(stage);
-  return isStageUnlocked(stage)&&jlptSectionLevelMastery(stage,section,index-1)>=JLPT_VOCABULARY_UNLOCK_MASTERY&&(index%2!==0||jlptReviewCheckpointPassed(stage,section,index));
+  if(!isStageUnlocked(stage))return false;
+  if(state.clearedStages?.includes(stage)||state.v5?.bossDefeated?.includes(stage))return true;
+  if(index<=0)return true;
+  return jlptSectionLevelMastery(stage,section,index-1)>=JLPT_VOCABULARY_UNLOCK_MASTERY&&(index%2!==0||jlptReviewCheckpointPassed(stage,section,index));
 }
 function highestUnlockedJlptSectionLevel(stage,section){
   if(section==="vocabulary")return highestUnlockedJlptVocabularyLevel(stage);

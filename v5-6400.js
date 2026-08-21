@@ -276,7 +276,7 @@ function scheduleNextBossQuestion(battle=state.v5?.boss){
 }
 function syncBossAutoAdvanceControls(){const next=document.getElementById('nextBtn'),active=state.v5?.boss?.status==='active'&&Number(state.active?.bossCourseStage)===Number(state.v5.boss.stage);document.body?.classList.toggle('boss-question-active',!!active);if(next){next.hidden=!!active;next.disabled=!!active||!state.answered;}}
 function placementAllowsStage(index){return Number(state.placementUnlockedThrough||0)>=Number(index);}
-function bossGateAllowsStage(index,baseUnlocked){return !!baseUnlocked&&(Number(index)===0||placementAllowsStage(index)||state.v5.bossDefeated.includes(Number(index)-1));}
+function bossGateAllowsStage(index,baseUnlocked){index=Number(index);const completedMine=state.clearedStages?.includes(index)||state.v5.bossDefeated.includes(index);return !!baseUnlocked&&(index===0||completedMine||placementAllowsStage(index)||state.v5.bossDefeated.includes(index-1));}
 const isStageUnlockedBeforeBossGate=isStageUnlocked;
 isStageUnlocked=function(index){const baseUnlocked=isStageUnlockedBeforeBossGate(index);ensureV5();return bossGateAllowsStage(index,baseUnlocked);};
 const currentShopPricesBeforeCompanions=currentShopPrices;

@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.169-native-pronunciation-r3';
+const CACHE_NAME='language-miner-v6.4.170-completed-mine-replay-r1';
 const APP_SHELL=[
   './',
   './index.html',

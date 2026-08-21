@@ -1,4 +1,4 @@
-// Language Miner v6.4.169 multilingual lessons with clue-safe native pronunciation.
+// Language Miner v6.4.170 multilingual lessons with permanent completed-mine replay.
 (()=>{
   'use strict';
   const LANGUAGES={
@@ -470,6 +470,7 @@
   }
   function courseLessonUnlocked(section,lesson,mineIndex=selectedCourseMine){
     lesson=Number(lesson)||0;mineIndex=Number(mineIndex)||0;if(!courseMineUnlocked(mineIndex))return false;if(lesson<=0)return true;
+    if(courseBossDefeated(mineIndex))return true;
     if(!courseLessonUnlocked(section,lesson-1,mineIndex))return false;
     const requirement=section==='alphabet'?MULTILINGUAL_ALPHABET_BOSS_MASTERY:MULTILINGUAL_LESSON_MASTERY_REQUIREMENT;
     if(courseLessonMastery(section,lesson-1,mineIndex)<requirement)return false;
@@ -505,7 +506,7 @@
   }
   function courseMineSections(mineIndex){if(travelCourseActive())return Number(mineIndex)===0?['travel']:[];return Number(mineIndex)===0?['alphabet','boss']:['vocabulary','grammar','sentences','boss'];}
   function courseMineMastery(mineIndex){const sections=courseMineSections(mineIndex);return Math.round(sections.reduce((sum,section)=>sum+courseSectionMastery(section,mineIndex),0)/sections.length);}
-  function courseMineUnlocked(mineIndex,progress=languageProgress()){return Number(mineIndex)===0||courseBossDefeated(Number(mineIndex)-1,progress);}
+  function courseMineUnlocked(mineIndex,progress=languageProgress()){mineIndex=Number(mineIndex)||0;return mineIndex===0||courseBossDefeated(mineIndex,progress)||courseBossDefeated(mineIndex-1,progress);}
   function recordCourseSectionAnswer(progress,section,correct){section=['alphabet','vocabulary','grammar','sentences','travel'].includes(String(section))?String(section):'vocabulary';progress.sectionAnswers=progress.sectionAnswers&&typeof progress.sectionAnswers==='object'?progress.sectionAnswers:{};progress.sectionAnswers[section]=Number(progress.sectionAnswers[section]||0)+1;progress.answered=Number(progress.answered||0)+1;progress.correct=Number(progress.correct||0)+(correct?1:0);return section;}
   function recordCourseMastery(question,correct){
     if(question?.mode==='boss')return;

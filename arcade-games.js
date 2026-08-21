@@ -1,4 +1,4 @@
-// Language Miner v6.4.169 Tier 3 Arcade — locale-safe spoken study games.
+// Language Miner v6.4.170 Tier 3 Arcade — locale-safe spoken study games.
 (()=>{
 'use strict';
 const GAMES=[

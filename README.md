@@ -1,4 +1,10 @@
-# Language Miner v6.4.169
+# Language Miner v6.4.170
+
+## v6.4.170 permanent completed-mine lesson replay
+
+- Completed mines remain permanently expandable and replayable in the Expedition Hub, even if later practice changes current mastery values.
+- Hiragana and Katakana family lessons, every Japanese JLPT section lesson, and every non-Japanese language lesson can be reopened from a completed mine.
+- Replaying an old lesson preserves the player's completion records, guardian rewards, review results, and course progress.
 
 ## v6.4.169 native pronunciation and clue-safe alphabet questions
 

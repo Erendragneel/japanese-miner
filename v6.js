@@ -1,7 +1,7 @@
 // Language Miner v6.0 â€” The Polish Update
 (()=>{
 'use strict';
-const VERSION='6.4.169-native-pronunciation-r2', SNAPSHOT_PREFIX='jm_v6_snapshots_', FEEDBACK_INBOX_KEY='jm_v6_admin_feedback_inbox', FEEDBACK_INBOX_LIMIT=200;
+const VERSION='6.4.170-completed-mine-replay-r1', SNAPSHOT_PREFIX='jm_v6_snapshots_', FEEDBACK_INBOX_KEY='jm_v6_admin_feedback_inbox', FEEDBACK_INBOX_LIMIT=200;
 let deferredInstallPrompt=null,installEventsBound=false,verifiedSupporterTier=0,verifiedSupporterEntitlement={tier:0,connected:false,source:'none'};
 const TOUR=[
  {section:'Getting started',icon:'â›ï¸',title:'Welcome to Language Miner',text:'Answer Japanese questions, build independently tracked practice mastery, collect scientific gemstones, and progress from Hiragana through JLPT N1-oriented practice.',tips:['Create or sign in to a player profile so every feature uses the same save.','Tap New Question or the mine rock to begin the selected course route.','Use the round menu button at the bottom-right whenever you need another game area.']},

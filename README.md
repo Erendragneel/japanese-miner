@@ -1,4 +1,63 @@
-# Language Miner v6.4.159
+# Language Miner v6.4.168
+
+## v6.4.168 tap the miner to swing
+
+- Fixed the behavior shown in the supplied recording: tapping the mine character or held pickaxe now starts the complete mining swing instead of cycling motivational greetings.
+- Protected the animation from repeated taps so a second tap cannot replace or interrupt the chest brace, overhead lift, lower-left strike, impact hold, and recovery.
+- Kept motivational tap reactions for lesson, arcade, and settlement characters while making the mine interaction consistently perform the mining action.
+
+## v6.4.167 reference-matched mining swing
+
+- Rebuilt the character motion from the supplied video: brace the pickaxe across the chest, lift it fully overhead, drive it down toward the lower-left, and hold the impact before recovering.
+- Added a much clearer crouch, forward torso lean, and leftward weight transfer so the character moves with the tool instead of remaining upright.
+- Slowed the complete action to make every preparation and impact pose readable on phone, tablet, and desktop layouts, while keeping the unwanted detached grip shapes removed.
+
+## v6.4.166 corrected left-side pickaxe strike
+
+- Removed the two simulated leather grip shapes that looked like detached extra hands on the pickaxe handle.
+- Corrected the mining arc so the pickaxe starts above the character's right shoulder, crosses the body continuously, and strikes down toward the character's lower-left side.
+- Synchronized the character's wind-up and weight transfer with the same strike direction, while preserving the remodeled pickaxe, responsive sizing, and reduced-motion support.
+
+## v6.4.165 realistic two-handed mining swing
+
+- Rebuilt the pickaxe path as a continuous shoulder-to-ground arc instead of reversing it through the character's face.
+- Added a planted setup, backswing, accelerating downward strike, ground impact, follow-through, recoil, and controlled return to the resting carry pose.
+- Synchronized the character's crouch, torso lean, forward weight transfer, impact compression, and recovery with the pickaxe head.
+- Added two visible leather grip points on the handle so the tool reads as held throughout the motion, plus impact-timed dust and a brief ground glow.
+- Preserved the remodeled reversed pickaxe head, shortened handle, phone/tablet/desktop sizing, reduced-motion preference, Tier 1 pose entitlement, and narrated Patreon videos.
+
+## v6.4.164 narrated Patreon heart videos
+
+- Added English narration and a cinematic stereo music bed to all three 24-second Patreon tier feature reels, matching the existing Language Miner trailer's Ava narrator and audio treatment.
+- Gave Supporter, Companion Keeper, and Settlement Founder their own narration that describes the real tier features visible in each admin-captured video.
+- Mixed every reel to broadcast-friendly loudness with voice filtering, music fades, peak limiting, 48 kHz stereo AAC audio, and the original H.264 visuals preserved without re-encoding.
+- Patreon videos now start with sound after the player's deliberate selection and provide an accessible Sound on/Sound off control; pausing, visibility checks, exact 24-second completion, heart eligibility, and the six-hour cooldown remain unchanged.
+
+## v6.4.163 realistic character mining swing
+
+- Added a coordinated wind-up, accelerated strike, impact follow-through, recoil, and recovery motion while the character holds the pickaxe.
+- Synchronized the character's bracing, lean, and body weight shift with the pickaxe arc instead of rotating the tool by itself.
+- Flipped the remodeled steel head an additional 180 degrees as requested and shortened only the lower handle while keeping the head near the character's hand and shoulder.
+- Preserved responsive phone, tablet, and desktop animation timing, including the low-performance character setting.
+
+## v6.4.162 remodeled classic pickaxe
+
+- Replaced the flat, arrow-like tool with a recognizable classic miner pickaxe featuring a forged steel head and central wood socket.
+- Added a slimmer wood-grain handle, reinforced wrapped grip, metal highlights, and more natural proportions.
+- Preserved the requested reversed orientation, diagonal hand placement, responsive sizing, and linked mining animation.
+
+## v6.4.161 reversed held pickaxe
+
+- Rotated the complete held pickaxe 180 degrees while keeping its compact diagonal placement across the character.
+- Reversed both the metal head and wooden handle together across phone, tablet, and desktop layouts.
+- Locked the reversed tool to the character's earlier visual footprint so rotation does not make it appear larger.
+- Preserved the linked idle and mining animations with the newly rotated tool orientation.
+
+## v6.4.160 natural diagonal held pickaxe
+
+- Repositioned the mine pickaxe across the front of the character, with the metal head resting near the lower-left cave floor and the handle rising through the hand toward the right shoulder.
+- Kept the pickaxe aligned with the character at phone, tablet, and desktop sizes.
+- Re-anchored the mining swing at the raised grip so the tool returns to the same natural carrying position after every animation.
 
 ## v6.4.159 real Patreon feature videos
 

@@ -1,4 +1,4 @@
-const CACHE_NAME='language-miner-v6.4.159-patreon-feature-videos';
+const CACHE_NAME='language-miner-v6.4.168-tap-to-swing';
 const APP_SHELL=[
   './',
   './index.html',
